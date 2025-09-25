@@ -8,13 +8,24 @@ import { createFavoritesPage } from './pages/FavoritesPage.js'
 import { createProfilePage } from './pages/ProfilePage.js'
 import { createOrderHistoryPage } from './pages/OrderHistoryPage.js'
 
-// Создаем основной layout
+// Проверяем тип устройства
 const app = document.querySelector<HTMLDivElement>('#app')!
+
+if (!app) {
+  throw new Error('App element not found')
+}
+
+// Создаем layout
 const layout = createLayout()
 app.appendChild(layout)
 
 // Настраиваем роутер
 const mainContent = document.getElementById('main-content')!
+
+if (!mainContent) {
+  throw new Error('Main content element not found')
+}
+
 router.setContainer(mainContent)
 
 // Добавляем маршруты
@@ -58,18 +69,5 @@ router.addRoute({
   title: 'История заказов'
 })
 
-// Обработка hash-роутинга для совместимости
-window.addEventListener('hashchange', () => {
-  const hash = window.location.hash.substring(1)
-  if (hash) {
-    router.navigate(hash)
-  }
-})
-
 // Инициализация приложения
-if (window.location.hash) {
-  const hash = window.location.hash.substring(1)
-  router.navigate(hash)
-} else {
-  router.navigate('/')
-}
+router.navigate('/')

@@ -1,7 +1,7 @@
-/* Основные стили */
+/* Основные стили для совместимости с Tailwind */
 :root {
-  --primary-color: #2563eb;
-  --primary-hover: #1d4ed8;
+  --primary-color: #137fec;
+  --primary-hover: #0f6fd6;
   --secondary-color: #64748b;
   --success-color: #10b981;
   --warning-color: #f59e0b;
@@ -1636,6 +1636,261 @@ input[type="checkbox"] {
   font-size: 0.875rem;
 }
 
+/* Сообщение для веб-устройств */
+.web-device-message {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--primary-color) 0%, #3b82f6 100%);
+  padding: var(--spacing-xl);
+}
+
+.web-message {
+  background-color: var(--background);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-2xl);
+  max-width: 600px;
+  width: 100%;
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+}
+
+.web-message__icon {
+  font-size: 4rem;
+  margin-bottom: var(--spacing-lg);
+}
+
+.web-message__title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: var(--spacing-md);
+  color: var(--text-primary);
+}
+
+.web-message__description {
+  font-size: 1.125rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-xl);
+  line-height: 1.6;
+}
+
+.web-message__features {
+  text-align: left;
+  margin-bottom: var(--spacing-xl);
+}
+
+.web-message__features h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: var(--spacing-md);
+  color: var(--text-primary);
+}
+
+.web-message__features ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.web-message__features li {
+  padding: var(--spacing-sm) 0;
+  font-size: 1rem;
+  color: var(--text-secondary);
+}
+
+.web-message__actions {
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: center;
+  margin-bottom: var(--spacing-xl);
+  flex-wrap: wrap;
+}
+
+.web-message__notify-btn,
+.web-message__demo-btn {
+  min-width: 150px;
+}
+
+.web-message__footer {
+  border-top: 1px solid var(--border);
+  padding-top: var(--spacing-lg);
+}
+
+.web-message__footer p {
+  color: var(--text-muted);
+  margin-bottom: var(--spacing-md);
+}
+
+.social-links {
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.social-link {
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.social-link:hover {
+  color: var(--primary-hover);
+}
+
+/* Форма уведомлений */
+.form-group {
+  margin-bottom: var(--spacing-lg);
+  text-align: left;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: var(--spacing-sm);
+  color: var(--text-primary);
+}
+
+.form-input {
+  width: 100%;
+  padding: var(--spacing-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background-color: var(--background);
+  color: var(--text-primary);
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.form-group input[type="checkbox"] {
+  margin-right: var(--spacing-sm);
+}
+
+/* Демо-версия */
+.demo-content {
+  display: flex;
+  gap: var(--spacing-xl);
+  align-items: flex-start;
+}
+
+.demo-mockup {
+  flex-shrink: 0;
+}
+
+.phone-mockup {
+  width: 200px;
+  height: 400px;
+  background-color: #333;
+  border-radius: 25px;
+  padding: 20px;
+  box-shadow: var(--shadow-lg);
+}
+
+.phone-screen {
+  width: 100%;
+  height: 100%;
+  background-color: var(--background);
+  border-radius: 15px;
+  overflow: hidden;
+}
+
+.demo-app {
+  padding: var(--spacing-md);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.demo-header {
+  text-align: center;
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--border);
+}
+
+.demo-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--primary-color);
+}
+
+.demo-search {
+  margin-bottom: var(--spacing-md);
+}
+
+.demo-search input {
+  width: 100%;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background-color: var(--surface);
+  font-size: 0.875rem;
+}
+
+.demo-cards {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.demo-card {
+  height: 60px;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  opacity: 0.7;
+}
+
+.demo-info {
+  flex: 1;
+}
+
+.demo-info h4 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: var(--spacing-md);
+  color: var(--text-primary);
+}
+
+.demo-info ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--spacing-lg) 0;
+}
+
+.demo-info li {
+  padding: var(--spacing-sm) 0;
+  color: var(--text-secondary);
+  position: relative;
+  padding-left: var(--spacing-lg);
+}
+
+.demo-info li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--success-color);
+  font-weight: bold;
+}
+
+.demo-note {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: var(--spacing-md);
+  background-color: var(--surface);
+  border-radius: var(--radius);
+  border-left: 4px solid var(--warning-color);
+}
+
 /* Адаптивность */
 @media (max-width: 768px) {
   .header__container {
@@ -1717,4 +1972,126 @@ input[type="checkbox"] {
   .modal-footer {
     flex-direction: column;
   }
+
+  /* Адаптивность для веб-сообщения */
+  .web-device-message {
+    padding: var(--spacing-md);
+  }
+
+  .web-message {
+    padding: var(--spacing-xl);
+  }
+
+  .web-message__title {
+    font-size: 1.5rem;
+  }
+
+  .web-message__actions {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .web-message__notify-btn,
+  .web-message__demo-btn {
+    width: 100%;
+    max-width: 250px;
+  }
+
+  .social-links {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .demo-content {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .phone-mockup {
+    width: 150px;
+    height: 300px;
+    margin-bottom: var(--spacing-lg);
+  }
+}
+
+/* Дополнительные стили для совместимости с новым дизайном */
+.text-shadow {
+  text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Стили для мобильной навигации */
+.nav-link {
+  transition: color 0.2s ease;
+}
+
+.nav-link:hover {
+  color: var(--primary-color) !important;
+}
+
+.nav-link svg {
+  transition: color 0.2s ease;
+}
+
+/* Стили для карточек категорий */
+[data-category] {
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+[data-category]:hover {
+  transform: scale(1.02);
+  opacity: 0.9;
+}
+
+/* Стили для карточек предложений */
+[data-offer] {
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+[data-offer]:hover {
+  transform: scale(1.02);
+  opacity: 0.9;
+}
+
+/* Стили для кнопок фильтров */
+[data-filter] {
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+[data-filter]:hover {
+  background-color: var(--primary-color);
+  color: white;
+  transform: translateY(-1px);
+}
+
+[data-filter]:active {
+  transform: translateY(0);
+}
+
+/* Стили для поиска */
+#search-input:focus {
+  background-color: white;
+  box-shadow: 0 0 0 2px var(--primary-color);
+}
+
+/* Стили для кнопки "Все предложения" */
+#all-offers-btn {
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+#all-offers-btn:hover {
+  background-color: var(--primary-hover);
+  transform: translateY(-1px);
+}
+
+#all-offers-btn:active {
+  transform: translateY(0);
 }
