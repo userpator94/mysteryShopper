@@ -30,7 +30,6 @@ export function detectDevice(): DeviceInfo {
   // Определяем по размеру экрана
   const isMobileScreen = screenWidth <= 768;
   const isTabletScreen = screenWidth > 768 && screenWidth <= 1024;
-  const isDesktopScreen = screenWidth > 1024;
   
   // Комбинируем проверки User Agent и размера экрана
   const isMobile = isMobileUA || (isMobileScreen && !isTabletUA);

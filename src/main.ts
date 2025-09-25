@@ -7,6 +7,8 @@ import { createOfferDetailPage } from './pages/OfferDetailPage.js'
 import { createFavoritesPage } from './pages/FavoritesPage.js'
 import { createProfilePage } from './pages/ProfilePage.js'
 import { createOrderHistoryPage } from './pages/OrderHistoryPage.js'
+import { showWebDeviceModal } from './components/WebDeviceMessage.js'
+import { detectDevice } from './utils/deviceDetection.js'
 
 // Проверяем тип устройства
 const app = document.querySelector<HTMLDivElement>('#app')!
@@ -18,6 +20,12 @@ if (!app) {
 // Создаем layout
 const layout = createLayout()
 app.appendChild(layout)
+
+// Проверяем тип устройства и показываем модальное окно для веб-устройств
+const device = detectDevice()
+if (device.isDesktop) {
+  showWebDeviceModal()
+}
 
 // Настраиваем роутер
 const mainContent = document.getElementById('main-content')!
