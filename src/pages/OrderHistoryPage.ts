@@ -7,8 +7,8 @@ export async function createOrderHistoryPage(): Promise<HTMLElement> {
   page.className = 'order-history-page';
 
   page.innerHTML = `
-    <div class="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden">
-      <div class="flex-grow">
+    <div class="relative w-full">
+      <div>
         <header class="sticky top-0 bg-white/80 backdrop-blur-sm z-10 px-4 pt-4">
           <h1 class="text-2xl font-bold">История заказов</h1>
         </header>

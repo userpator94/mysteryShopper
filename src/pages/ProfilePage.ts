@@ -7,8 +7,8 @@ export async function createProfilePage(): Promise<HTMLElement> {
   page.className = 'profile-page';
 
   page.innerHTML = `
-    <div class="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden">
-      <div class="flex-grow">
+    <div class="relative w-full">
+      <div>
         <header class="sticky top-0 bg-white/80 backdrop-blur-sm z-10 px-4 pt-4">
           <h1 class="text-2xl font-bold">Профиль</h1>
         </header>
@@ -49,15 +49,15 @@ export async function createProfilePage(): Promise<HTMLElement> {
               <div class="bg-white rounded-lg p-4 border border-slate-200">
                 <h3 class="font-semibold mb-2">Настройки</h3>
                 <div class="space-y-2">
-                  <div class="flex justify-between items-center">
+                  <div class="flex justify-between items-center cursor-pointer hover:bg-slate-50 p-2 rounded transition-colors" data-action="language">
                     <span>Язык</span>
                     <span class="text-slate-600">Русский</span>
                   </div>
-                  <div class="flex justify-between items-center">
+                  <div class="flex justify-between items-center cursor-pointer hover:bg-slate-50 p-2 rounded transition-colors" data-action="theme">
                     <span>Тема</span>
                     <span class="text-slate-600">Светлая</span>
                   </div>
-                  <div class="flex justify-between items-center">
+                  <div class="flex justify-between items-center cursor-pointer hover:bg-slate-50 p-2 rounded transition-colors" data-action="notifications">
                     <span>Уведомления</span>
                     <span class="text-slate-600">Включены</span>
                   </div>
@@ -67,9 +67,9 @@ export async function createProfilePage(): Promise<HTMLElement> {
               <div class="bg-white rounded-lg p-4 border border-slate-200">
                 <h3 class="font-semibold mb-2">Поддержка</h3>
                 <div class="space-y-2">
-                  <button class="w-full text-left py-2">Помощь</button>
-                  <button class="w-full text-left py-2">Связаться с нами</button>
-                  <button class="w-full text-left py-2">Оставить отзыв</button>
+                  <button class="w-full text-left py-2 cursor-pointer hover:bg-slate-50 rounded transition-colors" data-action="help">Помощь</button>
+                  <button class="w-full text-left py-2 cursor-pointer hover:bg-slate-50 rounded transition-colors" data-action="contact">Связаться с нами</button>
+                  <button class="w-full text-left py-2 cursor-pointer hover:bg-slate-50 rounded transition-colors" data-action="feedback">Оставить отзыв</button>
                 </div>
               </div>
               
@@ -83,5 +83,44 @@ export async function createProfilePage(): Promise<HTMLElement> {
     </div>
   `;
 
+  // Настраиваем обработчики событий
+  setupEventHandlers(page);
+
   return page;
+}
+
+function setupEventHandlers(page: HTMLElement) {
+  // Обработчики для элементов настроек и поддержки
+  const actionElements = page.querySelectorAll('[data-action]');
+  actionElements.forEach(element => {
+    element.addEventListener('click', () => {
+      const action = (element as HTMLElement).dataset.action;
+      handleAction(action);
+    });
+  });
+}
+
+function handleAction(action: string | undefined) {
+  switch (action) {
+    case 'language':
+      console.log('Открыть настройки языка');
+      break;
+    case 'theme':
+      console.log('Открыть настройки темы');
+      break;
+    case 'notifications':
+      console.log('Открыть настройки уведомлений');
+      break;
+    case 'help':
+      console.log('Открыть помощь');
+      break;
+    case 'contact':
+      console.log('Связаться с нами');
+      break;
+    case 'feedback':
+      console.log('Оставить отзыв');
+      break;
+    default:
+      console.log('Неизвестное действие:', action);
+  }
 }

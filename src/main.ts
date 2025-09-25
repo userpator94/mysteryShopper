@@ -44,7 +44,8 @@ router.addRoute({
 router.addRoute({
   path: '/offers/:id',
   component: () => {
-    const pathParts = window.location.pathname.split('/')
+    const hash = window.location.hash.substring(1)
+    const pathParts = hash.split('/')
     const offerId = pathParts[pathParts.length - 1]
     return createOfferDetailPage(offerId)
   },

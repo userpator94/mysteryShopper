@@ -1,14 +1,14 @@
 // Страница списка предложений с фильтрами и сортировкой
 
-import type { Offer } from '../types/index.js';
+// import type { Offer } from '../types/index.js';
 
 export async function createOffersListPage(): Promise<HTMLElement> {
   const page = document.createElement('div');
   page.className = 'offers-list-page';
   
   page.innerHTML = `
-    <div class="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden">
-      <div class="flex-grow">
+    <div class="relative w-full">
+      <div>
         <header class="sticky top-0 bg-white/80 backdrop-blur-sm z-10 px-4 pt-4">
           <div class="relative">
             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -32,7 +32,7 @@ export async function createOffersListPage(): Promise<HTMLElement> {
             <h1 class="text-2xl font-bold mb-4">Предложения</h1>
             
             <div class="grid grid-cols-1 gap-4">
-              <div class="bg-white rounded-lg p-4 border border-slate-200">
+              <div class="bg-white rounded-lg p-4 border border-slate-200 cursor-pointer hover:shadow-md transition-shadow" data-offer-id="1">
                 <div class="w-full h-48 bg-slate-200 rounded-lg mb-3"></div>
                 <h3 class="font-semibold mb-2">Дегустация вин в ресторане "Сомелье"</h3>
                 <p class="text-slate-600 text-sm mb-2">Уникальная возможность попробовать лучшие вина мира</p>
@@ -42,7 +42,7 @@ export async function createOffersListPage(): Promise<HTMLElement> {
                 </div>
               </div>
               
-              <div class="bg-white rounded-lg p-4 border border-slate-200">
+              <div class="bg-white rounded-lg p-4 border border-slate-200 cursor-pointer hover:shadow-md transition-shadow" data-offer-id="2">
                 <div class="w-full h-48 bg-slate-200 rounded-lg mb-3"></div>
                 <h3 class="font-semibold mb-2">Мастер-класс по приготовлению суши</h3>
                 <p class="text-slate-600 text-sm mb-2">Научитесь готовить традиционные японские суши</p>
@@ -52,7 +52,7 @@ export async function createOffersListPage(): Promise<HTMLElement> {
                 </div>
               </div>
               
-              <div class="bg-white rounded-lg p-4 border border-slate-200">
+              <div class="bg-white rounded-lg p-4 border border-slate-200 cursor-pointer hover:shadow-md transition-shadow" data-offer-id="3">
                 <div class="w-full h-48 bg-slate-200 rounded-lg mb-3"></div>
                 <h3 class="font-semibold mb-2">Экскурсия по историческому центру</h3>
                 <p class="text-slate-600 text-sm mb-2">Познакомьтесь с историей города</p>
@@ -68,7 +68,24 @@ export async function createOffersListPage(): Promise<HTMLElement> {
     </div>
   `;
 
+  // Настраиваем обработчики событий
+  setupEventHandlers(page);
+
   return page;
+}
+
+function setupEventHandlers(page: HTMLElement) {
+  // Обработчики для карточек предложений
+  const offerCards = page.querySelectorAll('[data-offer-id]');
+  offerCards.forEach(card => {
+    card.addEventListener('click', () => {
+      const offerId = (card as HTMLElement).dataset.offerId;
+      if (offerId) {
+        // Используем роутер для навигации
+        window.location.hash = `#/offers/${offerId}`;
+      }
+    });
+  });
 }
 
 // function setupEventHandlers(page: HTMLElement) {

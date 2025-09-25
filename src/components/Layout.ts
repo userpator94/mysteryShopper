@@ -4,10 +4,10 @@ import { router } from '../router/index.js';
 
 export function createLayout(): HTMLElement {
   const layout = document.createElement('div');
-  layout.className = 'relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden';
+  layout.className = 'relative w-full';
   
   layout.innerHTML = `
-    <div class="flex-grow" id="main-content">
+    <div id="main-content">
       <!-- Контент страниц будет загружаться здесь -->
     </div>
     
@@ -62,7 +62,7 @@ function updateActiveNavLink(activeRoute: string) {
   navLinks.forEach(link => {
     const route = link.getAttribute('data-route');
     const icon = link.querySelector('svg');
-    const text = link.querySelector('p');
+    // const text = link.querySelector('p');
     
     if (route === activeRoute) {
       link.classList.remove('text-slate-500');

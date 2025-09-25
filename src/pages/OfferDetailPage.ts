@@ -2,13 +2,13 @@
 
 // import { Offer } from '../types/index.js';
 
-export async function createOfferDetailPage(offerId: string): Promise<HTMLElement> {
+export async function createOfferDetailPage(_offerId: string): Promise<HTMLElement> {
   const page = document.createElement('div');
   page.className = 'offer-detail-page';
 
   page.innerHTML = `
-    <div class="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden">
-      <div class="flex-grow">
+    <div class="relative w-full">
+      <div>
         <header class="sticky top-0 bg-white/80 backdrop-blur-sm z-10 px-4 pt-4">
           <div class="flex items-center gap-3">
             <button class="text-slate-500">
@@ -70,5 +70,16 @@ export async function createOfferDetailPage(offerId: string): Promise<HTMLElemen
     </div>
   `;
 
+  // Настраиваем обработчики событий
+  setupEventHandlers(page);
+
   return page;
+}
+
+function setupEventHandlers(page: HTMLElement) {
+  // Кнопка "Назад"
+  const backBtn = page.querySelector('button');
+  backBtn?.addEventListener('click', () => {
+    window.history.back();
+  });
 }

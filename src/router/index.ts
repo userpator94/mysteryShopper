@@ -36,7 +36,7 @@ class Router {
 
   private async handleRoute() {
     const hash = window.location.hash.substring(1) || '/';
-    const route = this.routes.find(r => r.path === hash) || this.routes.find(r => r.path === '/');
+    const route = this.findMatchingRoute(hash);
     
     if (route && this.container) {
       this.currentRoute = route;
@@ -54,6 +54,26 @@ class Router {
         this.container.innerHTML = '<div class="error">Страница не найдена</div>';
       }
     }
+  }
+
+  private findMatchingRoute(path: string): Route | null {
+    // Сначала ищем точное совпадение
+    const exactMatch = this.routes.find(r => r.path === path);
+    if (exactMatch) return exactMatch;
+
+    // Затем ищем маршруты с параметрами
+    for (const route of this.routes) {
+      if (route.path.includes(':')) {
+        const routePattern = route.path.replace(/:[^/]+/g, '[^/]+');
+        const regex = new RegExp(`^${routePattern}$`);
+        if (regex.test(path)) {
+          return route;
+        }
+      }
+    }
+
+    // Если ничего не найдено, возвращаем главную страницу
+    return this.routes.find(r => r.path === '/') || null;
   }
 
   getCurrentRoute(): Route | null {

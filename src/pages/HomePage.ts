@@ -7,8 +7,8 @@ export async function createHomePage(): Promise<HTMLElement> {
   page.className = 'home-page';
   
   page.innerHTML = `
-    <div class="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden">
-      <div class="flex-grow">
+    <div class="relative w-full">
+      <div>
         <header class="sticky top-0 bg-white/80 backdrop-blur-sm z-10 px-4 pt-4">
           <div class="relative">
             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -79,7 +79,7 @@ export async function createHomePage(): Promise<HTMLElement> {
           
           <div class="px-4 pt-4 space-y-4">
             <div class="grid grid-cols-2 gap-4">
-              <div class="space-y-2">
+              <div class="space-y-2 cursor-pointer hover:shadow-md transition-shadow" data-offer-id="4">
                 <div class="w-full aspect-square bg-slate-200 rounded-lg"></div>
                 <div class="flex justify-between items-start">
                   <h3 class="text-slate-900 text-sm font-semibold leading-tight">Продажа в Магазине Одежды</h3>
@@ -90,7 +90,7 @@ export async function createHomePage(): Promise<HTMLElement> {
                   <span class="bg-green-100 text-green-600 text-xs font-medium px-2 py-0.5 rounded">Новое</span>
                 </div>
               </div>
-              <div class="space-y-2">
+              <div class="space-y-2 cursor-pointer hover:shadow-md transition-shadow" data-offer-id="5">
                 <div class="w-full aspect-square bg-slate-200 rounded-lg"></div>
                 <div class="flex justify-between items-start">
                   <h3 class="text-slate-900 text-sm font-semibold leading-tight">Продажа в Магазине Обуви</h3>
@@ -101,14 +101,37 @@ export async function createHomePage(): Promise<HTMLElement> {
                 </div>
               </div>
             </div>
-            <button class="w-full h-12 bg-primary text-white rounded-lg font-semibold">Все предложения</button>
+            <button class="w-full h-12 bg-primary text-white rounded-lg font-semibold" data-action="all-offers">Все предложения</button>
           </div>
         </main>
       </div>
     </div>
   `;
 
+  // Настраиваем обработчики событий
+  setupEventHandlers(page);
+
   return page;
+}
+
+function setupEventHandlers(page: HTMLElement) {
+  // Обработчики для карточек предложений (space-y-2)
+  const offerCards = page.querySelectorAll('[data-offer-id]');
+  offerCards.forEach(card => {
+    card.addEventListener('click', () => {
+      const offerId = (card as HTMLElement).dataset.offerId;
+      if (offerId) {
+        // Используем роутер для навигации
+        window.location.hash = `#/offers/${offerId}`;
+      }
+    });
+  });
+
+  // Обработчик для кнопки "Все предложения"
+  const allOffersBtn = page.querySelector('[data-action="all-offers"]');
+  allOffersBtn?.addEventListener('click', () => {
+    window.location.hash = '#/offers';
+  });
 }
 
 // function setupEventHandlers(page: HTMLElement) {
