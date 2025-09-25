@@ -36,7 +36,8 @@ class Router {
 
   private async handleRoute() {
     const hash = window.location.hash.substring(1) || '/';
-    const route = this.findMatchingRoute(hash);
+    const [path] = hash.split('?');
+    const route = this.findMatchingRoute(path);
     
     if (route && this.container) {
       this.currentRoute = route;
@@ -78,6 +79,12 @@ class Router {
 
   getCurrentRoute(): Route | null {
     return this.currentRoute;
+  }
+
+  getQueryParams(): URLSearchParams {
+    const hash = window.location.hash.substring(1) || '/';
+    const [, queryString] = hash.split('?');
+    return new URLSearchParams(queryString || '');
   }
 }
 

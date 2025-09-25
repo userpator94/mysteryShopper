@@ -1,15 +1,35 @@
 // Страница списка предложений с фильтрами и сортировкой
 
 // import type { Offer } from '../types/index.js';
+import { router } from '../router/index.js';
 
 export async function createOffersListPage(): Promise<HTMLElement> {
   const page = document.createElement('div');
   page.className = 'offers-list-page';
   
+  // Получаем параметры запроса
+  const queryParams = router.getQueryParams();
+  const category = queryParams.get('category');
+  
+  // Определяем заголовок страницы в зависимости от категории
+  const categoryNames: Record<string, string> = {
+    'clothing': 'Одежда',
+    'shoes': 'Обувь',
+    'electronics': 'Электроника',
+    'food': 'Продукты',
+    'sports': 'Спорт',
+    'beauty': 'Красота'
+  };
+  
+  const pageTitle = category && categoryNames[category] 
+    ? `${categoryNames[category]} - Предложения`
+    : 'Предложения';
+  
   page.innerHTML = `
     <div class="relative w-full">
       <div>
         <header class="sticky top-0 bg-white/80 backdrop-blur-sm z-10 px-4 pt-4">
+          <h1 class="text-2xl font-bold mb-4">${pageTitle}</h1>
           <div class="relative">
             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
               <svg class="text-slate-500" fill="currentColor" height="20" viewBox="0 0 256 256" width="20" xmlns="http://www.w3.org/2000/svg">
@@ -29,8 +49,6 @@ export async function createOffersListPage(): Promise<HTMLElement> {
         
         <main class="pb-28">
           <div class="px-4 py-4">
-            <h1 class="text-2xl font-bold mb-4">Предложения</h1>
-            
             <div class="grid grid-cols-1 gap-4">
               <div class="bg-white rounded-lg p-4 border border-slate-200 cursor-pointer hover:shadow-md transition-shadow" data-offer-id="1">
                 <div class="w-full h-48 bg-slate-200 rounded-lg mb-3"></div>
