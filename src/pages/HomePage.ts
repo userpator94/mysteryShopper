@@ -1,7 +1,73 @@
 // Главный экран с поиском и фильтрами
 
-// import { Offer, Category } from '../types/index.js';
+import type { Offer } from '../types/index.js';
 import { getCurrentLocation, formatCityName } from '../utils/geolocation.js';
+
+// Функция для получения промо-предложений из API
+async function fetchPromoOffers(): Promise<Offer[]> {
+  try {
+    // В development используем прокси Vite, в production - прямой URL
+    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const apiUrl = isDevelopment 
+      ? '/api/promo-offers' // Используем прокси Vite
+      : 'https://your-production-domain.com/api/promo-offers'; // Замените на реальный домен для продакшена
+    
+    console.log('Запрос к API:', apiUrl);
+    
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    console.log('Ответ API:', response.status, response.statusText);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+    }
+    
+    const responseData = await response.json();
+    console.log('Полученные данные:', responseData);
+    
+    // Обрабатываем структуру ответа API
+    if (responseData.success && Array.isArray(responseData.data)) {
+      return responseData.data;
+    } else if (Array.isArray(responseData)) {
+      return responseData;
+    } else {
+      console.warn('Неожиданная структура ответа API:', responseData);
+      return [];
+    }
+  } catch (error) {
+    console.error('Ошибка при получении промо-предложений:', error);
+    console.error('Тип ошибки:', error instanceof Error ? error.message : 'Неизвестная ошибка');
+    return [];
+  }
+}
+
+// Функция для генерации HTML карточки предложения
+function generateOfferCard(offer: any): string {
+  // Адаптируемся к реальной структуре данных из API
+  const discountPercentage = offer.numericInfo || Math.round((offer.price / 100) * 20) || 20;
+  const imageUrl = offer.imageId ? `https://via.placeholder.com/300x300?text=${encodeURIComponent(offer.title)}` : '';
+  
+  return `
+    <div class="space-y-2 cursor-pointer hover:shadow-md transition-shadow" data-offer-id="${offer.id}">
+      <div class="w-full aspect-square bg-slate-200 rounded-lg ${imageUrl ? '' : ''}" ${imageUrl ? `style="background-image: url('${imageUrl}'); background-size: cover; background-position: center;"` : ''}></div>
+      <div class="flex justify-between items-start">
+        <h3 class="text-slate-900 text-sm font-semibold leading-tight">${offer.title}</h3>
+        <span class="text-primary text-sm font-bold">${discountPercentage}₽</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        ${offer.tags && offer.tags.includes('популярно') ? '<span class="bg-slate-200 text-slate-600 text-xs font-medium px-2 py-0.5 rounded">Популярно</span>' : ''}
+        ${offer.tags && offer.tags.includes('новое') ? '<span class="bg-green-100 text-green-600 text-xs font-medium px-2 py-0.5 rounded">Новое</span>' : ''}
+        ${offer.tags && offer.tags.includes('быстро') ? '<span class="bg-blue-100 text-blue-600 text-xs font-medium px-2 py-0.5 rounded">Быстро</span>' : ''}
+        ${offer.tags && offer.tags.includes('экономно') ? '<span class="bg-yellow-100 text-yellow-600 text-xs font-medium px-2 py-0.5 rounded">Экономно</span>' : ''}
+      </div>
+    </div>
+  `;
+}
 
 export async function createHomePage(): Promise<HTMLElement> {
   const page = document.createElement('div');
@@ -37,13 +103,23 @@ export async function createHomePage(): Promise<HTMLElement> {
     </div>
   `;
   
-  // Получаем информацию о местоположении
+  // Получаем информацию о местоположении и промо-предложения параллельно
   let cityName = 'Москва'; // Значение по умолчанию
+  let promoOffers: Offer[] = [];
+  
   try {
-    const locationInfo = await getCurrentLocation();
-    cityName = formatCityName(locationInfo);
+    const [locationInfo, offers] = await Promise.all([
+      getCurrentLocation().catch(() => null),
+      fetchPromoOffers()
+    ]);
+    
+    if (locationInfo) {
+      cityName = formatCityName(locationInfo);
+    }
+    
+    promoOffers = offers.slice(0, 2); // Берем только первые два предложения
   } catch (error) {
-    console.error('Не удалось определить местоположение:', error);
+    console.error('Ошибка при загрузке данных:', error);
   }
   
   // Обновляем страницу с полученным городом
@@ -138,27 +214,29 @@ export async function createHomePage(): Promise<HTMLElement> {
           
           <div id="offers-section" class="px-4 pt-4 space-y-4">
             <div class="grid grid-cols-2 gap-4">
-              <div class="space-y-2 cursor-pointer hover:shadow-md transition-shadow" data-offer-id="4">
-                <div class="w-full aspect-square bg-slate-200 rounded-lg"></div>
-                <div class="flex justify-between items-start">
-                  <h3 class="text-slate-900 text-sm font-semibold leading-tight">Продажа в Магазине Одежды</h3>
-                  <span class="text-primary text-sm font-bold">20%</span>
+              ${promoOffers.length > 0 ? promoOffers.map(offer => generateOfferCard(offer)).join('') : `
+                <div class="space-y-2 cursor-pointer hover:shadow-md transition-shadow" data-offer-id="4">
+                  <div class="w-full aspect-square bg-slate-200 rounded-lg"></div>
+                  <div class="flex justify-between items-start">
+                    <h3 class="text-slate-900 text-sm font-semibold leading-tight">Продажа в Магазине Одежды</h3>
+                    <span class="text-primary text-sm font-bold">20%</span>
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <span class="bg-slate-200 text-slate-600 text-xs font-medium px-2 py-0.5 rounded">Популярно</span>
+                    <span class="bg-green-100 text-green-600 text-xs font-medium px-2 py-0.5 rounded">Новое</span>
+                  </div>
                 </div>
-                <div class="flex items-center gap-1.5">
-                  <span class="bg-slate-200 text-slate-600 text-xs font-medium px-2 py-0.5 rounded">Популярно</span>
-                  <span class="bg-green-100 text-green-600 text-xs font-medium px-2 py-0.5 rounded">Новое</span>
+                <div class="space-y-2 cursor-pointer hover:shadow-md transition-shadow" data-offer-id="5">
+                  <div class="w-full aspect-square bg-slate-200 rounded-lg"></div>
+                  <div class="flex justify-between items-start">
+                    <h3 class="text-slate-900 text-sm font-semibold leading-tight">Продажа в Магазине Обуви</h3>
+                    <span class="text-primary text-sm font-bold">15%</span>
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <span class="bg-slate-200 text-slate-600 text-xs font-medium px-2 py-0.5 rounded">Популярно</span>
+                  </div>
                 </div>
-              </div>
-              <div class="space-y-2 cursor-pointer hover:shadow-md transition-shadow" data-offer-id="5">
-                <div class="w-full aspect-square bg-slate-200 rounded-lg"></div>
-                <div class="flex justify-between items-start">
-                  <h3 class="text-slate-900 text-sm font-semibold leading-tight">Продажа в Магазине Обуви</h3>
-                  <span class="text-primary text-sm font-bold">15%</span>
-                </div>
-                <div class="flex items-center gap-1.5">
-                  <span class="bg-slate-200 text-slate-600 text-xs font-medium px-2 py-0.5 rounded">Популярно</span>
-                </div>
-              </div>
+              `}
             </div>
             <button class="w-full h-12 bg-primary text-white rounded-lg font-semibold" data-action="all-offers">Все предложения</button>
           </div>
