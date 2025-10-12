@@ -10,6 +10,7 @@ class Router {
   private routes: Route[] = [];
   private currentRoute: Route | null = null;
   private container: HTMLElement | null = null;
+  private isInitialized = false;
 
   constructor() {
     this.init();
@@ -18,7 +19,7 @@ class Router {
   private init() {
     window.addEventListener('popstate', () => this.handleRoute());
     window.addEventListener('hashchange', () => this.handleRoute());
-    this.handleRoute();
+    // Не вызываем handleRoute() сразу - это будет сделано в main.ts
   }
 
   addRoute(route: Route) {
@@ -31,7 +32,7 @@ class Router {
 
   navigate(path: string) {
     window.location.hash = path;
-    this.handleRoute();
+    // Не вызываем handleRoute() здесь - это будет сделано через событие hashchange
   }
 
   private async handleRoute() {
@@ -39,7 +40,8 @@ class Router {
     const [path] = hash.split('?');
     const route = this.findMatchingRoute(path);
     
-    if (route && this.container) {
+    // Проверяем, что это действительно новый маршрут
+    if (route && this.container && route !== this.currentRoute) {
       this.currentRoute = route;
       document.title = `${route.title} - Mystery Shopper`;
       
@@ -85,6 +87,14 @@ class Router {
     const hash = window.location.hash.substring(1) || '/';
     const [, queryString] = hash.split('?');
     return new URLSearchParams(queryString || '');
+  }
+
+  // Метод для инициализации роутера после добавления всех маршрутов
+  initialize() {
+    if (!this.isInitialized) {
+      this.isInitialized = true;
+      this.handleRoute();
+    }
   }
 }
 

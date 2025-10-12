@@ -79,4 +79,4 @@ router.addRoute({
 })
 
 // Инициализация приложения
-router.navigate('/')
+router.initialize()

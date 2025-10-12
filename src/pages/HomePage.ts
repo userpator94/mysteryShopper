@@ -3,9 +3,19 @@
 import type { Offer } from '../types/index.js';
 import { getCurrentLocation, formatCityName } from '../utils/geolocation.js';
 
+// Кэш для промо-предложений
+let promoOffersCache: { data: Offer[]; timestamp: number } | null = null;
+const CACHE_DURATION = 30000; // 30 секунд
+
 // Функция для получения промо-предложений из API
 async function fetchPromoOffers(): Promise<Offer[]> {
   try {
+    // Проверяем кэш
+    if (promoOffersCache && Date.now() - promoOffersCache.timestamp < CACHE_DURATION) {
+      console.log('Используем кэшированные промо-предложения');
+      return promoOffersCache.data;
+    }
+
     // В development используем прокси Vite, в production - прямой URL
     const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     const apiUrl = isDevelopment 
@@ -31,14 +41,20 @@ async function fetchPromoOffers(): Promise<Offer[]> {
     console.log('Полученные данные:', responseData);
     
     // Обрабатываем структуру ответа API
+    let offers: Offer[] = [];
     if (responseData.success && Array.isArray(responseData.data)) {
-      return responseData.data;
+      offers = responseData.data;
     } else if (Array.isArray(responseData)) {
-      return responseData;
+      offers = responseData;
     } else {
       console.warn('Неожиданная структура ответа API:', responseData);
-      return [];
+      offers = [];
     }
+
+    // Кэшируем результат
+    promoOffersCache = { data: offers, timestamp: Date.now() };
+    
+    return offers;
   } catch (error) {
     console.error('Ошибка при получении промо-предложений:', error);
     console.error('Тип ошибки:', error instanceof Error ? error.message : 'Неизвестная ошибка');

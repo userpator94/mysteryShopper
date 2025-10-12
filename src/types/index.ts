@@ -17,21 +17,29 @@ export interface UserPreferences {
 
 export interface Offer {
   id: string;
+  image_id?: string;
   title: string;
+  numeric_info: number;
+  tags: string;
+  is_promo: boolean;
+  employer_id: string;
+  start_date: string;
+  end_date: string;
+  is_active: boolean;
+  price: string;
+  max_participants: number;
+  current_participants: number;
   description: string;
-  price: number;
-  currency: string;
-  images: string[];
-  videos?: string[];
-  location: Location;
-  category: string;
-  rating: number;
-  reviewsCount: number;
-  isFavorite: boolean;
-  createdAt: string;
-  updatedAt: string;
-  conditions: string[];
-  tags: string[];
+  requirements: string;
+  location: string;
+  created_at: string;
+  updated_at: string;
+  employer_name: string;
+  employer_surname: string;
+  employer_company: string;
+  image_url?: string;
+  image_alt_text?: string;
+  available_slots: number;
 }
 
 export interface Location {
