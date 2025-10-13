@@ -1,7 +1,8 @@
 // Сервис для работы с API
-import type { Offer, SearchParams } from '../types/index.js';
+import type { Offer, SearchParams, FavoriteOfferSummary, AddToFavoritesResponse, RemoveFromFavoritesResponse, UserStatisticsResponse } from '../types/index.js';
 
 const API_BASE_URL = '/api';
+const DEV_USER_ID = '1416fac6-6954-4d49-a35c-684ead433361'; // Hardcoded user ID for development
 
 export class ApiService {
   private static instance: ApiService;
@@ -32,6 +33,7 @@ export class ApiService {
     const defaultOptions: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
+        'X-User-Id': DEV_USER_ID,
         ...options.headers,
       },
     };
@@ -94,13 +96,45 @@ export class ApiService {
   }
 
   public async getOfferById(id: string): Promise<Offer> {
-    return this.request<Offer>(`/offers/${id}`);
+    const response = await this.request<{ success: boolean; data: Offer }>(`/offers/${id}`);
+    return response.data;
   }
 
   public async toggleFavorite(offerId: string): Promise<{ isFavorite: boolean }> {
     return this.request<{ isFavorite: boolean }>(`/offers/${offerId}/favorite`, {
       method: 'POST',
     });
+  }
+
+  public async getFavorites(): Promise<FavoriteOfferSummary[]> {
+    try {
+      const response = await this.request<{ success: boolean; data: FavoriteOfferSummary[] }>('/favorites');
+      return response.data;
+    } catch (error: any) {
+      // Если ошибка 404, возвращаем пустой массив (нет избранных предложений)
+      if (error?.message?.includes('404') || error?.status === 404) {
+        return [];
+      }
+      // Для других ошибок пробрасываем исключение
+      throw error;
+    }
+  }
+
+  public async addToFavorites(offerId: string): Promise<AddToFavoritesResponse> {
+    return this.request<AddToFavoritesResponse>('/favorites', {
+      method: 'POST',
+      body: JSON.stringify({ offer_id: offerId }),
+    });
+  }
+
+  public async removeFromFavorites(offerId: string): Promise<RemoveFromFavoritesResponse> {
+    return this.request<RemoveFromFavoritesResponse>(`/favorites/${offerId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  public async getUserStatistics(): Promise<UserStatisticsResponse> {
+    return this.request<UserStatisticsResponse>('/user-statistics');
   }
 }
 

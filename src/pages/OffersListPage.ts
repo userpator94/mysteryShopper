@@ -154,7 +154,11 @@ function renderOffers(container: HTMLElement, offers: Offer[]) {
       <p class="text-slate-600 text-sm mb-2">${offer.description}</p>
       <div class="flex justify-between items-center">
         <span class="text-primary font-bold">${parseFloat(offer.price).toLocaleString()} ₽</span>
-        <span class="text-sm text-slate-500">⭐ ${offer.numeric_info}</span>
+        <button class="text-red-500 hover:text-red-700 p-1" data-add-favorite="${offer.id}" title="Добавить в избранное">
+          <svg fill="currentColor" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12,21.35L10.55,20.03C5.4,15.36 2,12.27 2,8.5 2,5.41 4.42,3 7.5,3C9.24,3 10.91,3.81 12,5.08C13.09,3.81 14.76,3 16.5,3C19.58,3 22,5.41 22,8.5C22,12.27 18.6,15.36 13.45,20.03L12,21.35Z"/>
+          </svg>
+        </button>
       </div>
     </div>
   `).join('');
@@ -204,13 +208,24 @@ function setupEventHandlers(page: HTMLElement) {
     await loadOffers(page, category);
   });
 
-  // Обработчики для карточек предложений
-  page.addEventListener('click', (e) => {
+  // Обработчики для карточек предложений и кнопок избранного
+  page.addEventListener('click', async (e) => {
     const target = e.target as HTMLElement;
-    const offerCard = target.closest('[data-offer-id]') as HTMLElement;
+    
+    // Проверяем, кликнули ли на кнопку добавления в избранное
+    const favoriteBtn = target.closest('[data-add-favorite]') as HTMLElement;
+    if (favoriteBtn) {
+      e.stopPropagation(); // Предотвращаем переход к детальной странице
+      const offerId = favoriteBtn.dataset.addFavorite;
+      if (offerId) {
+        await addToFavorites(offerId, favoriteBtn);
+      }
+      return;
+    }
 
+    // Проверяем, кликнули ли на карточку предложения
+    const offerCard = target.closest('[data-offer-id]') as HTMLElement;
     if (offerCard) {
-      // Переход к детальной странице предложения
       const offerId = offerCard.dataset.offerId;
       if (offerId) {
         window.location.hash = `#/offers/${offerId}`;
@@ -219,4 +234,57 @@ function setupEventHandlers(page: HTMLElement) {
   });
 }
 
+// Функция добавления в избранное
+async function addToFavorites(offerId: string, button: HTMLElement) {
+  const buttonEl = button as HTMLButtonElement;
+  
+  try {
+    // Показываем состояние загрузки на кнопке
+    const originalContent = buttonEl.innerHTML;
+    buttonEl.innerHTML = '<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500"></div>';
+    buttonEl.disabled = true;
 
+    await apiService.addToFavorites(offerId);
+    
+    // Показываем успешное состояние
+    buttonEl.innerHTML = `
+      <svg fill="currentColor" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9,20.42L2.79,14.21L5.62,11.38L9,14.77L18.88,4.88L21.71,7.71L9,20.42Z"/>
+      </svg>
+    `;
+    buttonEl.classList.remove('text-red-500', 'hover:text-red-700');
+    buttonEl.classList.add('text-green-500');
+    
+    // Через 2 секунды возвращаем исходное состояние
+    setTimeout(() => {
+      buttonEl.innerHTML = originalContent;
+      buttonEl.disabled = false;
+      buttonEl.classList.remove('text-green-500');
+      buttonEl.classList.add('text-red-500', 'hover:text-red-700');
+    }, 2000);
+    
+  } catch (error) {
+    console.error('Ошибка добавления в избранное:', error);
+    
+    // Показываем ошибку
+    buttonEl.innerHTML = `
+      <svg fill="currentColor" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
+        <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+      </svg>
+    `;
+    buttonEl.classList.remove('text-red-500', 'hover:text-red-700');
+    buttonEl.classList.add('text-red-600');
+    
+    // Через 2 секунды возвращаем исходное состояние
+    setTimeout(() => {
+      buttonEl.innerHTML = `
+        <svg fill="currentColor" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12,21.35L10.55,20.03C5.4,15.36 2,12.27 2,8.5 2,5.41 4.42,3 7.5,3C9.24,3 10.91,3.81 12,5.08C13.09,3.81 14.76,3 16.5,3C19.58,3 22,5.41 22,8.5C22,12.27 18.6,15.36 13.45,20.03L12,21.35Z"/>
+        </svg>
+      `;
+      buttonEl.disabled = false;
+      buttonEl.classList.remove('text-red-600');
+      buttonEl.classList.add('text-red-500', 'hover:text-red-700');
+    }, 2000);
+  }
+}

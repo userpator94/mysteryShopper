@@ -92,3 +92,51 @@ export interface SearchParams {
   page?: number;
   limit?: number;
 }
+
+export interface FavoriteOfferSummary {
+  id: string;
+  available: boolean;
+  title: string;
+  description: string;
+  price: string;
+  location: string;
+  image_alt_text?: string;
+  is_promo: boolean;
+  start_date: string;
+  end_date: string;
+  employer_company: string;
+}
+
+export interface AddToFavoritesResponse {
+  success: true;
+  data: {
+    offer_id: string;
+    message: string;
+  }
+}
+
+export interface RemoveFromFavoritesResponse {
+  success: true;
+  data: {
+    offer_id: string;
+    message: string;
+  }
+}
+
+export interface UserStatistics {
+  user_id: string;
+  name: string;
+  surname: string;
+  total_applications: number;
+  approved_applications: number;
+  in_progress_applications: number;
+  completed_applications: number;
+  total_earnings: number;
+  average_rating: number;
+  favourite_offers_count: number;
+}
+
+export interface UserStatisticsResponse {
+  success: true;
+  data: UserStatistics;
+}

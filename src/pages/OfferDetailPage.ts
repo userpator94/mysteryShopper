@@ -1,8 +1,9 @@
 // Страница детального просмотра предложения
 
-// import { Offer } from '../types/index.js';
+import type { Offer } from '../types/index.js';
+import { apiService } from '../services/api.js';
 
-export async function createOfferDetailPage(_offerId: string): Promise<HTMLElement> {
+export async function createOfferDetailPage(offerId: string): Promise<HTMLElement> {
   const page = document.createElement('div');
   page.className = 'offer-detail-page';
 
@@ -11,7 +12,7 @@ export async function createOfferDetailPage(_offerId: string): Promise<HTMLEleme
       <div>
         <header class="sticky top-0 bg-white/80 backdrop-blur-sm z-10 px-4 pt-4">
           <div class="flex items-center gap-3">
-            <button class="text-slate-500">
+            <button id="back-btn" class="text-slate-500">
               <svg fill="currentColor" height="24" viewBox="0 0 256 256" width="24">
                 <path d="M224,128a8,8,0,0,1-8,8H59.31l58.35,58.34a8,8,0,0,1-11.32,11.32l-72-72a8,8,0,0,1,0-11.32l72-72a8,8,0,0,1,11.32,11.32L59.31,120H216A8,8,0,0,1,224,128Z"></path>
               </svg>
@@ -21,65 +22,342 @@ export async function createOfferDetailPage(_offerId: string): Promise<HTMLEleme
         </header>
         
         <main class="pb-28">
-          <div class="w-full h-64 bg-slate-200"></div>
+          <div id="loading-state" class="flex justify-center items-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <span class="ml-2 text-slate-600">Загрузка предложения...</span>
+          </div>
           
-          <div class="px-4 py-4">
-            <h2 class="text-2xl font-bold mb-2">Дегустация вин в ресторане "Сомелье"</h2>
-            <p class="text-slate-600 mb-4">Уникальная возможность попробовать лучшие вина мира с профессиональным сомелье</p>
+          <div id="error-state" class="hidden text-center py-8">
+            <div class="text-red-500 mb-2">⚠️</div>
+            <p class="text-slate-600 mb-4">Не удалось загрузить предложение</p>
+            <button id="retry-btn" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
+              Попробовать снова
+            </button>
+          </div>
+          
+          <div id="offer-content" class="hidden">
+            <!-- Изображение предложения -->
+            <div id="offer-image-container" class="w-full h-64 bg-slate-200 relative overflow-hidden">
+              <div id="offer-image-placeholder" class="w-full h-full flex items-center justify-center text-slate-400">
+                <svg fill="currentColor" height="64" viewBox="0 0 24 24" width="64" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19M8.5,13.5L11,16.5L14.5,12L19,18H5L8.5,13.5Z"/>
+                </svg>
+              </div>
+              <img id="offer-image" class="hidden w-full h-full object-cover" alt="">
+            </div>
             
-            <div class="flex items-center gap-4 mb-4">
-              <span class="text-3xl font-bold text-primary">2,500 ₽</span>
-              <div class="flex items-center gap-1">
-                <span class="text-yellow-500">⭐</span>
-                <span class="font-semibold">4.8</span>
-                <span class="text-slate-600">(127 отзывов)</span>
+            <div class="px-4 py-4">
+              <!-- Заголовок и основная информация -->
+              <div class="mb-4">
+                <h2 id="offer-title" class="text-2xl font-bold mb-2"></h2>
+                <div class="flex items-center gap-2 mb-2">
+                  <div class="flex items-center gap-1">
+                    <span class="text-yellow-500">⭐</span>
+                    <span id="offer-rating" class="font-semibold text-sm"></span>
+                  </div>
+                  <span class="text-slate-400">•</span>
+                  <span id="offer-company" class="text-slate-600 text-sm"></span>
+                </div>
+                <p id="offer-description" class="text-slate-600 mb-4"></p>
+              </div>
+              
+              <!-- Цена и даты -->
+              <div class="bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-4 mb-4">
+                <div class="mb-2">
+                  <span id="offer-price" class="text-3xl font-bold text-primary"></span>
+                </div>
+                <div class="flex items-center gap-4 text-sm text-slate-600">
+                  <div class="flex items-center gap-1">
+                    <svg fill="currentColor" height="16" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M19,3H18V1H16V3H8V1H6V3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M19,19H5V8H19V19Z"/>
+                    </svg>
+                    <span id="offer-start-date"></span>
+                  </div>
+                  <span>—</span>
+                  <div class="flex items-center gap-1">
+                    <svg fill="currentColor" height="16" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M19,3H18V1H16V3H8V1H6V3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M19,19H5V8H19V19Z"/>
+                    </svg>
+                    <span id="offer-end-date"></span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Местоположение -->
+              <div class="bg-white rounded-lg p-4 border border-slate-200 mb-4">
+                <h3 class="font-semibold mb-2 flex items-center gap-2">
+                  <svg fill="currentColor" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12,2C8.13,2 5,5.13 5,9C5,14.25 12,22 12,22C12,22 19,14.25 19,9C19,5.13 15.87,2 12,2M12,4A5,5 0 0,1 17,9C17,10.5 16.5,12 12,18.71C7.5,12 7,10.5 7,9A5,5 0 0,1 12,4Z"/>
+                  </svg>
+                  Местоположение
+                </h3>
+                <p id="offer-location" class="text-slate-600"></p>
+              </div>
+              
+              <!-- Условия -->
+              <div class="bg-white rounded-lg p-4 border border-slate-200 mb-4">
+                <h3 class="font-semibold mb-2 flex items-center gap-2">
+                  <svg fill="currentColor" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                  </svg>
+                  Условия участия
+                </h3>
+                <div id="offer-requirements" class="text-slate-600"></div>
+              </div>
+              
+              <!-- Теги -->
+              <div class="bg-white rounded-lg p-4 border border-slate-200 mb-4">
+                <h3 class="font-semibold mb-2 flex items-center gap-2">
+                  <svg fill="currentColor" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5.5,7A1.5,1.5 0 0,1 4,5.5A1.5,1.5 0 0,1 5.5,4A1.5,1.5 0 0,1 7,5.5A1.5,1.5 0 0,1 5.5,7M21.41,11.58L12.41,2.58C12.05,2.22 11.55,2 11,2H4C2.89,2 2,2.89 2,4V11C2,11.55 2.22,12.05 2.59,12.41L11.58,21.41C11.95,21.77 12.45,22 13,22C13.55,22 14.05,21.77 14.41,21.41L21.41,14.41C21.77,14.05 22,13.55 22,13C22,12.45 21.77,11.95 21.41,11.58Z"/>
+                  </svg>
+                  Теги
+                </h3>
+                <div id="offer-tags" class="flex flex-wrap gap-2"></div>
+              </div>
+              
+              
+              <!-- Кнопки действий -->
+              <div class="space-y-3">
+                <button class="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors">
+                  Забронировать участие
+                </button>
+                <button id="add-to-favorites-btn" class="w-full bg-slate-200 text-slate-700 py-3 rounded-lg font-semibold hover:bg-slate-300 transition-colors">
+                  Добавить в избранное
+                </button>
               </div>
             </div>
-            
-            <div class="bg-white rounded-lg p-4 border border-slate-200 mb-4">
-              <h3 class="font-semibold mb-2">📍 Местоположение</h3>
-              <p class="text-slate-600">ул. Арбат, 15, Москва</p>
-            </div>
-            
-            <div class="bg-white rounded-lg p-4 border border-slate-200 mb-4">
-              <h3 class="font-semibold mb-2">📋 Условия</h3>
-              <ul class="text-slate-600 space-y-1">
-                <li>• Возраст 18+</li>
-                <li>• Предварительная запись</li>
-              </ul>
-            </div>
-            
-            <div class="bg-white rounded-lg p-4 border border-slate-200 mb-4">
-              <h3 class="font-semibold mb-2">🏷️ Теги</h3>
-              <div class="flex flex-wrap gap-2">
-                <span class="bg-slate-200 text-slate-600 text-sm px-2 py-1 rounded">вино</span>
-                <span class="bg-slate-200 text-slate-600 text-sm px-2 py-1 rounded">дегустация</span>
-                <span class="bg-slate-200 text-slate-600 text-sm px-2 py-1 rounded">ресторан</span>
-              </div>
-            </div>
-            
-            <button class="w-full bg-primary text-white py-3 rounded-lg font-semibold mb-2">
-              Забронировать
-            </button>
-            <button class="w-full bg-slate-200 text-slate-700 py-3 rounded-lg font-semibold">
-              Добавить в избранное
-            </button>
           </div>
         </main>
       </div>
     </div>
   `;
 
+  // Загружаем данные предложения
+  await loadOffer(page, offerId);
+
   // Настраиваем обработчики событий
-  setupEventHandlers(page);
+  setupEventHandlers(page, offerId);
 
   return page;
 }
 
-function setupEventHandlers(page: HTMLElement) {
+// Функция загрузки предложения
+async function loadOffer(page: HTMLElement, offerId: string) {
+  const loadingState = page.querySelector('#loading-state') as HTMLElement;
+  const errorState = page.querySelector('#error-state') as HTMLElement;
+  const offerContent = page.querySelector('#offer-content') as HTMLElement;
+
+  try {
+    // Показываем состояние загрузки
+    showState(loadingState, [errorState, offerContent]);
+
+    // Загружаем предложение из API
+    const offer = await apiService.getOfferById(offerId);
+
+    if (!offer) {
+      throw new Error('Предложение не найдено');
+    }
+
+    // Скрываем состояние загрузки
+    hideState(loadingState);
+
+    // Отображаем данные предложения
+    renderOffer(offer, page);
+    showState(offerContent, [errorState]);
+
+  } catch (error) {
+    console.error('Ошибка загрузки предложения:', error);
+    
+    // Скрываем состояние загрузки
+    hideState(loadingState);
+    
+    // Показываем состояние ошибки
+    showState(errorState, [offerContent]);
+  }
+}
+
+// Функция отображения данных предложения
+function renderOffer(offer: Offer, page: HTMLElement) {
+  // Основная информация
+  const titleEl = page.querySelector('#offer-title') as HTMLElement;
+  const descriptionEl = page.querySelector('#offer-description') as HTMLElement;
+  const priceEl = page.querySelector('#offer-price') as HTMLElement;
+  const ratingEl = page.querySelector('#offer-rating') as HTMLElement;
+  const companyEl = page.querySelector('#offer-company') as HTMLElement;
+  const locationEl = page.querySelector('#offer-location') as HTMLElement;
+  const requirementsEl = page.querySelector('#offer-requirements') as HTMLElement;
+  const tagsEl = page.querySelector('#offer-tags') as HTMLElement;
+  
+  // Изображение
+  const imageContainer = page.querySelector('#offer-image-container') as HTMLElement;
+  const imagePlaceholder = page.querySelector('#offer-image-placeholder') as HTMLElement;
+  const imageEl = page.querySelector('#offer-image') as HTMLImageElement;
+  
+  // Даты
+  const startDateEl = page.querySelector('#offer-start-date') as HTMLElement;
+  const endDateEl = page.querySelector('#offer-end-date') as HTMLElement;
+
+  // Заполняем основную информацию
+  if (titleEl) titleEl.textContent = offer.title || 'Название не указано';
+  if (descriptionEl) descriptionEl.textContent = offer.description || 'Описание не указано';
+  if (priceEl) priceEl.textContent = offer.price ? `${parseFloat(offer.price).toLocaleString()} ₽` : 'Цена не указана';
+  if (ratingEl) ratingEl.textContent = offer.numeric_info ? offer.numeric_info.toString() : '0';
+  if (companyEl) companyEl.textContent = offer.employer_company || 'Компания не указана';
+  if (locationEl) locationEl.textContent = offer.location || 'Местоположение не указано';
+  
+  // Изображение
+  if (offer.image_id === null) {
+    // Скрываем весь контейнер изображения если image_id = null
+    if (imageContainer) {
+      imageContainer.classList.add('hidden');
+    }
+  } else {
+    // Показываем контейнер изображения
+    if (imageContainer) {
+      imageContainer.classList.remove('hidden');
+    }
+    
+    if (offer.image_url) {
+      // Показываем изображение
+      if (imageEl) {
+        imageEl.src = offer.image_url;
+        imageEl.alt = offer.image_alt_text || offer.title;
+        imageEl.classList.remove('hidden');
+      }
+      if (imagePlaceholder) {
+        imagePlaceholder.classList.add('hidden');
+      }
+    } else {
+      // Показываем плейсхолдер
+      if (imageEl) {
+        imageEl.classList.add('hidden');
+      }
+      if (imagePlaceholder) {
+        imagePlaceholder.classList.remove('hidden');
+      }
+    }
+  }
+  
+  
+  // Даты
+  if (startDateEl) {
+    startDateEl.textContent = offer.start_date ? new Date(offer.start_date).toLocaleDateString('ru-RU', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    }) : 'Не указано';
+  }
+  
+  if (endDateEl) {
+    endDateEl.textContent = offer.end_date ? new Date(offer.end_date).toLocaleDateString('ru-RU', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    }) : 'Не указано';
+  }
+  
+  
+  // Условия
+  if (requirementsEl) {
+    if (offer.requirements && offer.requirements.trim()) {
+      requirementsEl.innerHTML = offer.requirements
+        .split('\n')
+        .filter(req => req.trim())
+        .map(req => `<div class="flex items-start gap-2 mb-2">
+          <span class="text-primary mt-1">•</span>
+          <span>${req.trim()}</span>
+        </div>`)
+        .join('');
+    } else {
+      requirementsEl.innerHTML = '<p class="text-slate-500 italic">Условия не указаны</p>';
+    }
+  }
+  
+  // Теги
+  if (tagsEl) {
+    if (offer.tags && offer.tags.trim()) {
+      tagsEl.innerHTML = offer.tags
+        .split(',')
+        .filter(tag => tag.trim())
+        .map(tag => `<span class="bg-primary/10 text-primary text-sm px-3 py-1 rounded-full font-medium">${tag.trim()}</span>`)
+        .join('');
+    } else {
+      tagsEl.innerHTML = '<p class="text-slate-500 italic">Теги не указаны</p>';
+    }
+  }
+  
+}
+
+// Функции управления состояниями
+function showState(element: HTMLElement, hideElements: HTMLElement[]) {
+  element.classList.remove('hidden');
+  hideElements.forEach(el => el.classList.add('hidden'));
+}
+
+function hideState(element: HTMLElement) {
+  element.classList.add('hidden');
+}
+
+function setupEventHandlers(page: HTMLElement, offerId: string) {
   // Кнопка "Назад"
-  const backBtn = page.querySelector('button');
+  const backBtn = page.querySelector('#back-btn');
   backBtn?.addEventListener('click', () => {
     window.history.back();
   });
+
+  // Обработчик кнопки повтора
+  const retryBtn = page.querySelector('#retry-btn');
+  retryBtn?.addEventListener('click', async () => {
+    await loadOffer(page, offerId);
+  });
+
+  // Обработчик кнопки "Добавить в избранное"
+  const addToFavoritesBtn = page.querySelector('#add-to-favorites-btn');
+  addToFavoritesBtn?.addEventListener('click', async () => {
+    await addToFavorites(offerId, addToFavoritesBtn as HTMLElement);
+  });
+}
+
+// Функция добавления в избранное
+async function addToFavorites(offerId: string, button: HTMLElement) {
+  const buttonEl = button as HTMLButtonElement;
+  
+  try {
+    // Показываем состояние загрузки на кнопке
+    const originalText = buttonEl.textContent;
+    buttonEl.textContent = 'Добавление...';
+    buttonEl.disabled = true;
+
+    await apiService.addToFavorites(offerId);
+    
+    // Показываем успешное состояние
+    buttonEl.textContent = '✓ Добавлено в избранное';
+    buttonEl.classList.remove('bg-slate-200', 'text-slate-700');
+    buttonEl.classList.add('bg-green-500', 'text-white');
+    
+    // Через 2 секунды возвращаем исходное состояние
+    setTimeout(() => {
+      buttonEl.textContent = originalText;
+      buttonEl.disabled = false;
+      buttonEl.classList.remove('bg-green-500', 'text-white');
+      buttonEl.classList.add('bg-slate-200', 'text-slate-700');
+    }, 2000);
+    
+  } catch (error) {
+    console.error('Ошибка добавления в избранное:', error);
+    
+    // Показываем ошибку
+    buttonEl.textContent = 'Ошибка добавления';
+    buttonEl.classList.remove('bg-slate-200', 'text-slate-700');
+    buttonEl.classList.add('bg-red-500', 'text-white');
+    
+    // Через 2 секунды возвращаем исходное состояние
+    setTimeout(() => {
+      buttonEl.textContent = 'Добавить в избранное';
+      buttonEl.disabled = false;
+      buttonEl.classList.remove('bg-red-500', 'text-white');
+      buttonEl.classList.add('bg-slate-200', 'text-slate-700');
+    }, 2000);
+  }
 }

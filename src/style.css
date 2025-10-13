@@ -418,6 +418,7 @@ body {
   margin-bottom: var(--spacing-md);
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -1042,6 +1043,7 @@ body {
   margin-bottom: var(--spacing-md);
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -2094,4 +2096,175 @@ input[type="checkbox"] {
 
 #all-offers-btn:active {
   transform: translateY(0);
+}
+
+/* Дополнительные стили для улучшенных карточек */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Стили для промо-бейджей */
+.promo-badge {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Стили для счетчика мест */
+.slots-counter {
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(4px);
+  color: white;
+  font-weight: 500;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+/* Стили для избранного бейджа */
+.favorite-badge {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Улучшенные стили для карточек */
+.offer-card-enhanced {
+  transition: all 0.3s ease;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.offer-card-enhanced:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+  border-color: #cbd5e1;
+}
+
+/* Стили для изображений с плейсхолдером */
+.image-placeholder {
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+}
+
+.image-placeholder svg {
+  opacity: 0.6;
+}
+
+/* Стили для рейтинга */
+.rating-display {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.rating-star {
+  color: #fbbf24;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
+}
+
+/* Стили для компании */
+.company-name {
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Стили для местоположения */
+.location-display {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #64748b;
+}
+
+.location-icon {
+  color: #94a3b8;
+}
+
+/* Стили для дат */
+.date-range {
+  color: #64748b;
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+
+/* Стили для цены */
+.price-display {
+  font-weight: 700;
+  color: var(--primary-color);
+  font-size: 1.125rem;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* Анимации для кнопок */
+.favorite-btn-animated {
+  transition: all 0.2s ease;
+}
+
+.favorite-btn-animated:hover {
+  transform: scale(1.1);
+  filter: brightness(1.1);
+}
+
+.favorite-btn-animated:active {
+  transform: scale(0.95);
+}
+
+/* Стили для состояний загрузки */
+.loading-shimmer {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Улучшенные стили для мобильных устройств */
+@media (max-width: 768px) {
+  .offer-card-enhanced {
+    margin-bottom: 1rem;
+  }
+  
+  .promo-badge,
+  .favorite-badge {
+    font-size: 0.625rem;
+    padding: 0.25rem 0.5rem;
+  }
+  
+  .slots-counter {
+    font-size: 0.625rem;
+    padding: 0.25rem 0.5rem;
+  }
+  
+  .price-display {
+    font-size: 1rem;
+  }
+  
+  .date-range {
+    font-size: 0.6875rem;
+  }
 }

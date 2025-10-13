@@ -1,10 +1,20 @@
 // Страница профиля пользователя
 
-// import { User, Order } from '../types/index.js';
+import { apiService } from '../services/api.js';
+import type { UserStatistics } from '../types/index.js';
 
 export async function createProfilePage(): Promise<HTMLElement> {
   const page = document.createElement('div');
   page.className = 'profile-page';
+
+  // Загружаем данные пользователя
+  let userStats: UserStatistics | null = null;
+  try {
+    const response = await apiService.getUserStatistics();
+    userStats = response.data;
+  } catch (error) {
+    console.error('Ошибка загрузки статистики пользователя:', error);
+  }
 
   page.innerHTML = `
     <div class="relative w-full">
@@ -19,7 +29,7 @@ export async function createProfilePage(): Promise<HTMLElement> {
               <div class="flex items-center gap-4 mb-4">
                 <div class="w-16 h-16 bg-slate-200 rounded-full"></div>
                 <div>
-                  <h2 class="text-xl font-semibold">Иван Петров</h2>
+                  <h2 class="text-xl font-semibold">${userStats ? `${userStats.name} ${userStats.surname}` : 'Загрузка...'}</h2>
                   <p class="text-slate-600">ivan.petrov@example.com</p>
                   <p class="text-slate-600">+7 (999) 123-45-67</p>
                 </div>
@@ -27,19 +37,19 @@ export async function createProfilePage(): Promise<HTMLElement> {
               
               <div class="grid grid-cols-2 gap-4">
                 <div class="text-center">
-                  <div class="text-2xl font-bold text-primary">12</div>
+                  <div class="text-2xl font-bold text-primary">${userStats ? userStats.total_applications : '...'}</div>
                   <div class="text-sm text-slate-600">заказов</div>
                 </div>
                 <div class="text-center">
-                  <div class="text-2xl font-bold text-primary">10</div>
+                  <div class="text-2xl font-bold text-primary">${userStats ? userStats.completed_applications : '...'}</div>
                   <div class="text-sm text-slate-600">выполнено</div>
                 </div>
                 <div class="text-center">
-                  <div class="text-2xl font-bold text-primary">15,000 ₽</div>
+                  <div class="text-2xl font-bold text-primary">${userStats ? `${userStats.total_earnings.toLocaleString()} ₽` : '...'}</div>
                   <div class="text-sm text-slate-600">заработано</div>
                 </div>
                 <div class="text-center">
-                  <div class="text-2xl font-bold text-primary">⭐ 4.8</div>
+                  <div class="text-2xl font-bold text-primary">⭐ ${userStats ? userStats.average_rating : '...'}</div>
                   <div class="text-sm text-slate-600">рейтинг</div>
                 </div>
               </div>
