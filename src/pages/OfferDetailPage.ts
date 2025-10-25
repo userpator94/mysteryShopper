@@ -164,6 +164,10 @@ async function loadOffer(page: HTMLElement, offerId: string) {
 
     // Отображаем данные предложения
     renderOffer(offer, page);
+    
+    // Проверяем статус избранного
+    await checkAndSetFavoriteStatus(offerId, page);
+    
     showState(offerContent, [errorState]);
 
   } catch (error) {
@@ -312,11 +316,56 @@ function setupEventHandlers(page: HTMLElement, offerId: string) {
     await loadOffer(page, offerId);
   });
 
-  // Обработчик кнопки "Добавить в избранное"
-  const addToFavoritesBtn = page.querySelector('#add-to-favorites-btn');
-  addToFavoritesBtn?.addEventListener('click', async () => {
-    await addToFavorites(offerId, addToFavoritesBtn as HTMLElement);
-  });
+  // Обработчик кнопки "Добавить в избранное" будет установлен в checkAndSetFavoriteStatus
+}
+
+// Функция проверки и установки статуса избранного
+async function checkAndSetFavoriteStatus(offerId: string, page: HTMLElement) {
+  try {
+    const favoriteStatus = await apiService.checkFavoriteStatus(offerId);
+    const addToFavoritesBtn = page.querySelector('#add-to-favorites-btn') as HTMLButtonElement;
+    
+    if (addToFavoritesBtn && favoriteStatus.data.is_favorite) {
+      // Предложение уже в избранном - устанавливаем красное состояние
+      setButtonToRemoveState(addToFavoritesBtn, offerId);
+    } else if (addToFavoritesBtn) {
+      // Предложение не в избранном - устанавливаем серое состояние
+      setButtonToAddState(addToFavoritesBtn, offerId);
+    }
+  } catch (error) {
+    console.error('Ошибка проверки статуса избранного:', error);
+    // В случае ошибки устанавливаем состояние по умолчанию (добавить)
+    const addToFavoritesBtn = page.querySelector('#add-to-favorites-btn') as HTMLButtonElement;
+    if (addToFavoritesBtn) {
+      setButtonToAddState(addToFavoritesBtn, offerId);
+    }
+  }
+}
+
+// Функция установки кнопки в состояние "Добавить в избранное"
+function setButtonToAddState(button: HTMLButtonElement, offerId: string) {
+  button.textContent = 'Добавить в избранное';
+  button.classList.remove('bg-red-500', 'text-white', 'hover:bg-red-600');
+  button.classList.add('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300');
+  
+  // Удаляем все существующие обработчики и добавляем новый
+  button.removeEventListener('click', button._currentHandler);
+  button._currentHandler = () => addToFavorites(offerId, button);
+  button.addEventListener('click', button._currentHandler);
+}
+
+// Функция установки кнопки в состояние "Удалить из избранного"
+function setButtonToRemoveState(button: HTMLButtonElement, offerId: string) {
+  console.log('setButtonToRemoveState вызвана для offerId:', offerId);
+  button.textContent = 'Удалить из избранного';
+  button.classList.remove('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300');
+  button.classList.add('bg-red-500', 'text-white', 'hover:bg-red-600');
+  
+  // Удаляем все существующие обработчики и добавляем новый
+  button.removeEventListener('click', button._currentHandler);
+  button._currentHandler = () => removeFromFavorites(offerId, button);
+  button.addEventListener('click', button._currentHandler);
+  console.log('Обработчик removeFromFavorites установлен');
 }
 
 // Функция добавления в избранное
@@ -329,20 +378,14 @@ async function addToFavorites(offerId: string, button: HTMLElement) {
     buttonEl.textContent = 'Добавление...';
     buttonEl.disabled = true;
 
-    await apiService.addToFavorites(offerId);
+    const result = await apiService.addToFavorites(offerId);
     
-    // Показываем успешное состояние
-    buttonEl.textContent = '✓ Добавлено в избранное';
-    buttonEl.classList.remove('bg-slate-200', 'text-slate-700');
-    buttonEl.classList.add('bg-green-500', 'text-white');
-    
-    // Через 2 секунды возвращаем исходное состояние
-    setTimeout(() => {
-      buttonEl.textContent = originalText;
+    // Проверяем статус код
+    if (result.statusCode === 200 || result.statusCode === 201) {
+      // Успешно добавлено - меняем кнопку на красную с текстом "Удалить из избранного"
       buttonEl.disabled = false;
-      buttonEl.classList.remove('bg-green-500', 'text-white');
-      buttonEl.classList.add('bg-slate-200', 'text-slate-700');
-    }, 2000);
+      setButtonToRemoveState(buttonEl, offerId);
+    }
     
   } catch (error) {
     console.error('Ошибка добавления в избранное:', error);
@@ -354,10 +397,44 @@ async function addToFavorites(offerId: string, button: HTMLElement) {
     
     // Через 2 секунды возвращаем исходное состояние
     setTimeout(() => {
-      buttonEl.textContent = 'Добавить в избранное';
       buttonEl.disabled = false;
-      buttonEl.classList.remove('bg-red-500', 'text-white');
-      buttonEl.classList.add('bg-slate-200', 'text-slate-700');
+      setButtonToAddState(buttonEl, offerId);
+    }, 2000);
+  }
+}
+
+// Функция удаления из избранного
+async function removeFromFavorites(offerId: string, button: HTMLElement) {
+  console.log('removeFromFavorites вызвана для offerId:', offerId);
+  const buttonEl = button as HTMLButtonElement;
+  
+  try {
+    // Показываем состояние загрузки на кнопке
+    const originalText = buttonEl.textContent;
+    buttonEl.textContent = 'Удаление...';
+    buttonEl.disabled = true;
+
+    const result = await apiService.removeFromFavorites(offerId);
+    
+    // Проверяем статус код
+    if (result.statusCode === 200 || result.statusCode === 201) {
+      // Успешно удалено - возвращаем кнопку в исходное состояние
+      buttonEl.disabled = false;
+      setButtonToAddState(buttonEl, offerId);
+    }
+    
+  } catch (error) {
+    console.error('Ошибка удаления из избранного:', error);
+    
+    // Показываем ошибку
+    buttonEl.textContent = 'Ошибка удаления';
+    buttonEl.classList.remove('bg-red-500', 'text-white');
+    buttonEl.classList.add('bg-red-600', 'text-white');
+    
+    // Через 2 секунды возвращаем состояние "Удалить из избранного"
+    setTimeout(() => {
+      buttonEl.disabled = false;
+      setButtonToRemoveState(buttonEl, offerId);
     }, 2000);
   }
 }

@@ -136,7 +136,10 @@ export interface UserStatistics {
   favourite_offers_count: number;
 }
 
-export interface UserStatisticsResponse {
+export interface FavoriteStatusResponse {
   success: true;
-  data: UserStatistics;
+  data: {
+    offer_id: string;
+    is_favorite: boolean;
+  }
 }

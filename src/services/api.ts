@@ -1,5 +1,5 @@
 // Сервис для работы с API
-import type { Offer, SearchParams, FavoriteOfferSummary, AddToFavoritesResponse, RemoveFromFavoritesResponse, UserStatisticsResponse } from '../types/index.js';
+import type { Offer, SearchParams, FavoriteOfferSummary, AddToFavoritesResponse, RemoveFromFavoritesResponse, UserStatisticsResponse, FavoriteStatusResponse } from '../types/index.js';
 
 const API_BASE_URL = '/api';
 const DEV_USER_ID = '1416fac6-6954-4d49-a35c-684ead433361'; // Hardcoded user ID for development
@@ -120,21 +120,65 @@ export class ApiService {
     }
   }
 
-  public async addToFavorites(offerId: string): Promise<AddToFavoritesResponse> {
-    return this.request<AddToFavoritesResponse>('/favorites', {
+  public async addToFavorites(offerId: string): Promise<{ response: AddToFavoritesResponse; statusCode: number }> {
+    const url = `${API_BASE_URL}/favorites`;
+    
+    const defaultOptions: RequestInit = {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-User-Id': DEV_USER_ID,
+      },
       body: JSON.stringify({ offer_id: offerId }),
-    });
+    };
+
+    console.log('Выполняем API запрос:', url);
+    const response = await fetch(url, defaultOptions);
+    
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    return {
+      response: data,
+      statusCode: response.status
+    };
   }
 
-  public async removeFromFavorites(offerId: string): Promise<RemoveFromFavoritesResponse> {
-    return this.request<RemoveFromFavoritesResponse>(`/favorites/${offerId}`, {
+  public async removeFromFavorites(offerId: string): Promise<{ response: RemoveFromFavoritesResponse; statusCode: number }> {
+    const url = `${API_BASE_URL}/favorites/${offerId}`;
+    
+    const defaultOptions: RequestInit = {
       method: 'DELETE',
-    });
+      headers: {
+        'Content-Type': 'application/json',
+        'X-User-Id': DEV_USER_ID,
+      },
+    };
+
+    console.log('Выполняем API запрос:', url);
+    const response = await fetch(url, defaultOptions);
+    
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    return {
+      response: data,
+      statusCode: response.status
+    };
   }
 
   public async getUserStatistics(): Promise<UserStatisticsResponse> {
     return this.request<UserStatisticsResponse>('/user-statistics');
+  }
+
+  public async checkFavoriteStatus(offerId: string): Promise<FavoriteStatusResponse> {
+    return this.request<FavoriteStatusResponse>(`/favorites?offer_id=${offerId}`);
   }
 }
 
