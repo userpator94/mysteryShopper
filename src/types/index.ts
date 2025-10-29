@@ -127,6 +127,8 @@ export interface UserStatistics {
   user_id: string;
   name: string;
   surname: string;
+  email: string;
+  phone: string;
   total_applications: number;
   approved_applications: number;
   in_progress_applications: number;
@@ -134,6 +136,11 @@ export interface UserStatistics {
   total_earnings: number;
   average_rating: number;
   favourite_offers_count: number;
+}
+
+export interface UserStatisticsResponse {
+  success: true;
+  data: UserStatistics;
 }
 
 export interface FavoriteStatusResponse {

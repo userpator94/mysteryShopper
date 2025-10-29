@@ -162,18 +162,50 @@ function setupEventHandlers(page: HTMLElement) {
 
 // Функция удаления из избранного
 async function removeFromFavorites(page: HTMLElement, offerId: string) {
+  const removeBtn = page.querySelector(`[data-remove-favorite="${offerId}"]`) as HTMLElement;
+  
+  // Блокируем кнопку на время выполнения запроса
+  if (removeBtn) {
+    removeBtn.style.opacity = '0.5';
+    removeBtn.style.pointerEvents = 'none';
+  }
+  
   try {
-    await apiService.removeFromFavorites(offerId);
+    const result = await apiService.removeFromFavorites(offerId);
     
-    // Перезагружаем список избранного
-    await loadFavorites(page);
-    
-    // Показываем уведомление об успехе (опционально)
-    console.log('Предложение удалено из избранного');
+    // Проверяем успешность удаления
+    if (result.statusCode === 200 || result.statusCode === 204) {
+      // Очищаем кэш для списка избранного, чтобы получить актуальные данные
+      apiService.clearCache('/favorites');
+      
+      // Сразу удаляем элемент из DOM для лучшего UX
+      const offerCard = page.querySelector(`[data-offer-id="${offerId}"]`) as HTMLElement;
+      if (offerCard) {
+        offerCard.style.transition = 'opacity 0.3s';
+        offerCard.style.opacity = '0';
+        setTimeout(() => {
+          // Перезагружаем список избранного после визуального удаления
+          loadFavorites(page);
+        }, 300);
+      } else {
+        // Если элемент не найден, просто перезагружаем список
+        await loadFavorites(page);
+      }
+      
+      console.log('Предложение удалено из избранного');
+    }
     
   } catch (error) {
     console.error('Ошибка удаления из избранного:', error);
-    // Можно показать уведомление об ошибке
+    
+    // Восстанавливаем кнопку при ошибке
+    if (removeBtn) {
+      removeBtn.style.opacity = '1';
+      removeBtn.style.pointerEvents = 'auto';
+    }
+    
+    // Показываем состояние ошибки пользователю (можно добавить toast-уведомление)
+    alert('Не удалось удалить предложение из избранного. Попробуйте еще раз.');
   }
 }
 

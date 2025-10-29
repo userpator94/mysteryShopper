@@ -18,6 +18,22 @@ export class ApiService {
     return ApiService.instance;
   }
 
+  // Метод для очистки кэша
+  public clearCache(pattern?: string): void {
+    if (pattern) {
+      // Очищаем только записи, соответствующие паттерну
+      const urlPattern = `${API_BASE_URL}${pattern}`;
+      for (const key of this.cache.keys()) {
+        if (key.includes(urlPattern)) {
+          this.cache.delete(key);
+        }
+      }
+    } else {
+      // Очищаем весь кэш
+      this.cache.clear();
+    }
+  }
+
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
     
@@ -174,7 +190,9 @@ export class ApiService {
   }
 
   public async getUserStatistics(): Promise<UserStatisticsResponse> {
-    return this.request<UserStatisticsResponse>('/user-statistics');
+    return this.request<UserStatisticsResponse>('/user/stats', {
+      method: 'POST',
+    });
   }
 
   public async checkFavoriteStatus(offerId: string): Promise<FavoriteStatusResponse> {
