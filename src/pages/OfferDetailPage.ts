@@ -3,6 +3,9 @@
 import type { Offer } from '../types/index.js';
 import { apiService } from '../services/api.js';
 
+// Map для хранения обработчиков событий по кнопкам
+const buttonHandlers = new WeakMap<HTMLButtonElement, (e: MouseEvent) => void>();
+
 export async function createOfferDetailPage(offerId: string): Promise<HTMLElement> {
   const page = document.createElement('div');
   page.className = 'offer-detail-page';
@@ -348,10 +351,16 @@ function setButtonToAddState(button: HTMLButtonElement, offerId: string) {
   button.classList.remove('bg-red-500', 'text-white', 'hover:bg-red-600');
   button.classList.add('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300');
   
-  // Удаляем все существующие обработчики и добавляем новый
-  button.removeEventListener('click', button._currentHandler);
-  button._currentHandler = () => addToFavorites(offerId, button);
-  button.addEventListener('click', button._currentHandler);
+  // Удаляем существующий обработчик, если есть
+  const oldHandler = buttonHandlers.get(button);
+  if (oldHandler) {
+    button.removeEventListener('click', oldHandler);
+  }
+  
+  // Создаем новый обработчик и сохраняем его
+  const newHandler = () => addToFavorites(offerId, button);
+  buttonHandlers.set(button, newHandler);
+  button.addEventListener('click', newHandler);
 }
 
 // Функция установки кнопки в состояние "Удалить из избранного"
@@ -361,10 +370,16 @@ function setButtonToRemoveState(button: HTMLButtonElement, offerId: string) {
   button.classList.remove('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300');
   button.classList.add('bg-red-500', 'text-white', 'hover:bg-red-600');
   
-  // Удаляем все существующие обработчики и добавляем новый
-  button.removeEventListener('click', button._currentHandler);
-  button._currentHandler = () => removeFromFavorites(offerId, button);
-  button.addEventListener('click', button._currentHandler);
+  // Удаляем существующий обработчик, если есть
+  const oldHandler = buttonHandlers.get(button);
+  if (oldHandler) {
+    button.removeEventListener('click', oldHandler);
+  }
+  
+  // Создаем новый обработчик и сохраняем его
+  const newHandler = () => removeFromFavorites(offerId, button);
+  buttonHandlers.set(button, newHandler);
+  button.addEventListener('click', newHandler);
   console.log('Обработчик removeFromFavorites установлен');
 }
 
@@ -374,7 +389,6 @@ async function addToFavorites(offerId: string, button: HTMLElement) {
   
   try {
     // Показываем состояние загрузки на кнопке
-    const originalText = buttonEl.textContent;
     buttonEl.textContent = 'Добавление...';
     buttonEl.disabled = true;
 
@@ -410,7 +424,6 @@ async function removeFromFavorites(offerId: string, button: HTMLElement) {
   
   try {
     // Показываем состояние загрузки на кнопке
-    const originalText = buttonEl.textContent;
     buttonEl.textContent = 'Удаление...';
     buttonEl.disabled = true;
 
