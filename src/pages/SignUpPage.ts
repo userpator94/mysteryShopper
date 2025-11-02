@@ -1,6 +1,7 @@
 // Страница регистрации
 
 import { router } from '../router/index.js';
+import { apiService } from '../services/api.js';
 
 export async function createSignUpPage(): Promise<HTMLElement> {
   const page = document.createElement('div');
@@ -332,7 +333,7 @@ function setupEventHandlers(page: HTMLElement) {
   };
 
   // Обработчик формы регистрации
-  const signupButton = page.querySelector('#signup-button') as HTMLElement;
+  const signupButton = page.querySelector('#signup-button') as HTMLButtonElement;
   const nameInput = page.querySelector('#signup-name') as HTMLInputElement;
   const lastnameInput = page.querySelector('#signup-lastname') as HTMLInputElement;
   const emailInput = page.querySelector('#signup-email') as HTMLInputElement;
@@ -523,7 +524,7 @@ function setupEventHandlers(page: HTMLElement) {
     input.style.borderColor = '';
   };
 
-  const handleSignUp = () => {
+  const handleSignUp = async () => {
     let isValid = true;
     
     // Сбрасываем предыдущие ошибки
@@ -621,11 +622,70 @@ function setupEventHandlers(page: HTMLElement) {
       return;
     }
 
-    // Здесь должна быть логика регистрации
-    console.log('Регистрация:', { name, lastname, email, phone, password });
+    // Показываем состояние загрузки
+    if (signupButton) {
+      signupButton.disabled = true;
+      signupButton.textContent = 'Регистрация...';
+    }
 
-    // После успешной регистрации можно перейти на главную страницу или страницу входа
-    // window.location.hash = '#/';
+    try {
+      // Вызов API для регистрации
+      const response = await apiService.signup(name, lastname, email, phone, password);
+      
+      if (response.success) {
+        // Успешная регистрация
+        console.log('Успешная регистрация:', response.data.user);
+        
+        // Переход на главную страницу
+        router.navigate('/');
+      }
+    } catch (error: any) {
+      // Обработка ошибок
+      console.error('Ошибка регистрации:', error);
+      
+      const errorMessage = error.message || 'Произошла ошибка при регистрации';
+      
+      // Если есть массив ошибок (для множественной валидации), обрабатываем их
+      if (error.errors && Array.isArray(error.errors)) {
+        error.errors.forEach((err: any) => {
+          if (err.field === 'email' || err.field === 'name' || err.field === 'lastname' || err.field === 'phone' || err.field === 'password') {
+            const fieldMap: Record<string, HTMLInputElement | null> = {
+              email: emailInput,
+              name: nameInput,
+              lastname: lastnameInput,
+              phone: phoneInput,
+              password: passwordInputHandler,
+            };
+            const field = fieldMap[err.field];
+            if (field) markFieldAsInvalid(field);
+          }
+        });
+        alert(error.errors.map((e: any) => e.message).join('\n'));
+      } else {
+        // Показываем ошибку пользователю
+        alert(errorMessage);
+        
+        // Если ошибка связана с конкретным полем, выделяем его
+        if (error.field === 'email' || errorMessage.toLowerCase().includes('email') || errorMessage.toLowerCase().includes('почт')) {
+          if (emailInput) markFieldAsInvalid(emailInput);
+        } else if (error.field === 'phone' || errorMessage.toLowerCase().includes('телефон') || errorMessage.toLowerCase().includes('phone')) {
+          if (phoneInput) markFieldAsInvalid(phoneInput);
+        } else if (error.field === 'name' || errorMessage.toLowerCase().includes('имя') || errorMessage.toLowerCase().includes('name')) {
+          if (nameInput) markFieldAsInvalid(nameInput);
+        } else if (error.field === 'lastname' || errorMessage.toLowerCase().includes('фамилия') || errorMessage.toLowerCase().includes('lastname')) {
+          if (lastnameInput) markFieldAsInvalid(lastnameInput);
+        } else if (error.field === 'password' || errorMessage.toLowerCase().includes('парол')) {
+          if (passwordInputHandler) markFieldAsInvalid(passwordInputHandler);
+          if (confirmPasswordInputHandler) markFieldAsInvalid(confirmPasswordInputHandler);
+        }
+      }
+    } finally {
+      // Восстанавливаем кнопку
+      if (signupButton) {
+        signupButton.disabled = false;
+        signupButton.textContent = 'Зарегистрироваться';
+      }
+    }
   };
 
   signupButton?.addEventListener('click', handleSignUp);

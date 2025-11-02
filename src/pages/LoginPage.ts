@@ -1,6 +1,7 @@
 // Страница входа в аккаунт
 
 import { router } from '../router/index.js';
+import { apiService } from '../services/api.js';
 
 export async function createLoginPage(): Promise<HTMLElement> {
   const page = document.createElement('div');
@@ -336,7 +337,7 @@ function setupEventHandlers(page: HTMLElement) {
   };
 
   // Обработчик формы входа
-  const loginButton = page.querySelector('#login-button') as HTMLElement;
+  const loginButton = page.querySelector('#login-button') as HTMLButtonElement;
   const emailInput = page.querySelector('#login-email') as HTMLInputElement;
   const passwordInputHandler = page.querySelector('#login-password') as HTMLInputElement;
 
@@ -368,7 +369,7 @@ function setupEventHandlers(page: HTMLElement) {
     input.style.borderColor = '';
   };
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     let isValid = true;
     
     // Сбрасываем предыдущие ошибки
@@ -408,12 +409,45 @@ function setupEventHandlers(page: HTMLElement) {
       return;
     }
 
-    // Здесь должна быть логика авторизации
-    console.log('Логин:', email);
-    console.log('Пароль:', password);
+    // Показываем состояние загрузки
+    if (loginButton) {
+      loginButton.disabled = true;
+      loginButton.textContent = 'Вход...';
+    }
 
-    // После успешного входа можно перейти на главную страницу
-    // window.location.hash = '#/';
+    try {
+      // Вызов API для авторизации
+      const response = await apiService.login(email, password);
+      
+      if (response.success) {
+        // Успешная авторизация
+        console.log('Успешная авторизация:', response.data.user);
+        
+        // Переход на главную страницу
+        router.navigate('/');
+      }
+    } catch (error: any) {
+      // Обработка ошибок
+      console.error('Ошибка авторизации:', error);
+      
+      const errorMessage = error.message || 'Произошла ошибка при авторизации';
+      
+      // Показываем ошибку пользователю
+      alert(errorMessage);
+      
+      // Если ошибка связана с конкретным полем, выделяем его
+      if (error.field === 'email' || errorMessage.toLowerCase().includes('email')) {
+        if (emailInput) markFieldAsInvalid(emailInput);
+      } else if (error.field === 'password' || errorMessage.toLowerCase().includes('парол')) {
+        if (passwordInputHandler) markFieldAsInvalid(passwordInputHandler);
+      }
+    } finally {
+      // Восстанавливаем кнопку
+      if (loginButton) {
+        loginButton.disabled = false;
+        loginButton.textContent = 'Войти';
+      }
+    }
   };
 
   loginButton?.addEventListener('click', handleLogin);

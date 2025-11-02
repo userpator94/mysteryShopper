@@ -113,3 +113,6 @@ public
 # Temporary folders
 tmp/
 temp/
+
+# Internal documentation (not for public repository)
+.docs/

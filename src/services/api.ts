@@ -198,6 +198,66 @@ export class ApiService {
   public async checkFavoriteStatus(offerId: string): Promise<FavoriteStatusResponse> {
     return this.request<FavoriteStatusResponse>(`/favorites?offer_id=${offerId}`);
   }
+
+  // Аутентификация
+  public async login(email: string, password: string): Promise<{ success: boolean; data: { token: string; user: any; expiresIn: number } }> {
+    const url = `${API_BASE_URL}/login`;
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      const error: any = new Error(data.error?.message || `Login failed: ${response.status} ${response.statusText}`);
+      error.code = data.error?.code;
+      error.field = data.error?.field;
+      throw error;
+    }
+
+    // Сохраняем токен в localStorage
+    if (data.success && data.data?.token) {
+      localStorage.setItem('auth_token', data.data.token);
+      localStorage.setItem('user_id', data.data.user?.id?.toString() || '');
+    }
+
+    return data;
+  }
+
+  public async signup(name: string, lastname: string, email: string, phone: string, password: string): Promise<{ success: boolean; data: { token: string; user: any; expiresIn: number } }> {
+    const url = `${API_BASE_URL}/signup`;
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name, lastname, email, phone, password }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      const error: any = new Error(data.error?.message || `Signup failed: ${response.status} ${response.statusText}`);
+      error.code = data.error?.code;
+      error.field = data.error?.field;
+      error.errors = data.error?.errors; // Массив ошибок для множественной валидации
+      throw error;
+    }
+
+    // Сохраняем токен в localStorage
+    if (data.success && data.data?.token) {
+      localStorage.setItem('auth_token', data.data.token);
+      localStorage.setItem('user_id', data.data.user?.id?.toString() || '');
+    }
+
+    return data;
+  }
 }
 
 export const apiService = ApiService.getInstance();
