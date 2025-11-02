@@ -326,9 +326,22 @@ export class ApiService {
   }
 
   // Метод для выхода
-  public logout(): void {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_id');
+  public async logout(): Promise<void> {
+    try {
+      // Вызываем эндпоинт /api/logout с JWT токеном
+      await this.request<{ success: boolean; data: { message: string } }>('/logout', {
+        method: 'POST',
+      }, true);
+    } catch (error) {
+      // Даже если запрос завершился с ошибкой, очищаем localStorage
+      console.error('Ошибка при выходе:', error);
+    } finally {
+      // Удаляем токен из localStorage после успешного или неуспешного выхода
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user_id');
+      // Очищаем кэш
+      this.clearCache();
+    }
   }
 }
 

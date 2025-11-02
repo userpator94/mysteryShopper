@@ -150,12 +150,35 @@ function setupEventHandlers(page: HTMLElement) {
   logoutButton?.addEventListener('click', handleLogout);
 }
 
-function handleLogout() {
-  // Удаляем токен из localStorage
-  apiService.logout();
+async function handleLogout() {
+  const logoutButton = document.querySelector('#logout-button') as HTMLButtonElement;
   
-  // Перенаправляем на страницу входа
-  router.navigate('/login');
+  // Показываем состояние загрузки
+  if (logoutButton) {
+    logoutButton.disabled = true;
+    logoutButton.textContent = 'Выход...';
+  }
+
+  try {
+    // Вызываем API для выхода из аккаунта
+    await apiService.logout();
+    
+    // Перенаправляем на страницу входа
+    router.navigate('/login');
+  } catch (error: any) {
+    // Обработка ошибок
+    console.error('Ошибка при выходе:', error);
+    
+    // Даже если была ошибка, все равно перенаправляем на логин
+    // (токен уже удален из localStorage в методе logout)
+    router.navigate('/login');
+  } finally {
+    // Восстанавливаем кнопку (на случай, если переход не произошел)
+    if (logoutButton) {
+      logoutButton.disabled = false;
+      logoutButton.textContent = 'Выйти из аккаунта';
+    }
+  }
 }
 
 function handleAction(action: string | undefined) {
