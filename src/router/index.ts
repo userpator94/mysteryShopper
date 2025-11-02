@@ -31,32 +31,79 @@ class Router {
   }
 
   navigate(path: string) {
-    window.location.hash = path;
-    // Не вызываем handleRoute() здесь - это будет сделано через событие hashchange
+    // Используем History API для чистых URL, но также поддерживаем hash
+    if (path.startsWith('/')) {
+      window.history.pushState(null, '', path);
+      this.handleRoute();
+    } else {
+      window.location.hash = path;
+    }
+  }
+
+  private getCurrentPath(): string {
+    // Сначала проверяем hash (для обратной совместимости)
+    const hash = window.location.hash.substring(1);
+    if (hash) {
+      return hash;
+    }
+    // Если hash пустой, используем pathname
+    return window.location.pathname || '/';
   }
 
   private async handleRoute() {
-    const hash = window.location.hash.substring(1) || '/';
-    const [path] = hash.split('?');
-    const route = this.findMatchingRoute(path);
+    const path = this.getCurrentPath();
+    const [cleanPath] = path.split('?');
+    const route = this.findMatchingRoute(cleanPath);
     
-    // Проверяем, что это действительно новый маршрут
-    if (route && this.container && route !== this.currentRoute) {
-      this.currentRoute = route;
-      document.title = `${route.title} - Mystery Shopper`;
-      
-      try {
-        const component = await route.component();
-        this.container.innerHTML = '';
-        this.container.appendChild(component);
-        
-        // Прокручиваем к верху страницы
-        window.scrollTo(0, 0);
-      } catch (error) {
-        console.error('Error loading route:', error);
+    // Если маршрут не найден, показываем 404 только если это не главная страница
+    if (!route) {
+      if (this.container && cleanPath !== '/') {
         this.container.innerHTML = '<div class="error">Страница не найдена</div>';
       }
+      return;
     }
+    
+    // Проверяем, что это действительно новый маршрут
+    if (route && this.container) {
+      // Проверяем, изменился ли маршрут (сравниваем по path, а не по объекту)
+      const currentPath = this.currentRoute?.path;
+      const newPath = route.path;
+      
+      if (currentPath !== newPath) {
+        this.currentRoute = route;
+        document.title = `${route.title} - Mystery Shopper`;
+        
+        // Управляем видимостью footer
+        this.updateFooterVisibility(cleanPath);
+        
+        try {
+          const component = await route.component();
+          this.container.innerHTML = '';
+          this.container.appendChild(component);
+          
+          // Прокручиваем к верху страницы
+          window.scrollTo(0, 0);
+        } catch (error) {
+          console.error('Error loading route:', error);
+          this.container.innerHTML = '<div class="error">Страница не найдена</div>';
+        }
+      }
+    }
+  }
+
+  private updateFooterVisibility(path: string) {
+    // Импортируем функцию динамически, чтобы избежать циклических зависимостей
+    import('../components/Layout.js').then(({ toggleFooter, shouldHideFooter }) => {
+      const hideFooter = shouldHideFooter(path);
+      toggleFooter(!hideFooter);
+    }).catch(() => {
+      // Если импорт не удался, используем прямой доступ к DOM
+      const footer = document.getElementById('main-footer');
+      const hiddenRoutes = ['/login', '/signup'];
+      if (footer) {
+        footer.style.display = hiddenRoutes.includes(path) ? 'none' : 'block';
+      }
+    });
   }
 
   private findMatchingRoute(path: string): Route | null {
@@ -64,19 +111,26 @@ class Router {
     const exactMatch = this.routes.find(r => r.path === path);
     if (exactMatch) return exactMatch;
 
-    // Затем ищем маршруты с параметрами
-    for (const route of this.routes) {
-      if (route.path.includes(':')) {
-        const routePattern = route.path.replace(/:[^/]+/g, '[^/]+');
-        const regex = new RegExp(`^${routePattern}$`);
-        if (regex.test(path)) {
-          return route;
+    // Затем ищем маршруты с параметрами (только если путь не пустой и не корневой)
+    if (path !== '/' && path !== '') {
+      for (const route of this.routes) {
+        if (route.path.includes(':')) {
+          const routePattern = route.path.replace(/:[^/]+/g, '[^/]+');
+          const regex = new RegExp(`^${routePattern}$`);
+          if (regex.test(path)) {
+            return route;
+          }
         }
       }
     }
 
-    // Если ничего не найдено, возвращаем главную страницу
-    return this.routes.find(r => r.path === '/') || null;
+    // Если путь корневой или пустой, возвращаем главную страницу
+    if (path === '/' || path === '') {
+      return this.routes.find(r => r.path === '/') || null;
+    }
+
+    // Если ничего не найдено, возвращаем null (не главную страницу!)
+    return null;
   }
 
   getCurrentRoute(): Route | null {
@@ -84,8 +138,8 @@ class Router {
   }
 
   getQueryParams(): URLSearchParams {
-    const hash = window.location.hash.substring(1) || '/';
-    const [, queryString] = hash.split('?');
+    const path = this.getCurrentPath();
+    const [, queryString] = path.split('?');
     return new URLSearchParams(queryString || '');
   }
 
@@ -93,6 +147,9 @@ class Router {
   initialize() {
     if (!this.isInitialized) {
       this.isInitialized = true;
+      const path = this.getCurrentPath();
+      const [cleanPath] = path.split('?');
+      this.updateFooterVisibility(cleanPath);
       this.handleRoute();
     }
   }

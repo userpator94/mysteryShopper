@@ -11,7 +11,7 @@ export function createLayout(): HTMLElement {
       <!-- Контент страниц будет загружаться здесь -->
     </div>
     
-    <footer class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-slate-200">
+    <footer id="main-footer" class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-slate-200">
       <div class="flex justify-around items-start pt-2 pb-3">
         <a class="flex flex-col items-center justify-center gap-1 text-primary w-1/4 nav-link" href="#" data-route="/">
           <svg fill="currentColor" height="24" viewBox="0 0 256 256" width="24" xmlns="http://www.w3.org/2000/svg">
@@ -76,4 +76,22 @@ function updateActiveNavLink(activeRoute: string) {
       if (icon) icon.classList.add('text-slate-500');
     }
   });
+}
+
+// Функция для скрытия/показа footer в зависимости от маршрута
+export function toggleFooter(show: boolean) {
+  const footer = document.getElementById('main-footer');
+  if (footer) {
+    if (show) {
+      footer.style.display = 'block';
+    } else {
+      footer.style.display = 'none';
+    }
+  }
+}
+
+// Функция для проверки, нужно ли скрывать footer для данного маршрута
+export function shouldHideFooter(path: string): boolean {
+  const hiddenRoutes = ['/login', '/signup'];
+  return hiddenRoutes.includes(path);
 }
