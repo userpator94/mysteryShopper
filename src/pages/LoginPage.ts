@@ -169,7 +169,6 @@ function setupEventHandlers(page: HTMLElement) {
     
     input.addEventListener('input', (e) => {
       const value = (e.target as HTMLInputElement).value;
-      const previousValue = input.value;
       
       // Фильтруем только разрешенные символы
       const filtered = value.split('').filter(char => allowedCharsRegex.test(char)).join('');
