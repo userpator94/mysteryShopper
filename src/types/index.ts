@@ -150,3 +150,15 @@ export interface FavoriteStatusResponse {
     is_favorite: boolean;
   }
 }
+
+export interface ApplyResponse {
+  success: true;
+  data: {
+    application_id: string;
+    offer_id: string;
+    user_id: string;
+    applied_at: string;
+    approved_at?: string;
+    approved_by?: string;
+  }
+}

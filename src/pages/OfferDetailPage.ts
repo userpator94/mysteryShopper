@@ -122,9 +122,14 @@ export async function createOfferDetailPage(offerId: string): Promise<HTMLElemen
               
               <!-- Кнопки действий -->
               <div class="space-y-3">
-                <button class="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors">
-                  Забронировать участие
-                </button>
+                <div>
+                  <button id="apply-btn" class="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors">
+                    Забронировать участие
+                  </button>
+                  <p class="text-xs text-slate-500 text-center mt-2">
+                    Заказчик может рассматривать вашу заявку в течение некоторого времени
+                  </p>
+                </div>
                 <button id="add-to-favorites-btn" class="w-full bg-slate-200 text-slate-700 py-3 rounded-lg font-semibold hover:bg-slate-300 transition-colors">
                   Добавить в избранное
                 </button>
@@ -319,6 +324,12 @@ function setupEventHandlers(page: HTMLElement, offerId: string) {
     await loadOffer(page, offerId);
   });
 
+  // Обработчик кнопки "Забронировать участие"
+  const applyBtn = page.querySelector('#apply-btn') as HTMLButtonElement;
+  applyBtn?.addEventListener('click', () => {
+    applyForOffer(offerId, applyBtn);
+  });
+
   // Обработчик кнопки "Добавить в избранное" будет установлен в checkAndSetFavoriteStatus
 }
 
@@ -448,6 +459,43 @@ async function removeFromFavorites(offerId: string, button: HTMLElement) {
     setTimeout(() => {
       buttonEl.disabled = false;
       setButtonToRemoveState(buttonEl, offerId);
+    }, 2000);
+  }
+}
+
+// Функция подачи заявки на участие
+async function applyForOffer(offerId: string, button: HTMLButtonElement) {
+  try {
+    // Показываем состояние загрузки на кнопке
+    button.textContent = 'Подача заявки...';
+    button.disabled = true;
+
+    await apiService.apply(offerId);
+    
+    // Успешно подана заявка
+    button.textContent = 'Заявка подана ✓';
+    button.classList.remove('bg-primary', 'hover:bg-primary/90');
+    button.classList.add('bg-green-500', 'hover:bg-green-600');
+    
+    // Через 3 секунды можно вернуть в исходное состояние или оставить так
+    setTimeout(() => {
+      button.disabled = true; // Делаем кнопку неактивной после успешной подачи заявки
+    }, 3000);
+    
+  } catch (error: any) {
+    console.error('Ошибка подачи заявки:', error);
+    
+    // Показываем ошибку
+    button.textContent = 'Ошибка подачи заявки';
+    button.classList.remove('bg-primary', 'hover:bg-primary/90');
+    button.classList.add('bg-red-500', 'hover:bg-red-600');
+    
+    // Через 2 секунды возвращаем исходное состояние
+    setTimeout(() => {
+      button.disabled = false;
+      button.textContent = 'Забронировать участие';
+      button.classList.remove('bg-red-500', 'hover:bg-red-600');
+      button.classList.add('bg-primary', 'hover:bg-primary/90');
     }, 2000);
   }
 }

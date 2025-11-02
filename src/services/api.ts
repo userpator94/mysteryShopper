@@ -1,5 +1,5 @@
 // Сервис для работы с API
-import type { Offer, SearchParams, FavoriteOfferSummary, AddToFavoritesResponse, RemoveFromFavoritesResponse, UserStatisticsResponse, FavoriteStatusResponse } from '../types/index.js';
+import type { Offer, SearchParams, FavoriteOfferSummary, AddToFavoritesResponse, RemoveFromFavoritesResponse, UserStatisticsResponse, FavoriteStatusResponse, ApplyResponse } from '../types/index.js';
 
 const API_BASE_URL = '/api';
 
@@ -256,6 +256,13 @@ export class ApiService {
 
   public async checkFavoriteStatus(offerId: string): Promise<FavoriteStatusResponse> {
     return this.request<FavoriteStatusResponse>(`/favorites?offer_id=${offerId}`);
+  }
+
+  public async apply(offerId: string): Promise<ApplyResponse> {
+    return this.request<ApplyResponse>('/apply', {
+      method: 'POST',
+      body: JSON.stringify({ offer_id: offerId }),
+    });
   }
 
   // Аутентификация
