@@ -1,6 +1,7 @@
 // Страница профиля пользователя
 
 import { apiService } from '../services/api.js';
+import { router } from '../router/index.js';
 import type { UserStatistics } from '../types/index.js';
 
 export async function createProfilePage(): Promise<HTMLElement> {
@@ -83,7 +84,7 @@ export async function createProfilePage(): Promise<HTMLElement> {
                 </div>
               </div>
               
-              <button class="w-full bg-red-500 text-white py-3 rounded-lg font-semibold">
+              <button id="logout-button" class="w-full bg-red-500 text-white py-3 rounded-lg font-semibold">
                 Выйти из аккаунта
               </button>
             </div>
@@ -143,6 +144,18 @@ function setupEventHandlers(page: HTMLElement) {
       handleAction(action);
     });
   });
+
+  // Обработчик кнопки выхода из аккаунта
+  const logoutButton = page.querySelector('#logout-button') as HTMLButtonElement;
+  logoutButton?.addEventListener('click', handleLogout);
+}
+
+function handleLogout() {
+  // Удаляем токен из localStorage
+  apiService.logout();
+  
+  // Перенаправляем на страницу входа
+  router.navigate('/login');
 }
 
 function handleAction(action: string | undefined) {

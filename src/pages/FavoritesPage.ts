@@ -29,6 +29,50 @@ export async function createFavoritesPage(): Promise<HTMLElement> {
               </button>
             </div>
             
+            <div id="empty-favorites-state" class="hidden text-center py-8">
+              <div id="cat-shrug-visualization" class="mb-4 flex justify-center items-center" style="height: 200px;">
+                <svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                  <!-- Cat shrug emoji style -->
+                  <!-- Left arm -->
+                  <path d="M 20 60 Q 10 40, 15 25 Q 20 10, 25 15 Q 30 20, 35 25 Q 40 30, 35 45 Q 32 50, 30 55 Z" fill="#137fec" stroke="#0f6fd6" stroke-width="2"/>
+                  
+                  <!-- Right arm -->
+                  <path d="M 180 60 Q 190 40, 185 25 Q 180 10, 175 15 Q 170 20, 165 25 Q 160 30, 165 45 Q 168 50, 170 55 Z" fill="#137fec" stroke="#0f6fd6" stroke-width="2"/>
+                  
+                  <!-- Cat head -->
+                  <circle cx="100" cy="80" r="50" fill="#137fec" stroke="#0f6fd6" stroke-width="2"/>
+                  
+                  <!-- Left ear -->
+                  <path d="M 70 50 L 80 25 L 90 50 Z" fill="#3b82f6" stroke="#0f6fd6" stroke-width="2"/>
+                  
+                  <!-- Right ear -->
+                  <path d="M 110 50 L 120 25 L 130 50 Z" fill="#3b82f6" stroke="#0f6fd6" stroke-width="2"/>
+                  
+                  <!-- Left eye -->
+                  <ellipse cx="85" cy="75" rx="8" ry="12" fill="#0f172a"/>
+                  
+                  <!-- Right eye -->
+                  <ellipse cx="115" cy="75" rx="8" ry="12" fill="#0f172a"/>
+                  
+                  <!-- Nose -->
+                  <path d="M 100 85 L 95 95 L 105 95 Z" fill="#0f172a"/>
+                  
+                  <!-- Mouth -->
+                  <path d="M 100 95 Q 90 100, 85 105 M 100 95 Q 110 100, 115 105" stroke="#0f172a" stroke-width="2" fill="none" stroke-linecap="round"/>
+                  
+                  <!-- Whiskers -->
+                  <line x1="60" y1="85" x2="75" y2="88" stroke="#0f172a" stroke-width="2" stroke-linecap="round"/>
+                  <line x1="60" y1="95" x2="75" y2="95" stroke="#0f172a" stroke-width="2" stroke-linecap="round"/>
+                  <line x1="140" y1="85" x2="125" y2="88" stroke="#0f172a" stroke-width="2" stroke-linecap="round"/>
+                  <line x1="140" y1="95" x2="125" y2="95" stroke="#0f172a" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <p class="text-slate-600 mb-4">У вас пока нет избранных</p>
+              <button id="explore-empty-btn" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
+                Найти предложения
+              </button>
+            </div>
+            
             <div id="empty-state" class="hidden text-center py-8">
               <div class="text-slate-400 mb-2">📭</div>
               <p class="text-slate-600 mb-4">У вас нет избранных предложений</p>
@@ -60,35 +104,46 @@ async function loadFavorites(page: HTMLElement) {
   const loadingState = page.querySelector('#loading-state') as HTMLElement;
   const errorState = page.querySelector('#error-state') as HTMLElement;
   const emptyState = page.querySelector('#empty-state') as HTMLElement;
+  const emptyFavoritesState = page.querySelector('#empty-favorites-state') as HTMLElement;
   const favoritesContainer = page.querySelector('#favorites-container') as HTMLElement;
 
   try {
     // Показываем состояние загрузки
-    showState(loadingState, [errorState, emptyState, favoritesContainer]);
+    showState(loadingState, [errorState, emptyState, emptyFavoritesState, favoritesContainer]);
 
     // Загружаем избранные предложения из API
     const favorites = await apiService.getFavorites();
+    console.log('Загружено избранных:', favorites.length);
 
     // Скрываем состояние загрузки
     hideState(loadingState);
 
     if (favorites.length === 0) {
-      // Показываем состояние пустого списка
-      showState(emptyState, [errorState, favoritesContainer]);
+      // Показываем состояние пустого списка (404 или действительно пусто)
+      console.log('Показываем состояние "нет избранных"');
+      showState(emptyFavoritesState, [errorState, emptyState, favoritesContainer]);
     } else {
       // Отображаем избранные предложения
       renderFavorites(favoritesContainer, favorites);
-      showState(favoritesContainer, [errorState, emptyState]);
+      showState(favoritesContainer, [errorState, emptyState, emptyFavoritesState]);
     }
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Ошибка загрузки избранного:', error);
     
     // Скрываем состояние загрузки
     hideState(loadingState);
     
-    // Показываем состояние ошибки
-    showState(errorState, [emptyState, favoritesContainer]);
+    // Проверяем, является ли ошибка 404 (нет избранных)
+    const is404 = error?.message?.includes('404') || error?.status === 404;
+    
+    if (is404) {
+      // Для 404 показываем состояние "нет избранных"
+      showState(emptyFavoritesState, [errorState, emptyState, favoritesContainer]);
+    } else {
+      // Для других ошибок показываем состояние ошибки
+      showState(errorState, [emptyState, emptyFavoritesState, favoritesContainer]);
+    }
   }
 }
 
@@ -128,9 +183,15 @@ function setupEventHandlers(page: HTMLElement) {
     await loadFavorites(page);
   });
 
-  // Обработчик кнопки "Найти предложения"
+  // Обработчик кнопки "Найти предложения" в пустом состоянии
   const exploreBtn = page.querySelector('#explore-btn');
   exploreBtn?.addEventListener('click', () => {
+    window.location.hash = '#/offers';
+  });
+
+  // Обработчик кнопки "Найти предложения" для пустого избранного
+  const exploreEmptyBtn = page.querySelector('#explore-empty-btn');
+  exploreEmptyBtn?.addEventListener('click', () => {
     window.location.hash = '#/offers';
   });
 

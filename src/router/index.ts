@@ -4,6 +4,7 @@ export interface Route {
   path: string;
   component: () => Promise<HTMLElement>;
   title: string;
+  requiresAuth?: boolean; // Требует ли маршрут аутентификации
 }
 
 class Router {
@@ -61,6 +62,16 @@ class Router {
         this.container.innerHTML = '<div class="error">Страница не найдена</div>';
       }
       return;
+    }
+    
+    // Проверяем аутентификацию для защищенных маршрутов
+    if (route.requiresAuth) {
+      const { isAuthenticated } = await import('../utils/auth.js');
+      if (!isAuthenticated()) {
+        // Пользователь не авторизован - перенаправляем на страницу входа
+        window.location.href = '/login';
+        return;
+      }
     }
     
     // Проверяем, что это действительно новый маршрут

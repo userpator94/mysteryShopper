@@ -60,25 +60,29 @@ router.addRoute({
     const offerId = pathParts[pathParts.length - 1]
     return createOfferDetailPage(offerId)
   },
-  title: 'Детали предложения'
+  title: 'Детали предложения',
+  requiresAuth: true // Требует аутентификации (GET /api/offers/:id защищен)
 })
 
 router.addRoute({
   path: '/favorites',
   component: createFavoritesPage,
-  title: 'Избранное'
+  title: 'Избранное',
+  requiresAuth: true
 })
 
 router.addRoute({
   path: '/profile',
   component: createProfilePage,
-  title: 'Профиль'
+  title: 'Профиль',
+  requiresAuth: true
 })
 
 router.addRoute({
   path: '/orders',
   component: createOrderHistoryPage,
-  title: 'История заказов'
+  title: 'История заказов',
+  requiresAuth: true
 })
 
 router.addRoute({
