@@ -296,8 +296,8 @@ function setupEventHandlers(page: HTMLElement) {
   const availableHeader = page.querySelector('#available-section-header');
   const acceptedContent = page.querySelector('#accepted-section-content');
   const availableContent = page.querySelector('#available-section-content');
-  const acceptedIcon = page.querySelector('#accepted-section-icon');
-  const availableIcon = page.querySelector('#available-section-icon');
+  const acceptedIcon = page.querySelector('#accepted-section-icon') as HTMLElement;
+  const availableIcon = page.querySelector('#available-section-icon') as HTMLElement;
 
   acceptedHeader?.addEventListener('click', () => {
     if (acceptedContent && acceptedIcon) {
