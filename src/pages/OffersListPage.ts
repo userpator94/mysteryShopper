@@ -1,6 +1,6 @@
 // Страница списка предложений с фильтрами и сортировкой
 
-import type { Offer, SearchParams } from '../types/index.js';
+import type { Offer, SearchParams, Application } from '../types/index.js';
 import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
 
@@ -69,8 +69,36 @@ export async function createOffersListPage(): Promise<HTMLElement> {
               <p class="text-slate-600">Предложения не найдены</p>
             </div>
             
-            <div id="offers-container" class="grid grid-cols-1 gap-4">
-              <!-- Предложения будут загружены динамически -->
+            <div id="offers-container" class="space-y-4">
+              <!-- Секция "Принятые" -->
+              <div class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+                <button id="accepted-section-header" class="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                  <span class="font-semibold text-lg">Принятые</span>
+                  <svg id="accepted-section-icon" class="w-5 h-5 text-slate-500 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </button>
+                <div id="accepted-section-content" class="hidden px-4 pb-4">
+                  <div id="accepted-offers" class="grid grid-cols-1 gap-4">
+                    <!-- Принятые предложения будут загружены динамически -->
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Секция "Доступные" -->
+              <div class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+                <button id="available-section-header" class="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                  <span class="font-semibold text-lg">Доступные</span>
+                  <svg id="available-section-icon" class="w-5 h-5 text-slate-500 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </button>
+                <div id="available-section-content" class="hidden px-4 pb-4">
+                  <div id="available-offers" class="grid grid-cols-1 gap-4">
+                    <!-- Доступные предложения будут загружены динамически -->
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </main>
@@ -119,20 +147,46 @@ async function loadOffers(page: HTMLElement, category?: string | null) {
       searchInput.value = searchQuery;
     }
 
-    // Загружаем предложения из API
+    // 1. Загружаем предложения из API
     const offers = await apiService.getOffers(searchParams);
+    
+    // 2. Загружаем заявки из API
+    let applications: Application[] = [];
+    try {
+      const appliesResponse = await apiService.getApplies();
+      applications = appliesResponse.data;
+    } catch (error) {
+      console.error('Ошибка загрузки заявок:', error);
+      // Продолжаем работу даже если заявки не загрузились
+    }
 
     // Скрываем состояние загрузки
     hideState(loadingState);
 
-    if (offers.length === 0) {
-      // Показываем состояние пустого списка
-      showState(emptyState, [errorState, offersContainer]);
-    } else {
-      // Отображаем предложения
-      renderOffers(offersContainer, offers);
-      showState(offersContainer, [errorState, emptyState]);
-    }
+    // 3. Фильтруем предложения по алгоритму
+    const pendingOfferIds = new Set(
+      applications
+        .filter(app => app.status === 'pending')
+        .map(app => app.offer_id)
+    );
+    
+    const doneOfferIds = new Set(
+      applications
+        .filter(app => app.status === 'done')
+        .map(app => app.offer_id)
+    );
+
+    // Принятые: предложения со статусом "pending" в заявках
+    const acceptedOffers = offers.filter(offer => pendingOfferIds.has(offer.id));
+    
+    // Доступные: все остальные, кроме тех, у которых статус = "done"
+    const availableOffers = offers.filter(offer => 
+      !pendingOfferIds.has(offer.id) && !doneOfferIds.has(offer.id)
+    );
+
+    // Отображаем предложения
+    renderOffers(page, acceptedOffers, availableOffers);
+    showState(offersContainer, [errorState, emptyState]);
 
   } catch (error) {
     console.error('Ошибка загрузки предложений:', error);
@@ -146,17 +200,51 @@ async function loadOffers(page: HTMLElement, category?: string | null) {
 }
 
 // Функция отображения предложений
-function renderOffers(container: HTMLElement, offers: Offer[]) {
-  container.innerHTML = offers.map(offer => `
-    <div class="bg-white rounded-lg p-4 border border-slate-200 cursor-pointer hover:shadow-md transition-shadow" data-offer-id="${offer.id}">
-      <div class="w-full h-48 bg-slate-200 rounded-lg mb-3"></div>
-      <h3 class="font-semibold mb-2">${offer.title}</h3>
-      <p class="text-slate-600 text-sm mb-2">${offer.description}</p>
-      <div class="flex justify-between items-center">
-        <span class="text-primary font-bold">${parseFloat(offer.price).toLocaleString()} ₽</span>
+function renderOffers(page: HTMLElement, acceptedOffers: Offer[], availableOffers: Offer[]) {
+  const acceptedContainer = page.querySelector('#accepted-offers') as HTMLElement;
+  const availableContainer = page.querySelector('#available-offers') as HTMLElement;
+  const acceptedContent = page.querySelector('#accepted-section-content') as HTMLElement;
+  const availableContent = page.querySelector('#available-section-content') as HTMLElement;
+  const acceptedIcon = page.querySelector('#accepted-section-icon') as HTMLElement;
+  const availableIcon = page.querySelector('#available-section-icon') as HTMLElement;
+
+  // Рендерим принятые предложения
+  if (acceptedOffers.length > 0) {
+    acceptedContainer.innerHTML = acceptedOffers.map(offer => `
+      <div class="bg-white rounded-lg p-4 border border-slate-200 cursor-pointer hover:shadow-md transition-shadow" data-offer-id="${offer.id}">
+        <h3 class="font-semibold mb-2">${offer.title}</h3>
+        <p class="text-slate-600 text-sm mb-2">${offer.description}</p>
+        <div class="flex justify-between items-center">
+          <span class="text-primary font-bold">${parseFloat(offer.price).toLocaleString()} ₽</span>
+        </div>
       </div>
-    </div>
-  `).join('');
+    `).join('');
+    
+    // Разворачиваем секцию, если есть предложения
+    acceptedContent.classList.remove('hidden');
+    acceptedIcon.style.transform = 'rotate(180deg)';
+  } else {
+    acceptedContainer.innerHTML = '<p class="text-slate-500 text-center py-4">Нет принятых предложений</p>';
+  }
+
+  // Рендерим доступные предложения
+  if (availableOffers.length > 0) {
+    availableContainer.innerHTML = availableOffers.map(offer => `
+      <div class="bg-white rounded-lg p-4 border border-slate-200 cursor-pointer hover:shadow-md transition-shadow" data-offer-id="${offer.id}">
+        <h3 class="font-semibold mb-2">${offer.title}</h3>
+        <p class="text-slate-600 text-sm mb-2">${offer.description}</p>
+        <div class="flex justify-between items-center">
+          <span class="text-primary font-bold">${parseFloat(offer.price).toLocaleString()} ₽</span>
+        </div>
+      </div>
+    `).join('');
+    
+    // Разворачиваем секцию, если есть предложения
+    availableContent.classList.remove('hidden');
+    availableIcon.style.transform = 'rotate(180deg)';
+  } else {
+    availableContainer.innerHTML = '<p class="text-slate-500 text-center py-4">Нет доступных предложений</p>';
+  }
 }
 
 // Функции управления состояниями
@@ -203,6 +291,30 @@ function setupEventHandlers(page: HTMLElement) {
     await loadOffers(page, category);
   });
 
+  // Обработчики для expandable секций
+  const acceptedHeader = page.querySelector('#accepted-section-header');
+  const availableHeader = page.querySelector('#available-section-header');
+  const acceptedContent = page.querySelector('#accepted-section-content');
+  const availableContent = page.querySelector('#available-section-content');
+  const acceptedIcon = page.querySelector('#accepted-section-icon');
+  const availableIcon = page.querySelector('#available-section-icon');
+
+  acceptedHeader?.addEventListener('click', () => {
+    if (acceptedContent && acceptedIcon) {
+      acceptedContent.classList.toggle('hidden');
+      const isExpanded = !acceptedContent.classList.contains('hidden');
+      acceptedIcon.style.transform = isExpanded ? 'rotate(180deg)' : 'rotate(0deg)';
+    }
+  });
+
+  availableHeader?.addEventListener('click', () => {
+    if (availableContent && availableIcon) {
+      availableContent.classList.toggle('hidden');
+      const isExpanded = !availableContent.classList.contains('hidden');
+      availableIcon.style.transform = isExpanded ? 'rotate(180deg)' : 'rotate(0deg)';
+    }
+  });
+
   // Обработчики для карточек предложений
   page.addEventListener('click', async (e) => {
     const target = e.target as HTMLElement;
@@ -217,4 +329,3 @@ function setupEventHandlers(page: HTMLElement) {
     }
   });
 }
-

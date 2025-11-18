@@ -162,3 +162,17 @@ export interface ApplyResponse {
     approved_by?: string;
   }
 }
+
+export interface Application {
+  application_id: string;
+  offer_id: string;
+  user_id: string;
+  status: 'pending' | 'approved' | 'rejected' | 'done';
+  applied_at: string;
+  approved_at?: string;
+}
+
+export interface ApplicationsResponse {
+  success: true;
+  data: Application[];
+}

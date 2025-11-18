@@ -20,7 +20,6 @@ export async function createOfferDetailPage(offerId: string): Promise<HTMLElemen
                 <path d="M224,128a8,8,0,0,1-8,8H59.31l58.35,58.34a8,8,0,0,1-11.32,11.32l-72-72a8,8,0,0,1,0-11.32l72-72a8,8,0,0,1,11.32,11.32L59.31,120H216A8,8,0,0,1,224,128Z"></path>
               </svg>
             </button>
-            <h1 class="text-lg font-semibold">Предложение</h1>
           </div>
         </header>
         
@@ -40,14 +39,14 @@ export async function createOfferDetailPage(offerId: string): Promise<HTMLElemen
           
           <div id="offer-content" class="hidden">
             <!-- Изображение предложения -->
-            <div id="offer-image-container" class="w-full h-64 bg-slate-200 relative overflow-hidden">
+            <!-- <div id="offer-image-container" class="hidden w-full h-64 bg-slate-200 relative overflow-hidden">
               <div id="offer-image-placeholder" class="w-full h-full flex items-center justify-center text-slate-400">
                 <svg fill="currentColor" height="64" viewBox="0 0 24 24" width="64" xmlns="http://www.w3.org/2000/svg">
                   <path d="M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19M8.5,13.5L11,16.5L14.5,12L19,18H5L8.5,13.5Z"/>
                 </svg>
               </div>
               <img id="offer-image" class="hidden w-full h-full object-cover" alt="">
-            </div>
+            </div> -->
             
             <div class="px-4 py-4">
               <!-- Заголовок и основная информация -->
@@ -124,7 +123,7 @@ export async function createOfferDetailPage(offerId: string): Promise<HTMLElemen
               <div class="space-y-3">
                 <div>
                   <button id="apply-btn" class="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors">
-                    Забронировать участие
+                    Участвовать
                   </button>
                   <p class="text-xs text-slate-500 text-center mt-2">
                     Заказчик может рассматривать вашу заявку в течение некоторого времени
@@ -173,10 +172,14 @@ async function loadOffer(page: HTMLElement, offerId: string) {
     // Отображаем данные предложения
     renderOffer(offer, page);
     
+    // Показываем контент перед проверкой статусов
+    showState(offerContent, [errorState]);
+    
     // Проверяем статус избранного
     await checkAndSetFavoriteStatus(offerId, page);
     
-    showState(offerContent, [errorState]);
+    // Проверяем наличие заявки на это предложение
+    await checkAndSetApplyStatus(offerId, page);
 
   } catch (error) {
     console.error('Ошибка загрузки предложения:', error);
@@ -202,9 +205,9 @@ function renderOffer(offer: Offer, page: HTMLElement) {
   const tagsEl = page.querySelector('#offer-tags') as HTMLElement;
   
   // Изображение
-  const imageContainer = page.querySelector('#offer-image-container') as HTMLElement;
-  const imagePlaceholder = page.querySelector('#offer-image-placeholder') as HTMLElement;
-  const imageEl = page.querySelector('#offer-image') as HTMLImageElement;
+  // const imageContainer = page.querySelector('#offer-image-container') as HTMLElement;
+  // const imagePlaceholder = page.querySelector('#offer-image-placeholder') as HTMLElement;
+  // const imageEl = page.querySelector('#offer-image') as HTMLImageElement;
   
   // Даты
   const startDateEl = page.querySelector('#offer-start-date') as HTMLElement;
@@ -219,37 +222,37 @@ function renderOffer(offer: Offer, page: HTMLElement) {
   if (locationEl) locationEl.textContent = offer.location || 'Местоположение не указано';
   
   // Изображение
-  if (offer.image_id === null) {
-    // Скрываем весь контейнер изображения если image_id = null
-    if (imageContainer) {
-      imageContainer.classList.add('hidden');
-    }
-  } else {
-    // Показываем контейнер изображения
-    if (imageContainer) {
-      imageContainer.classList.remove('hidden');
-    }
-    
-    if (offer.image_url) {
-      // Показываем изображение
-      if (imageEl) {
-        imageEl.src = offer.image_url;
-        imageEl.alt = offer.image_alt_text || offer.title;
-        imageEl.classList.remove('hidden');
-      }
-      if (imagePlaceholder) {
-        imagePlaceholder.classList.add('hidden');
-      }
-    } else {
-      // Показываем плейсхолдер
-      if (imageEl) {
-        imageEl.classList.add('hidden');
-      }
-      if (imagePlaceholder) {
-        imagePlaceholder.classList.remove('hidden');
-      }
-    }
-  }
+  // if (offer.image_id === null) {
+  //   // Скрываем весь контейнер изображения если image_id = null
+  //   if (imageContainer) {
+  //     imageContainer.classList.add('hidden');
+  //   }
+  // } else {
+  //   // Показываем контейнер изображения
+  //   if (imageContainer) {
+  //     imageContainer.classList.remove('hidden');
+  //   }
+  //   
+  //   if (offer.image_url) {
+  //     // Показываем изображение
+  //     if (imageEl) {
+  //       imageEl.src = offer.image_url;
+  //       imageEl.alt = offer.image_alt_text || offer.title;
+  //       imageEl.classList.remove('hidden');
+  //     }
+  //     if (imagePlaceholder) {
+  //       imagePlaceholder.classList.add('hidden');
+  //     }
+  //   } else {
+  //     // Показываем плейсхолдер
+  //     if (imageEl) {
+  //       imageEl.classList.add('hidden');
+  //     }
+  //     if (imagePlaceholder) {
+  //       imagePlaceholder.classList.remove('hidden');
+  //     }
+  //   }
+  // }
   
   
   // Даты
@@ -324,10 +327,15 @@ function setupEventHandlers(page: HTMLElement, offerId: string) {
     await loadOffer(page, offerId);
   });
 
-  // Обработчик кнопки "Забронировать участие"
+  // Обработчик кнопки "Участвовать" / "Отказаться"
   const applyBtn = page.querySelector('#apply-btn') as HTMLButtonElement;
   applyBtn?.addEventListener('click', () => {
-    applyForOffer(offerId, applyBtn);
+    const buttonText = applyBtn.textContent?.trim();
+    if (buttonText === 'Отказаться') {
+      cancelApply(offerId, applyBtn);
+    } else {
+      applyForOffer(offerId, applyBtn);
+    }
   });
 
   // Обработчик кнопки "Добавить в избранное" будет установлен в checkAndSetFavoriteStatus
@@ -353,6 +361,39 @@ async function checkAndSetFavoriteStatus(offerId: string, page: HTMLElement) {
     if (addToFavoritesBtn) {
       setButtonToAddState(addToFavoritesBtn, offerId);
     }
+  }
+}
+
+// Функция проверки и установки статуса заявки
+async function checkAndSetApplyStatus(offerId: string, page: HTMLElement) {
+  try {
+    console.log('Проверка статуса заявки для offerId:', offerId);
+    const application = await apiService.getApplyByOfferId(offerId);
+    console.log('Результат проверки заявки:', application);
+    
+    // Ждем немного, чтобы убедиться, что DOM готов
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    const applyBtn = page.querySelector('#apply-btn') as HTMLButtonElement;
+    console.log('Кнопка найдена:', applyBtn);
+    console.log('Текущий текст кнопки:', applyBtn?.textContent);
+    
+    if (!applyBtn) {
+      console.error('Кнопка #apply-btn не найдена в DOM!');
+      return;
+    }
+    
+    if (application) {
+      // Заявка существует - меняем текст кнопки на "Отказаться"
+      console.log('Заявка найдена, меняем текст кнопки на "Отказаться"');
+      applyBtn.textContent = 'Отказаться';
+      console.log('Новый текст кнопки:', applyBtn.textContent);
+    } else {
+      console.log('Заявка не найдена, оставляем текст "Участвовать"');
+    }
+  } catch (error) {
+    console.error('Ошибка проверки статуса заявки:', error);
+    // В случае ошибки оставляем кнопку в исходном состоянии
   }
 }
 
@@ -466,36 +507,44 @@ async function removeFromFavorites(offerId: string, button: HTMLElement) {
 // Функция подачи заявки на участие
 async function applyForOffer(offerId: string, button: HTMLButtonElement) {
   try {
-    // Показываем состояние загрузки на кнопке
-    button.textContent = 'Подача заявки...';
     button.disabled = true;
 
     await apiService.apply(offerId);
     
-    // Успешно подана заявка
-    button.textContent = 'Заявка подана ✓';
-    button.classList.remove('bg-primary', 'hover:bg-primary/90');
-    button.classList.add('bg-green-500', 'hover:bg-green-600');
-    
-    // Через 3 секунды можно вернуть в исходное состояние или оставить так
-    setTimeout(() => {
-      button.disabled = true; // Делаем кнопку неактивной после успешной подачи заявки
-    }, 3000);
+    // Успешно подана заявка - меняем на "Отказаться"
+    button.textContent = 'Отказаться';
+    button.disabled = false;
     
   } catch (error: any) {
     console.error('Ошибка подачи заявки:', error);
+    // В случае ошибки оставляем кнопку в состоянии "Участвовать"
+    button.textContent = 'Участвовать';
+    button.disabled = false;
+  }
+}
+
+// Функция отказа от заявки
+async function cancelApply(offerId: string, button: HTMLButtonElement) {
+  try {
+    button.disabled = true;
+
+    const success = await apiService.cancelApply(offerId);
     
-    // Показываем ошибку
-    button.textContent = 'Ошибка подачи заявки';
-    button.classList.remove('bg-primary', 'hover:bg-primary/90');
-    button.classList.add('bg-red-500', 'hover:bg-red-600');
-    
-    // Через 2 секунды возвращаем исходное состояние
-    setTimeout(() => {
+    if (success) {
+      // Успешно отменена заявка - меняем текст кнопки на "Участвовать"
+      button.textContent = 'Участвовать';
       button.disabled = false;
-      button.textContent = 'Забронировать участие';
-      button.classList.remove('bg-red-500', 'hover:bg-red-600');
-      button.classList.add('bg-primary', 'hover:bg-primary/90');
-    }, 2000);
+    } else {
+      // Ошибка - оставляем в состоянии "Отказаться"
+      button.textContent = 'Отказаться';
+      button.disabled = false;
+    }
+    
+  } catch (error: any) {
+    console.error('Ошибка отказа от заявки:', error);
+    
+    // В случае ошибки оставляем в состоянии "Отказаться"
+    button.textContent = 'Отказаться';
+    button.disabled = false;
   }
 }

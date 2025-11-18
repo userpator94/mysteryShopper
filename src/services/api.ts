@@ -1,5 +1,5 @@
 // Сервис для работы с API
-import type { Offer, SearchParams, FavoriteOfferSummary, AddToFavoritesResponse, RemoveFromFavoritesResponse, UserStatisticsResponse, FavoriteStatusResponse, ApplyResponse } from '../types/index.js';
+import type { Offer, SearchParams, FavoriteOfferSummary, AddToFavoritesResponse, RemoveFromFavoritesResponse, UserStatisticsResponse, FavoriteStatusResponse, ApplyResponse, ApplicationsResponse, Application } from '../types/index.js';
 
 const API_BASE_URL = '/api';
 
@@ -263,6 +263,97 @@ export class ApiService {
       method: 'POST',
       body: JSON.stringify({ offer_id: offerId }),
     });
+  }
+
+  public async getApplies(): Promise<ApplicationsResponse> {
+    return this.request<ApplicationsResponse>('/applies');
+  }
+
+  public async getApplyByOfferId(offerId: string): Promise<Application | null> {
+    try {
+      const url = `${API_BASE_URL}/applies?offer_id=${offerId}`;
+      
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      // Добавляем JWT токен
+      const token = this.getAuthToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      console.log('Запрос к API:', url);
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+      });
+      
+      console.log('Статус ответа:', response.status);
+      
+      if (response.status === 200) {
+        const data = await response.json();
+        console.log('Полный ответ API:', data);
+        
+        // Проверяем разные возможные структуры ответа
+        if (data && data.success && data.data) {
+          // Стандартная структура { success: true, data: [...] }
+          if (Array.isArray(data.data) && data.data.length > 0) {
+            console.log('Заявка найдена в массиве:', data.data[0]);
+            return data.data[0];
+          }
+          // Возможно data - это объект, а не массив
+          if (data.data && typeof data.data === 'object' && !Array.isArray(data.data)) {
+            console.log('Заявка найдена как объект:', data.data);
+            return data.data;
+          }
+        }
+        // Если структура другая, пробуем напрямую
+        if (Array.isArray(data) && data.length > 0) {
+          console.log('Заявка найдена (массив напрямую):', data[0]);
+          return data[0];
+        }
+        if (data && data.application_id) {
+          console.log('Заявка найдена (объект напрямую):', data);
+          return data;
+        }
+      }
+      
+      console.log('Заявка не найдена, статус:', response.status);
+      return null;
+    } catch (error) {
+      console.error('Ошибка при получении заявки:', error);
+      return null;
+    }
+  }
+
+  public async cancelApply(offerId: string): Promise<boolean> {
+    try {
+      const url = `${API_BASE_URL}/apply?offer_id=${offerId}`;
+      
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      // Добавляем JWT токен
+      const token = this.getAuthToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      console.log('Отказ от заявки, запрос к API:', url);
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers,
+      });
+      
+      console.log('Статус ответа при отказе:', response.status);
+      
+      return response.status === 200;
+    } catch (error) {
+      console.error('Ошибка при отказе от заявки:', error);
+      return false;
+    }
   }
 
   // Аутентификация
