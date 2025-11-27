@@ -3,6 +3,8 @@
 import type { Offer } from '../types/index.js';
 import { apiService } from '../services/api.js';
 
+const REPORT_FORM_URL = 'https://forms.yandex.ru/cloud/692847d4d046889383c04c34';
+
 // Map для хранения обработчиков событий по кнопкам
 const buttonHandlers = new WeakMap<HTMLButtonElement, (e: MouseEvent) => void>();
 
@@ -121,6 +123,9 @@ export async function createOfferDetailPage(offerId: string): Promise<HTMLElemen
               
               <!-- Кнопки действий -->
               <div class="space-y-3">
+                <button id="make-report" class="hidden w-full bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition-colors">
+                  Отчитаться
+                </button>
                 <div>
                   <button id="apply-btn" class="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors">
                     Участвовать
@@ -338,6 +343,11 @@ function setupEventHandlers(page: HTMLElement, offerId: string) {
     }
   });
 
+  const makeReportBtn = page.querySelector('#make-report') as HTMLButtonElement | null;
+  makeReportBtn?.addEventListener('click', () => {
+    openReportModal();
+  });
+
   // Обработчик кнопки "Добавить в избранное" будет установлен в checkAndSetFavoriteStatus
 }
 
@@ -378,6 +388,8 @@ async function checkAndSetApplyStatus(offerId: string, page: HTMLElement) {
     console.log('Кнопка найдена:', applyBtn);
     console.log('Текущий текст кнопки:', applyBtn?.textContent);
     
+    const makeReportBtn = page.querySelector('#make-report') as HTMLButtonElement | null;
+    
     if (!applyBtn) {
       console.error('Кнопка #apply-btn не найдена в DOM!');
       return;
@@ -388,8 +400,19 @@ async function checkAndSetApplyStatus(offerId: string, page: HTMLElement) {
       console.log('Заявка найдена, меняем текст кнопки на "Отказаться"');
       applyBtn.textContent = 'Отказаться';
       console.log('Новый текст кнопки:', applyBtn.textContent);
+      
+      // Показать кнопку "Отчитаться" при статусе pending
+      if (makeReportBtn) {
+        if (application.status === 'pending') {
+          makeReportBtn.classList.remove('hidden');
+        } else {
+          makeReportBtn.classList.add('hidden');
+        }
+      }
     } else {
       console.log('Заявка не найдена, оставляем текст "Участвовать"');
+      // Скрываем кнопку "Отчитаться", если заявки нет
+      makeReportBtn?.classList.add('hidden');
     }
   } catch (error) {
     console.error('Ошибка проверки статуса заявки:', error);
@@ -547,4 +570,48 @@ async function cancelApply(offerId: string, button: HTMLButtonElement) {
     button.textContent = 'Отказаться';
     button.disabled = false;
   }
+}
+
+function openReportModal() {
+  if (document.getElementById('report-modal')) {
+    return;
+  }
+
+  const modal = document.createElement('div');
+  modal.id = 'report-modal';
+  modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4';
+  modal.innerHTML = `
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
+      <p class="text-slate-700 mb-6 leading-relaxed">
+        Переходя дальше я соглашаюсь отчитаться о задаче и передать отчёт на проверку.
+      </p>
+      <div class="flex flex-col gap-3">
+        <button id="report-continue-btn" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+          Перейти
+        </button>
+        <button id="report-back-btn" class="w-full px-4 py-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors">
+          Назад
+        </button>
+      </div>
+    </div>
+  `;
+
+  const removeModal = () => modal.remove();
+
+  const backBtn = modal.querySelector('#report-back-btn') as HTMLButtonElement | null;
+  backBtn?.addEventListener('click', removeModal);
+
+  const continueBtn = modal.querySelector('#report-continue-btn') as HTMLButtonElement | null;
+  continueBtn?.addEventListener('click', () => {
+    window.open(REPORT_FORM_URL, '_blank', 'noopener');
+    removeModal();
+  });
+
+  modal.addEventListener('click', (event) => {
+    if (event.target === modal) {
+      removeModal();
+    }
+  });
+
+  document.body.appendChild(modal);
 }
