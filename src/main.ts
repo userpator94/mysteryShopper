@@ -7,6 +7,7 @@ import { createOfferDetailPage } from './pages/OfferDetailPage.js'
 import { createFavoritesPage } from './pages/FavoritesPage.js'
 import { createProfilePage } from './pages/ProfilePage.js'
 import { createOrderHistoryPage } from './pages/OrderHistoryPage.js'
+import { createReportPage } from './pages/ReportPage.js'
 import { createLoginPage } from './pages/LoginPage.js'
 import { createSignUpPage } from './pages/SignUpPage.js'
 import { showWebDeviceModal } from './components/WebDeviceMessage.js'
@@ -82,6 +83,19 @@ router.addRoute({
   path: '/orders',
   component: createOrderHistoryPage,
   title: 'История заказов',
+  requiresAuth: true
+})
+
+router.addRoute({
+  path: '/report/:offerId',
+  component: () => {
+    // Получаем путь из pathname или hash (для обратной совместимости)
+    const path = window.location.hash ? window.location.hash.substring(1) : window.location.pathname;
+    const pathParts = path.split('/')
+    const offerId = pathParts[pathParts.length - 1]
+    return createReportPage(offerId)
+  },
+  title: 'Отчёт',
   requiresAuth: true
 })
 

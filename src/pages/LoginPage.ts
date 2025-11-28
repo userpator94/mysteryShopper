@@ -1,7 +1,6 @@
 // Страница входа в аккаунт
 
-import { router } from '../router/index.js';
-import { apiService } from '../services/api.js';
+import { router } from '../router/index.js';import { apiService } from '../services/api.js';
 
 export async function createLoginPage(): Promise<HTMLElement> {
   const page = document.createElement('div');

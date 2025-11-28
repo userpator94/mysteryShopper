@@ -3,8 +3,6 @@
 import type { Offer } from '../types/index.js';
 import { apiService } from '../services/api.js';
 
-const REPORT_FORM_URL = 'https://forms.yandex.ru/cloud/692847d4d046889383c04c34';
-
 // Map для хранения обработчиков событий по кнопкам
 const buttonHandlers = new WeakMap<HTMLButtonElement, (e: MouseEvent) => void>();
 
@@ -337,15 +335,15 @@ function setupEventHandlers(page: HTMLElement, offerId: string) {
   applyBtn?.addEventListener('click', () => {
     const buttonText = applyBtn.textContent?.trim();
     if (buttonText === 'Отказаться') {
-      cancelApply(offerId, applyBtn);
+      cancelApply(offerId, applyBtn, page);
     } else {
-      applyForOffer(offerId, applyBtn);
+      applyForOffer(offerId, applyBtn, page);
     }
   });
 
   const makeReportBtn = page.querySelector('#make-report') as HTMLButtonElement | null;
   makeReportBtn?.addEventListener('click', () => {
-    openReportModal();
+    openReportModal(offerId);
   });
 
   // Обработчик кнопки "Добавить в избранное" будет установлен в checkAndSetFavoriteStatus
@@ -410,7 +408,9 @@ async function checkAndSetApplyStatus(offerId: string, page: HTMLElement) {
         }
       }
     } else {
-      console.log('Заявка не найдена, оставляем текст "Участвовать"');
+      console.log('Заявка не найдена, меняем текст кнопки на "Участвовать"');
+      // Заявка не найдена - меняем текст кнопки на "Участвовать"
+      applyBtn.textContent = 'Участвовать';
       // Скрываем кнопку "Отчитаться", если заявки нет
       makeReportBtn?.classList.add('hidden');
     }
@@ -528,14 +528,18 @@ async function removeFromFavorites(offerId: string, button: HTMLElement) {
 }
 
 // Функция подачи заявки на участие
-async function applyForOffer(offerId: string, button: HTMLButtonElement) {
+async function applyForOffer(offerId: string, button: HTMLButtonElement, page: HTMLElement) {
   try {
     button.disabled = true;
 
     await apiService.apply(offerId);
     
-    // Успешно подана заявка - меняем на "Отказаться"
-    button.textContent = 'Отказаться';
+    // Очищаем кэш для обновления данных
+    apiService.clearCache('/applies');
+    
+    // Обновляем статус заявки для обновления экрана
+    await checkAndSetApplyStatus(offerId, page);
+    
     button.disabled = false;
     
   } catch (error: any) {
@@ -547,15 +551,19 @@ async function applyForOffer(offerId: string, button: HTMLButtonElement) {
 }
 
 // Функция отказа от заявки
-async function cancelApply(offerId: string, button: HTMLButtonElement) {
+async function cancelApply(offerId: string, button: HTMLButtonElement, page: HTMLElement) {
   try {
     button.disabled = true;
 
     const success = await apiService.cancelApply(offerId);
     
     if (success) {
-      // Успешно отменена заявка - меняем текст кнопки на "Участвовать"
-      button.textContent = 'Участвовать';
+      // Очищаем кэш для обновления данных
+      apiService.clearCache('/applies');
+      
+      // Обновляем статус заявки для обновления экрана
+      await checkAndSetApplyStatus(offerId, page);
+      
       button.disabled = false;
     } else {
       // Ошибка - оставляем в состоянии "Отказаться"
@@ -572,7 +580,7 @@ async function cancelApply(offerId: string, button: HTMLButtonElement) {
   }
 }
 
-function openReportModal() {
+function openReportModal(offerId: string) {
   if (document.getElementById('report-modal')) {
     return;
   }
@@ -603,7 +611,8 @@ function openReportModal() {
 
   const continueBtn = modal.querySelector('#report-continue-btn') as HTMLButtonElement | null;
   continueBtn?.addEventListener('click', () => {
-    window.open(REPORT_FORM_URL, '_blank', 'noopener');
+    // Переходим на страницу отчёта
+    window.location.hash = `#/report/${offerId}`;
     removeModal();
   });
 
