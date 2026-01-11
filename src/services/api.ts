@@ -1,5 +1,6 @@
 // Сервис для работы с API
 import type { Offer, SearchParams, FavoriteOfferSummary, AddToFavoritesResponse, RemoveFromFavoritesResponse, UserStatisticsResponse, FavoriteStatusResponse, ApplyResponse, ApplicationsResponse, Application } from '../types/index.js';
+import { devLog } from '../utils/logger.js';
 
 const API_BASE_URL = '/api';
 
@@ -45,7 +46,7 @@ export class ApiService {
     if (!options.method || options.method === 'GET') {
       const cached = this.cache.get(url);
       if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
-        console.log('Используем кэшированные данные для:', url);
+        devLog.log('Используем кэшированные данные для:', url);
         return cached.data;
       }
     }
@@ -82,7 +83,7 @@ export class ApiService {
       ...options,
     };
 
-    console.log('Выполняем API запрос:', url);
+    devLog.log('Выполняем API запрос:', url);
     const response = await fetch(url, defaultOptions);
     
     // Обработка ошибок аутентификации
@@ -169,7 +170,7 @@ export class ApiService {
     // Проверяем кэш
     const cached = this.cache.get(url);
     if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
-      console.log('Используем кэшированные данные для:', url);
+      devLog.log('Используем кэшированные данные для:', url);
       return (cached.data as any)?.data || [];
     }
     
@@ -184,7 +185,7 @@ export class ApiService {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      console.log('Выполняем API запрос:', url);
+      devLog.log('Выполняем API запрос:', url);
       const response = await fetch(url, {
         method: 'GET',
         headers,
@@ -200,7 +201,7 @@ export class ApiService {
       
       // Если 404 - возвращаем пустой массив (нет избранных)
       if (response.status === 404) {
-        console.log('404 ошибка при загрузке избранного - возвращаем пустой массив');
+        devLog.log('404 ошибка при загрузке избранного - возвращаем пустой массив');
         return [];
       }
       
@@ -221,7 +222,7 @@ export class ApiService {
       // Если ошибка 404 в сообщении, возвращаем пустой массив
       const errorMessage = error?.message || '';
       if (errorMessage.includes('404') || error?.status === 404 || errorMessage.includes('Not Found')) {
-        console.log('404 ошибка при загрузке избранного - возвращаем пустой массив');
+        devLog.log('404 ошибка при загрузке избранного - возвращаем пустой массив');
         return [];
       }
       // Для других ошибок пробрасываем исключение
@@ -283,43 +284,43 @@ export class ApiService {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      console.log('Запрос к API:', url);
+      devLog.log('Запрос к API:', url);
       const response = await fetch(url, {
         method: 'GET',
         headers,
       });
       
-      console.log('Статус ответа:', response.status);
+      devLog.log('Статус ответа:', response.status);
       
       if (response.status === 200) {
         const data = await response.json();
-        console.log('Полный ответ API:', data);
+        devLog.log('Полный ответ API:', data);
         
         // Проверяем разные возможные структуры ответа
         if (data && data.success && data.data) {
           // Стандартная структура { success: true, data: [...] }
           if (Array.isArray(data.data) && data.data.length > 0) {
-            console.log('Заявка найдена в массиве:', data.data[0]);
+            devLog.log('Заявка найдена в массиве:', data.data[0]);
             return data.data[0];
           }
           // Возможно data - это объект, а не массив
           if (data.data && typeof data.data === 'object' && !Array.isArray(data.data)) {
-            console.log('Заявка найдена как объект:', data.data);
+            devLog.log('Заявка найдена как объект:', data.data);
             return data.data;
           }
         }
         // Если структура другая, пробуем напрямую
         if (Array.isArray(data) && data.length > 0) {
-          console.log('Заявка найдена (массив напрямую):', data[0]);
+          devLog.log('Заявка найдена (массив напрямую):', data[0]);
           return data[0];
         }
         if (data && data.application_id) {
-          console.log('Заявка найдена (объект напрямую):', data);
+          devLog.log('Заявка найдена (объект напрямую):', data);
           return data;
         }
       }
       
-      console.log('Заявка не найдена, статус:', response.status);
+      devLog.log('Заявка не найдена, статус:', response.status);
       return null;
     } catch (error) {
       console.error('Ошибка при получении заявки:', error);
@@ -341,13 +342,13 @@ export class ApiService {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      console.log('Отказ от заявки, запрос к API:', url);
+      devLog.log('Отказ от заявки, запрос к API:', url);
       const response = await fetch(url, {
         method: 'PUT',
         headers,
       });
       
-      console.log('Статус ответа при отказе:', response.status);
+      devLog.log('Статус ответа при отказе:', response.status);
       
       return response.status === 200;
     } catch (error) {
@@ -464,7 +465,7 @@ export class ApiService {
       throw new Error('Токен авторизации не найден');
     }
 
-    console.log('Отправка отчёта на:', url);
+    devLog.log('Отправка отчёта на:', url);
     const response = await fetch(url, {
       method: 'POST',
       headers: {

@@ -27,6 +27,6 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true
+    sourcemap: false // Отключаем sourcemaps в production для уменьшения размера бандла
   }
 })

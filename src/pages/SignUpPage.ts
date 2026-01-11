@@ -2,6 +2,7 @@
 
 import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
+import { devLog } from '../utils/logger.js';
 
 export async function createSignUpPage(): Promise<HTMLElement> {
   const page = document.createElement('div');
@@ -634,7 +635,7 @@ function setupEventHandlers(page: HTMLElement) {
       
       if (response.success) {
         // Успешная регистрация
-        console.log('Успешная регистрация:', response.data.user);
+        devLog.log('Успешная регистрация:', response.data.user);
         
         // Переход на главную страницу
         router.navigate('/');

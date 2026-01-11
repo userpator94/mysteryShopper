@@ -2,6 +2,7 @@
 
 import type { Offer } from '../types/index.js';
 import { apiService } from '../services/api.js';
+import { devLog } from '../utils/logger.js';
 
 // Map для хранения обработчиков событий по кнопкам
 const buttonHandlers = new WeakMap<HTMLButtonElement, (e: MouseEvent) => void>();
@@ -367,16 +368,16 @@ async function checkAndSetFavoriteStatus(offerId: string, page: HTMLElement) {
 // Функция проверки и установки статуса заявки
 async function checkAndSetApplyStatus(offerId: string, page: HTMLElement) {
   try {
-    console.log('Проверка статуса заявки для offerId:', offerId);
+    devLog.log('Проверка статуса заявки для offerId:', offerId);
     const application = await apiService.getApplyByOfferId(offerId);
-    console.log('Результат проверки заявки:', application);
+    devLog.log('Результат проверки заявки:', application);
     
     // Ждем немного, чтобы убедиться, что DOM готов
     await new Promise(resolve => setTimeout(resolve, 100));
     
     const applyBtn = page.querySelector('#apply-btn') as HTMLButtonElement;
-    console.log('Кнопка найдена:', applyBtn);
-    console.log('Текущий текст кнопки:', applyBtn?.textContent);
+    devLog.log('Кнопка найдена:', applyBtn);
+    devLog.log('Текущий текст кнопки:', applyBtn?.textContent);
     
     if (!applyBtn) {
       console.error('Кнопка #apply-btn не найдена в DOM!');
@@ -385,11 +386,11 @@ async function checkAndSetApplyStatus(offerId: string, page: HTMLElement) {
     
     if (application) {
       // Заявка существует - меняем текст кнопки на "Отказаться"
-      console.log('Заявка найдена, меняем текст кнопки на "Отказаться"');
+      devLog.log('Заявка найдена, меняем текст кнопки на "Отказаться"');
       applyBtn.textContent = 'Отказаться';
-      console.log('Новый текст кнопки:', applyBtn.textContent);
+      devLog.log('Новый текст кнопки:', applyBtn.textContent);
     } else {
-      console.log('Заявка не найдена, оставляем текст "Участвовать"');
+      devLog.log('Заявка не найдена, оставляем текст "Участвовать"');
     }
   } catch (error) {
     console.error('Ошибка проверки статуса заявки:', error);
@@ -417,7 +418,7 @@ function setButtonToAddState(button: HTMLButtonElement, offerId: string) {
 
 // Функция установки кнопки в состояние "Удалить из избранного"
 function setButtonToRemoveState(button: HTMLButtonElement, offerId: string) {
-  console.log('setButtonToRemoveState вызвана для offerId:', offerId);
+  devLog.log('setButtonToRemoveState вызвана для offerId:', offerId);
   button.textContent = 'Удалить из избранного';
   button.classList.remove('bg-slate-200', 'text-slate-700', 'hover:bg-slate-300');
   button.classList.add('bg-red-500', 'text-white', 'hover:bg-red-600');
@@ -432,7 +433,7 @@ function setButtonToRemoveState(button: HTMLButtonElement, offerId: string) {
   const newHandler = () => removeFromFavorites(offerId, button);
   buttonHandlers.set(button, newHandler);
   button.addEventListener('click', newHandler);
-  console.log('Обработчик removeFromFavorites установлен');
+  devLog.log('Обработчик removeFromFavorites установлен');
 }
 
 // Функция добавления в избранное
@@ -471,7 +472,7 @@ async function addToFavorites(offerId: string, button: HTMLElement) {
 
 // Функция удаления из избранного
 async function removeFromFavorites(offerId: string, button: HTMLElement) {
-  console.log('removeFromFavorites вызвана для offerId:', offerId);
+  devLog.log('removeFromFavorites вызвана для offerId:', offerId);
   const buttonEl = button as HTMLButtonElement;
   
   try {

@@ -2,6 +2,7 @@
 
 import type { Offer } from '../types/index.js';
 import { getCurrentLocation, formatCityName } from '../utils/geolocation.js';
+import { devLog } from '../utils/logger.js';
 
 // Кэш для промо-предложений
 let promoOffersCache: { data: Offer[]; timestamp: number } | null = null;
@@ -12,7 +13,7 @@ async function fetchPromoOffers(): Promise<Offer[]> {
   try {
     // Проверяем кэш
     if (promoOffersCache && Date.now() - promoOffersCache.timestamp < CACHE_DURATION) {
-      console.log('Используем кэшированные промо-предложения');
+      devLog.log('Используем кэшированные промо-предложения');
       return promoOffersCache.data;
     }
 
@@ -20,9 +21,9 @@ async function fetchPromoOffers(): Promise<Offer[]> {
     const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     const apiUrl = isDevelopment 
       ? '/api/promo-offers' // Используем прокси Vite
-      : 'https://your-production-domain.com/api/promo-offers'; // Замените на реальный домен для продакшена
+      : 'https://77-222-43-250.swtest.ru/api/promo-offers';
     
-    console.log('Запрос к API:', apiUrl);
+    devLog.log('Запрос к API:', apiUrl);
     
     const response = await fetch(apiUrl, {
       method: 'GET',
@@ -31,14 +32,14 @@ async function fetchPromoOffers(): Promise<Offer[]> {
       },
     });
     
-    console.log('Ответ API:', response.status, response.statusText);
+    devLog.log('Ответ API:', response.status, response.statusText);
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
     }
     
     const responseData = await response.json();
-    console.log('Полученные данные:', responseData);
+    devLog.log('Полученные данные:', responseData);
     
     // Обрабатываем структуру ответа API
     let offers: Offer[] = [];

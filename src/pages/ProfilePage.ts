@@ -3,6 +3,7 @@
 import { apiService } from '../services/api.js';
 import { router } from '../router/index.js';
 import type { UserStatistics } from '../types/index.js';
+import { devLog } from '../utils/logger.js';
 
 export async function createProfilePage(): Promise<HTMLElement> {
   const page = document.createElement('div');
@@ -184,24 +185,24 @@ async function handleLogout() {
 function handleAction(action: string | undefined) {
   switch (action) {
     case 'language':
-      console.log('Открыть настройки языка');
+      devLog.log('Открыть настройки языка');
       break;
     case 'theme':
-      console.log('Открыть настройки темы');
+      devLog.log('Открыть настройки темы');
       break;
     case 'notifications':
-      console.log('Открыть настройки уведомлений');
+      devLog.log('Открыть настройки уведомлений');
       break;
     case 'help':
-      console.log('Открыть помощь');
+      devLog.log('Открыть помощь');
       break;
     case 'contact':
-      console.log('Связаться с нами');
+      devLog.log('Связаться с нами');
       break;
     case 'feedback':
-      console.log('Оставить отзыв');
+      devLog.log('Оставить отзыв');
       break;
     default:
-      console.log('Неизвестное действие:', action);
+      devLog.log('Неизвестное действие:', action);
   }
 }

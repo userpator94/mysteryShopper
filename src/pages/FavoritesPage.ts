@@ -2,6 +2,7 @@
 
 import type { FavoriteOfferSummary } from '../types/index.js';
 import { apiService } from '../services/api.js';
+import { devLog } from '../utils/logger.js';
 
 export async function createFavoritesPage(): Promise<HTMLElement> {
   const page = document.createElement('div');
@@ -113,14 +114,14 @@ async function loadFavorites(page: HTMLElement) {
 
     // Загружаем избранные предложения из API
     const favorites = await apiService.getFavorites();
-    console.log('Загружено избранных:', favorites.length);
+    devLog.log('Загружено избранных:', favorites.length);
 
     // Скрываем состояние загрузки
     hideState(loadingState);
 
     if (favorites.length === 0) {
       // Показываем состояние пустого списка (404 или действительно пусто)
-      console.log('Показываем состояние "нет избранных"');
+      devLog.log('Показываем состояние "нет избранных"');
       showState(emptyFavoritesState, [errorState, emptyState, favoritesContainer]);
     } else {
       // Отображаем избранные предложения
@@ -252,7 +253,7 @@ async function removeFromFavorites(page: HTMLElement, offerId: string) {
         await loadFavorites(page);
       }
       
-      console.log('Предложение удалено из избранного');
+      devLog.log('Предложение удалено из избранного');
     }
     
   } catch (error) {

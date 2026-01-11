@@ -3,6 +3,7 @@
 import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
 import { isAuthenticated } from '../utils/auth.js';
+import { devLog } from '../utils/logger.js';
 
 export async function createLoginPage(): Promise<HTMLElement> {
   // Проверяем, залогинен ли пользователь - если да, редиректим на главную
@@ -435,7 +436,7 @@ function setupEventHandlers(page: HTMLElement) {
       
       if (response.success) {
         // Успешная авторизация
-        console.log('Успешная авторизация:', response.data.user);
+        devLog.log('Успешная авторизация:', response.data.user);
         
         // Переход на главную страницу
         router.navigate('/');
@@ -482,7 +483,7 @@ function setupEventHandlers(page: HTMLElement) {
   // Обработчик "Забыли пароль?"
   const forgotPasswordLink = page.querySelector('#forgot-password-link') as HTMLElement;
   forgotPasswordLink?.addEventListener('click', () => {
-    console.log('Восстановление пароля');
+    devLog.log('Восстановление пароля');
     // Здесь можно добавить переход на страницу восстановления пароля
     // window.location.hash = '#/forgot-password';
     alert('Функция восстановления пароля будет реализована позже');
