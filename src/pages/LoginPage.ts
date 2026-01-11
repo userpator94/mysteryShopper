@@ -1,8 +1,23 @@
 // Страница входа в аккаунт
 
-import { router } from '../router/index.js';import { apiService } from '../services/api.js';
+import { router } from '../router/index.js';
+import { apiService } from '../services/api.js';
+import { isAuthenticated } from '../utils/auth.js';
 
 export async function createLoginPage(): Promise<HTMLElement> {
+  // Проверяем, залогинен ли пользователь - если да, редиректим на главную
+  if (isAuthenticated()) {
+    // Используем setTimeout чтобы дать роутеру время обработать текущий маршрут
+    setTimeout(() => {
+      router.navigate('/');
+    }, 0);
+    // Возвращаем элемент с индикатором загрузки вместо пустого
+    const loadingPage = document.createElement('div');
+    loadingPage.className = 'login-page';
+    loadingPage.innerHTML = '<div class="flex items-center justify-center h-screen"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>';
+    return loadingPage;
+  }
+
   const page = document.createElement('div');
   page.className = 'login-page';
 

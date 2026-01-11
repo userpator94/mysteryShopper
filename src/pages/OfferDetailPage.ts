@@ -121,9 +121,6 @@ export async function createOfferDetailPage(offerId: string): Promise<HTMLElemen
               
               <!-- Кнопки действий -->
               <div class="space-y-3">
-                <button id="make-report" class="hidden w-full bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition-colors">
-                  Отчитаться
-                </button>
                 <div>
                   <button id="apply-btn" class="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors">
                     Участвовать
@@ -335,15 +332,10 @@ function setupEventHandlers(page: HTMLElement, offerId: string) {
   applyBtn?.addEventListener('click', () => {
     const buttonText = applyBtn.textContent?.trim();
     if (buttonText === 'Отказаться') {
-      cancelApply(offerId, applyBtn, page);
+      cancelApply(offerId, applyBtn);
     } else {
-      applyForOffer(offerId, applyBtn, page);
+      applyForOffer(offerId, applyBtn);
     }
-  });
-
-  const makeReportBtn = page.querySelector('#make-report') as HTMLButtonElement | null;
-  makeReportBtn?.addEventListener('click', () => {
-    openReportModal(offerId);
   });
 
   // Обработчик кнопки "Добавить в избранное" будет установлен в checkAndSetFavoriteStatus
@@ -386,8 +378,6 @@ async function checkAndSetApplyStatus(offerId: string, page: HTMLElement) {
     console.log('Кнопка найдена:', applyBtn);
     console.log('Текущий текст кнопки:', applyBtn?.textContent);
     
-    const makeReportBtn = page.querySelector('#make-report') as HTMLButtonElement | null;
-    
     if (!applyBtn) {
       console.error('Кнопка #apply-btn не найдена в DOM!');
       return;
@@ -398,21 +388,8 @@ async function checkAndSetApplyStatus(offerId: string, page: HTMLElement) {
       console.log('Заявка найдена, меняем текст кнопки на "Отказаться"');
       applyBtn.textContent = 'Отказаться';
       console.log('Новый текст кнопки:', applyBtn.textContent);
-      
-      // Показать кнопку "Отчитаться" при статусе pending
-      if (makeReportBtn) {
-        if (application.status === 'pending') {
-          makeReportBtn.classList.remove('hidden');
-        } else {
-          makeReportBtn.classList.add('hidden');
-        }
-      }
     } else {
-      console.log('Заявка не найдена, меняем текст кнопки на "Участвовать"');
-      // Заявка не найдена - меняем текст кнопки на "Участвовать"
-      applyBtn.textContent = 'Участвовать';
-      // Скрываем кнопку "Отчитаться", если заявки нет
-      makeReportBtn?.classList.add('hidden');
+      console.log('Заявка не найдена, оставляем текст "Участвовать"');
     }
   } catch (error) {
     console.error('Ошибка проверки статуса заявки:', error);
@@ -528,18 +505,14 @@ async function removeFromFavorites(offerId: string, button: HTMLElement) {
 }
 
 // Функция подачи заявки на участие
-async function applyForOffer(offerId: string, button: HTMLButtonElement, page: HTMLElement) {
+async function applyForOffer(offerId: string, button: HTMLButtonElement) {
   try {
     button.disabled = true;
 
     await apiService.apply(offerId);
     
-    // Очищаем кэш для обновления данных
-    apiService.clearCache('/applies');
-    
-    // Обновляем статус заявки для обновления экрана
-    await checkAndSetApplyStatus(offerId, page);
-    
+    // Успешно подана заявка - меняем на "Отказаться"
+    button.textContent = 'Отказаться';
     button.disabled = false;
     
   } catch (error: any) {
@@ -551,19 +524,15 @@ async function applyForOffer(offerId: string, button: HTMLButtonElement, page: H
 }
 
 // Функция отказа от заявки
-async function cancelApply(offerId: string, button: HTMLButtonElement, page: HTMLElement) {
+async function cancelApply(offerId: string, button: HTMLButtonElement) {
   try {
     button.disabled = true;
 
     const success = await apiService.cancelApply(offerId);
     
     if (success) {
-      // Очищаем кэш для обновления данных
-      apiService.clearCache('/applies');
-      
-      // Обновляем статус заявки для обновления экрана
-      await checkAndSetApplyStatus(offerId, page);
-      
+      // Успешно отменена заявка - меняем текст кнопки на "Участвовать"
+      button.textContent = 'Участвовать';
       button.disabled = false;
     } else {
       // Ошибка - оставляем в состоянии "Отказаться"
@@ -578,49 +547,4 @@ async function cancelApply(offerId: string, button: HTMLButtonElement, page: HTM
     button.textContent = 'Отказаться';
     button.disabled = false;
   }
-}
-
-function openReportModal(offerId: string) {
-  if (document.getElementById('report-modal')) {
-    return;
-  }
-
-  const modal = document.createElement('div');
-  modal.id = 'report-modal';
-  modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4';
-  modal.innerHTML = `
-    <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
-      <p class="text-slate-700 mb-6 leading-relaxed">
-        Переходя дальше я соглашаюсь отчитаться о задаче и передать отчёт на проверку.
-      </p>
-      <div class="flex flex-col gap-3">
-        <button id="report-continue-btn" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors">
-          Перейти
-        </button>
-        <button id="report-back-btn" class="w-full px-4 py-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors">
-          Назад
-        </button>
-      </div>
-    </div>
-  `;
-
-  const removeModal = () => modal.remove();
-
-  const backBtn = modal.querySelector('#report-back-btn') as HTMLButtonElement | null;
-  backBtn?.addEventListener('click', removeModal);
-
-  const continueBtn = modal.querySelector('#report-continue-btn') as HTMLButtonElement | null;
-  continueBtn?.addEventListener('click', () => {
-    // Переходим на страницу отчёта
-    window.location.hash = `#/report/${offerId}`;
-    removeModal();
-  });
-
-  modal.addEventListener('click', (event) => {
-    if (event.target === modal) {
-      removeModal();
-    }
-  });
-
-  document.body.appendChild(modal);
 }

@@ -37,13 +37,17 @@ if (!mainContent) {
   throw new Error('Main content element not found')
 }
 
+// Добавляем начальный контент загрузки, чтобы избежать белого экрана
+mainContent.innerHTML = '<div class="flex items-center justify-center h-screen"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>'
+
 router.setContainer(mainContent)
 
 // Добавляем маршруты
 router.addRoute({
   path: '/',
   component: createHomePage,
-  title: 'Главная'
+  title: 'Главная',
+  requiresAuth: true // Главная страница требует аутентификации
 })
 
 router.addRoute({

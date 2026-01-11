@@ -12,6 +12,7 @@ class Router {
   private currentRoute: Route | null = null;
   private container: HTMLElement | null = null;
   private isInitialized = false;
+  private isHandlingRoute = false; // Флаг для предотвращения рекурсии
 
   constructor() {
     this.init();
@@ -52,53 +53,91 @@ class Router {
   }
 
   private async handleRoute() {
-    const path = this.getCurrentPath();
-    const [cleanPath] = path.split('?');
-    const route = this.findMatchingRoute(cleanPath);
-    
-    // Если маршрут не найден, показываем 404 только если это не главная страница
-    if (!route) {
-      if (this.container && cleanPath !== '/') {
-        this.container.innerHTML = '<div class="error">Страница не найдена</div>';
-      }
+    // Защита от рекурсии
+    if (this.isHandlingRoute) {
       return;
     }
     
-    // Проверяем аутентификацию для защищенных маршрутов
-    if (route.requiresAuth) {
-      const { isAuthenticated } = await import('../utils/auth.js');
-      if (!isAuthenticated()) {
-        // Пользователь не авторизован - перенаправляем на страницу входа
-        window.location.href = '/login';
+    this.isHandlingRoute = true;
+    
+    try {
+      const path = this.getCurrentPath();
+      const [cleanPath] = path.split('?');
+      const route = this.findMatchingRoute(cleanPath);
+      
+      // Если маршрут не найден, показываем 404 только если это не главная страница
+      if (!route) {
+        if (this.container && cleanPath !== '/') {
+          this.container.innerHTML = '<div class="error">Страница не найдена</div>';
+        } else if (cleanPath === '/' || cleanPath === '') {
+          // Если корневой путь не найден, редиректим на login
+          this.isHandlingRoute = false;
+          this.navigate('/login');
+        } else {
+          this.isHandlingRoute = false;
+        }
         return;
       }
-    }
-    
-    // Проверяем, что это действительно новый маршрут
-    if (route && this.container) {
-      // Проверяем, изменился ли маршрут (сравниваем по path, а не по объекту)
-      const currentPath = this.currentRoute?.path;
-      const newPath = route.path;
       
-      if (currentPath !== newPath) {
-        this.currentRoute = route;
-        document.title = `${route.title} - Mystery Shopper`;
-        
-        // Управляем видимостью footer
-        this.updateFooterVisibility(cleanPath);
-        
-        try {
-          const component = await route.component();
-          this.container.innerHTML = '';
-          this.container.appendChild(component);
-          
-          // Прокручиваем к верху страницы
-          window.scrollTo(0, 0);
-        } catch (error) {
-          console.error('Error loading route:', error);
-          this.container.innerHTML = '<div class="error">Страница не найдена</div>';
+      // Проверяем аутентификацию для защищенных маршрутов
+      if (route.requiresAuth) {
+        const { isAuthenticated } = await import('../utils/auth.js');
+        if (!isAuthenticated()) {
+          // Пользователь не авторизован - перенаправляем на страницу входа
+          // Используем router.navigate для SPA навигации
+          if (cleanPath !== '/login') {
+            this.isHandlingRoute = false;
+            this.navigate('/login');
+          } else {
+            this.isHandlingRoute = false;
+          }
+          return;
         }
       }
+      
+      // Проверяем, что контейнер установлен
+      if (!this.container) {
+        console.error('Router container is not set');
+        return;
+      }
+      
+      // Проверяем, что это действительно новый маршрут
+      if (route) {
+        // Проверяем, изменился ли маршрут (сравниваем по path, а не по объекту)
+        const currentPath = this.currentRoute?.path;
+        const newPath = route.path;
+        
+        if (currentPath !== newPath) {
+          this.currentRoute = route;
+          document.title = `${route.title} - Mystery Shopper`;
+          
+          // Управляем видимостью footer
+          this.updateFooterVisibility(cleanPath);
+          
+          try {
+            const component = await route.component();
+            if (this.container) {
+              this.container.innerHTML = '';
+              this.container.appendChild(component);
+              
+              // Прокручиваем к верху страницы
+              window.scrollTo(0, 0);
+            }
+          } catch (error) {
+            console.error('Error loading route:', error);
+            if (this.container) {
+              this.container.innerHTML = '<div class="error">Ошибка загрузки страницы</div>';
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error in handleRoute:', error);
+      if (this.container) {
+        this.container.innerHTML = '<div class="error">Ошибка маршрутизации</div>';
+      }
+    } finally {
+      this.isHandlingRoute = false;
     }
   }
 

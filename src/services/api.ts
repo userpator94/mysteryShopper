@@ -434,64 +434,6 @@ export class ApiService {
       this.clearCache();
     }
   }
-
-  // Метод для отправки отчёта
-  public async submitReport(
-    applicationId: string,
-    offerId: string,
-    userId: string,
-    rating: number,
-    feedback: object,
-    photos: File[]
-  ): Promise<{ success: boolean; data: any }> {
-    const url = `${API_BASE_URL}/report`;
-    
-    // Создаём FormData
-    const formData = new FormData();
-    formData.append('application_id', applicationId);
-    formData.append('offer_id', offerId);
-    formData.append('user_id', userId);
-    formData.append('rating', rating.toString());
-    formData.append('feedback', JSON.stringify(feedback));
-    
-    // Добавляем файлы
-    photos.forEach((file) => {
-      formData.append('photos', file);
-    });
-
-    // Получаем токен
-    const token = this.getAuthToken();
-    if (!token) {
-      throw new Error('Токен авторизации не найден');
-    }
-
-    console.log('Отправка отчёта на:', url);
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        // НЕ указываем Content-Type - браузер установит автоматически с boundary
-      },
-      body: formData,
-    });
-
-    // Обработка ошибок аутентификации
-    if (response.status === 401) {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user_id');
-      window.location.href = '/login';
-      throw new Error('Токен авторизации невалиден или истек');
-    }
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      const errorMessage = errorData.error?.message || `Ошибка отправки отчёта: ${response.status} ${response.statusText}`;
-      throw new Error(errorMessage);
-    }
-
-    const data = await response.json();
-    return data;
-  }
 }
 
 export const apiService = ApiService.getInstance();
