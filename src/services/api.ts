@@ -18,6 +18,42 @@ export class ApiService {
     return ApiService.instance;
   }
 
+  // Вспомогательный метод для безопасного парсинга JSON ответа
+  private async parseResponse(response: Response): Promise<any> {
+    // Читаем текст ответа один раз
+    const text = await response.text();
+    
+    // Если ответ пустой, возвращаем пустой объект
+    if (!text.trim()) {
+      return {};
+    }
+    
+    // Проверяем, не является ли ответ HTML/XML (даже если Content-Type говорит, что это JSON)
+    const trimmedText = text.trim().toLowerCase();
+    if (trimmedText.startsWith('<') || 
+        trimmedText.includes('<!doctype') || 
+        trimmedText.includes('<html') || 
+        trimmedText.includes('<document') ||
+        trimmedText.startsWith('<?xml')) {
+      throw new Error('На сервере в данный момент проходят технические работы. Пожалуйста, вернитесь позже.');
+    }
+    
+    // Проверяем Content-Type для дополнительной валидации
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/json') && text.trim()) {
+      // Если Content-Type не JSON, но текст не пустой и не HTML, все равно пробуем распарсить
+      // (на случай, если сервер неправильно установил Content-Type)
+    }
+    
+    // Пытаемся распарсить JSON
+    try {
+      return JSON.parse(text);
+    } catch (error: any) {
+      // Если парсинг JSON не удался, значит ответ некорректный
+      throw new Error('На сервере в данный момент проходят технические работы. Пожалуйста, вернитесь позже.');
+    }
+  }
+
   // Метод для получения токена из localStorage
   private getAuthToken(): string | null {
     return localStorage.getItem('auth_token');
@@ -96,12 +132,21 @@ export class ApiService {
     }
     
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      const errorMessage = errorData.error?.message || `API request failed: ${response.status} ${response.statusText}`;
-      throw new Error(errorMessage);
+      try {
+        const errorData = await this.parseResponse(response);
+        const errorMessage = errorData.error?.message || `API request failed: ${response.status} ${response.statusText}`;
+        throw new Error(errorMessage);
+      } catch (error: any) {
+        // Если ошибка уже содержит наше сообщение о технических работах, пробрасываем её
+        if (error.message && error.message.includes('технические работы')) {
+          throw error;
+        }
+        // Иначе пробуем стандартную обработку
+        throw new Error(`Ошибка запроса: ${response.status} ${response.statusText}`);
+      }
     }
     
-    const data = await response.json();
+    const data = await this.parseResponse(response);
     
     // Кэшируем результат для GET запросов
     if (!options.method || options.method === 'GET') {
@@ -206,12 +251,21 @@ export class ApiService {
       }
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.error?.message || `API request failed: ${response.status} ${response.statusText}`;
-        throw new Error(errorMessage);
+        try {
+          const errorData = await this.parseResponse(response);
+          const errorMessage = errorData.error?.message || `API request failed: ${response.status} ${response.statusText}`;
+          throw new Error(errorMessage);
+        } catch (error: any) {
+          // Если ошибка уже содержит наше сообщение о технических работах, пробрасываем её
+          if (error.message && error.message.includes('технические работы')) {
+            throw error;
+          }
+          // Иначе пробуем стандартную обработку
+          throw new Error(`Ошибка запроса: ${response.status} ${response.statusText}`);
+        }
       }
       
-      const data = await response.json();
+      const data = await this.parseResponse(response);
       const favorites = data.data || [];
       
       // Кэшируем результат
@@ -293,7 +347,7 @@ export class ApiService {
       devLog.log('Статус ответа:', response.status);
       
       if (response.status === 200) {
-        const data = await response.json();
+        const data = await this.parseResponse(response);
         devLog.log('Полный ответ API:', data);
         
         // Проверяем разные возможные структуры ответа
@@ -369,7 +423,8 @@ export class ApiService {
       body: JSON.stringify({ email, password }),
     });
 
-    const data = await response.json();
+    // Используем безопасный парсинг ответа
+    const data = await this.parseResponse(response);
 
     if (!response.ok || !data.success) {
       const error: any = new Error(data.error?.message || `Login failed: ${response.status} ${response.statusText}`);
@@ -398,7 +453,8 @@ export class ApiService {
       body: JSON.stringify({ name, lastname, email, phone, password }),
     });
 
-    const data = await response.json();
+    // Используем безопасный парсинг ответа
+    const data = await this.parseResponse(response);
 
     if (!response.ok || !data.success) {
       const error: any = new Error(data.error?.message || `Signup failed: ${response.status} ${response.statusText}`);
@@ -484,12 +540,21 @@ export class ApiService {
     }
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      const errorMessage = errorData.error?.message || `Ошибка отправки отчёта: ${response.status} ${response.statusText}`;
-      throw new Error(errorMessage);
+      try {
+        const errorData = await this.parseResponse(response);
+        const errorMessage = errorData.error?.message || `Ошибка отправки отчёта: ${response.status} ${response.statusText}`;
+        throw new Error(errorMessage);
+      } catch (error: any) {
+        // Если ошибка уже содержит наше сообщение о технических работах, пробрасываем её
+        if (error.message && error.message.includes('технические работы')) {
+          throw error;
+        }
+        // Иначе пробуем стандартную обработку
+        throw new Error(`Ошибка отправки отчёта: ${response.status} ${response.statusText}`);
+      }
     }
 
-    const data = await response.json();
+    const data = await this.parseResponse(response);
     return data;
   }
 }
