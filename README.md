@@ -1,34 +1,34 @@
 # Mystery Shopper
 
-Приложение для тайных покупателей с мобильным интерфейсом.
+Mystery shopper app with a mobile-friendly interface.
 
-## 🚀 Установка и запуск
+## Installation and run
 
 ```bash
-# Установка зависимостей
+# Install dependencies
 npm install
 
-# Запуск в режиме разработки
+# Run in development mode
 npm run dev
 
-# Сборка для продакшена
+# Build for production
 npm run build
 ```
 
-## 📱 Основные страницы
+## Main pages
 
-- **Главная** (`/`) - поиск и категории предложений
-- **Предложения** (`/offers`) - список доступных предложений
-- **Избранное** (`/favorites`) - сохраненные предложения
-- **Профиль** (`/profile`) - настройки пользователя
+- **Home** (`/`) - search and offer categories
+- **Offers** (`/offers`) - list of available offers
+- **Favorites** (`/favorites`) - saved offers
+- **Profile** (`/profile`) - user settings
 
-## 🛠️ Технологии
+## Tech stack
 
-- **Vite** - сборщик
-- **TypeScript** - типизация
-- **Tailwind CSS** - стили
-- **Vanilla JS** - без фреймворков
+- **Vite** - build tool
+- **TypeScript** - typing
+- **Tailwind CSS** - styles
+- **Vanilla JS** - no frameworks
 
-## 📝 Лицензия
+## License
 
-MIT License - см. [LICENSE](LICENSE)
+MIT License - see [LICENSE](LICENSE)
