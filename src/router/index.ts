@@ -1,10 +1,14 @@
 // Простой роутер для SPA приложения
 
+export type RouteRole = 'user' | 'employer';
+
 export interface Route {
   path: string;
   component: () => Promise<HTMLElement>;
   title: string;
-  requiresAuth?: boolean; // Требует ли маршрут аутентификации
+  requiresAuth?: boolean;
+  /** Если задано, маршрут доступен только этой роли (employer — кабинет заказчика) */
+  requiresRole?: RouteRole;
 }
 
 class Router {
@@ -83,14 +87,23 @@ class Router {
       if (route.requiresAuth) {
         const { isAuthenticated } = await import('../utils/auth.js');
         if (!isAuthenticated()) {
-          // Пользователь не авторизован - перенаправляем на страницу входа
-          // Используем router.navigate для SPA навигации
           if (cleanPath !== '/login') {
             this.isHandlingRoute = false;
             this.navigate('/login');
           } else {
             this.isHandlingRoute = false;
           }
+          return;
+        }
+      }
+
+      // Проверяем роль для маршрутов кабинета заказчика
+      if (route.requiresRole === 'employer') {
+        const { getRole } = await import('../utils/auth.js');
+        const role = getRole();
+        if (role !== 'employer') {
+          this.isHandlingRoute = false;
+          this.navigate('/');
           return;
         }
       }
@@ -111,8 +124,8 @@ class Router {
           this.currentRoute = route;
           document.title = `${route.title} - Mystery Shopper`;
           
-          // Управляем видимостью footer
           this.updateFooterVisibility(cleanPath);
+          import('../components/Layout.js').then(({ updateNavByRole }) => updateNavByRole()).catch(() => {});
           
           try {
             const component = await route.component();

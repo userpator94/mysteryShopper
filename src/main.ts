@@ -10,8 +10,14 @@ import { createOrderHistoryPage } from './pages/OrderHistoryPage.js'
 import { createReportPage } from './pages/ReportPage.js'
 import { createLoginPage } from './pages/LoginPage.js'
 import { createSignUpPage } from './pages/SignUpPage.js'
+import { createMyOffersPage } from './pages/MyOffersPage.js'
+import { createCreateOfferPage } from './pages/CreateOfferPage.js'
+import { createEditOfferPage } from './pages/EditOfferPage.js'
 import { showWebDeviceModal } from './components/WebDeviceMessage.js'
 import { detectDevice } from './utils/deviceDetection.js'
+import { apiService } from './services/api.js'
+import { isAuthenticated } from './utils/auth.js'
+import { updateNavByRole } from './components/Layout.js'
 
 // Проверяем тип устройства
 const app = document.querySelector<HTMLDivElement>('#app')!
@@ -115,5 +121,42 @@ router.addRoute({
   title: 'Регистрация'
 })
 
-// Инициализация приложения
-router.initialize()
+router.addRoute({
+  path: '/my-offers',
+  component: createMyOffersPage,
+  title: 'Мои задачи',
+  requiresAuth: true,
+  requiresRole: 'employer'
+})
+
+router.addRoute({
+  path: '/my-offers/new',
+  component: createCreateOfferPage,
+  title: 'Создать задачу',
+  requiresAuth: true,
+  requiresRole: 'employer'
+})
+
+router.addRoute({
+  path: '/my-offers/:id/edit',
+  component: () => {
+    const path = window.location.hash ? window.location.hash.substring(1) : window.location.pathname
+    const parts = path.split('/')
+    const id = parts[parts.length - 2]
+    return createEditOfferPage(id)
+  },
+  title: 'Редактировать задачу',
+  requiresAuth: true,
+  requiresRole: 'employer'
+})
+
+// Инициализация: загружаем профиль для роли и обновляем навигацию
+;(async () => {
+  router.initialize()
+  if (isAuthenticated()) {
+    try {
+      await apiService.getMe()
+    } catch (_) { /* 401 — роль не обновится */ }
+    updateNavByRole()
+  }
+})()

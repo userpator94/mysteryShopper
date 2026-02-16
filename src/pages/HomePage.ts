@@ -2,6 +2,7 @@
 
 import type { Offer } from '../types/index.js';
 import { getCurrentLocation, formatCityName } from '../utils/geolocation.js';
+import { formatTagsForDisplay } from '../utils/formatTags.js';
 import { devLog } from '../utils/logger.js';
 
 // Кэш для промо-предложений
@@ -65,10 +66,9 @@ async function fetchPromoOffers(): Promise<Offer[]> {
 
 // Функция для генерации HTML карточки предложения
 function generateOfferCard(offer: any): string {
-  // Адаптируемся к реальной структуре данных из API
   const discountPercentage = offer.numericInfo || Math.round((offer.price / 100) * 20) || 20;
   const imageUrl = offer.imageId ? `https://via.placeholder.com/300x300?text=${encodeURIComponent(offer.title)}` : '';
-  
+  const tagsStr = formatTagsForDisplay(offer.tags);
   return `
     <div class="space-y-2 cursor-pointer hover:shadow-md transition-shadow" data-offer-id="${offer.id}">
       <div class="w-full aspect-square bg-slate-200 rounded-lg ${imageUrl ? '' : ''}" ${imageUrl ? `style="background-image: url('${imageUrl}'); background-size: cover; background-position: center;"` : ''}></div>
@@ -77,10 +77,10 @@ function generateOfferCard(offer: any): string {
         <span class="text-primary text-sm font-bold">${discountPercentage}₽</span>
       </div>
       <div class="flex items-center gap-1.5">
-        ${offer.tags && offer.tags.includes('популярно') ? '<span class="bg-slate-200 text-slate-600 text-xs font-medium px-2 py-0.5 rounded">Популярно</span>' : ''}
-        ${offer.tags && offer.tags.includes('новое') ? '<span class="bg-green-100 text-green-600 text-xs font-medium px-2 py-0.5 rounded">Новое</span>' : ''}
-        ${offer.tags && offer.tags.includes('быстро') ? '<span class="bg-blue-100 text-blue-600 text-xs font-medium px-2 py-0.5 rounded">Быстро</span>' : ''}
-        ${offer.tags && offer.tags.includes('экономно') ? '<span class="bg-yellow-100 text-yellow-600 text-xs font-medium px-2 py-0.5 rounded">Экономно</span>' : ''}
+        ${tagsStr && tagsStr.includes('популярно') ? '<span class="bg-slate-200 text-slate-600 text-xs font-medium px-2 py-0.5 rounded">Популярно</span>' : ''}
+        ${tagsStr && tagsStr.includes('новое') ? '<span class="bg-green-100 text-green-600 text-xs font-medium px-2 py-0.5 rounded">Новое</span>' : ''}
+        ${tagsStr && tagsStr.includes('быстро') ? '<span class="bg-blue-100 text-blue-600 text-xs font-medium px-2 py-0.5 rounded">Быстро</span>' : ''}
+        ${tagsStr && tagsStr.includes('экономно') ? '<span class="bg-yellow-100 text-yellow-600 text-xs font-medium px-2 py-0.5 rounded">Экономно</span>' : ''}
       </div>
     </div>
   `;

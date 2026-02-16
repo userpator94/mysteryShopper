@@ -2,16 +2,12 @@
 
 import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
-import { isAuthenticated } from '../utils/auth.js';
+import { isAuthenticated, getRedirectByRole } from '../utils/auth.js';
 import { devLog } from '../utils/logger.js';
 
 export async function createLoginPage(): Promise<HTMLElement> {
-  // Проверяем, залогинен ли пользователь - если да, редиректим на главную
   if (isAuthenticated()) {
-    // Используем setTimeout чтобы дать роутеру время обработать текущий маршрут
-    setTimeout(() => {
-      router.navigate('/');
-    }, 0);
+    setTimeout(() => router.navigate(getRedirectByRole()), 0);
     // Возвращаем элемент с индикатором загрузки вместо пустого
     const loadingPage = document.createElement('div');
     loadingPage.className = 'login-page';
@@ -435,11 +431,8 @@ function setupEventHandlers(page: HTMLElement) {
       const response = await apiService.login(email, password);
       
       if (response.success) {
-        // Успешная авторизация
         devLog.log('Успешная авторизация:', response.data.user);
-        
-        // Переход на главную страницу
-        router.navigate('/');
+        router.navigate(getRedirectByRole());
       }
     } catch (error: any) {
       // Обработка ошибок

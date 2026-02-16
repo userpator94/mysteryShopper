@@ -1,5 +1,52 @@
 // Основные типы данных для приложения
 
+/** Роль пользователя: user — исполнитель (тайный покупатель), employer — заказчик */
+export type UserRole = 'user' | 'employer';
+
+/** Профиль текущего пользователя (GET /api/me) */
+export interface MeUser {
+  id: string;
+  name: string;
+  surname: string;
+  email: string;
+  phone: string;
+  role: UserRole;
+  company?: string;
+  description?: string;
+  website?: string;
+}
+
+/** Тело запроса создания оффера (POST /api/offers). price — целое число (integer). */
+export interface CreateOfferPayload {
+  title: string;
+  description: string;
+  price: number;
+  location: string;
+  requirements: string;
+  tags: string;
+  start_date: string;
+  end_date: string;
+  max_participants: number;
+  is_promo?: boolean;
+  image_id?: string;
+}
+
+/** Тело запроса обновления оффера (PATCH /api/offers/:id) — все поля опциональны. price — целое число. */
+export interface UpdateOfferPayload {
+  title?: string;
+  description?: string;
+  price?: number;
+  location?: string;
+  requirements?: string;
+  tags?: string;
+  start_date?: string;
+  end_date?: string;
+  max_participants?: number;
+  is_promo?: boolean;
+  is_active?: boolean;
+  image_id?: string;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -20,7 +67,6 @@ export interface Offer {
   image_id?: string;
   title: string;
   numeric_info: number;
-  tags: string;
   is_promo: boolean;
   employer_id: string;
   start_date: string;
@@ -40,6 +86,8 @@ export interface Offer {
   image_url?: string;
   image_alt_text?: string;
   available_slots: number;
+  /** API может вернуть string или string[] (например ["[задача", "сложная", "деньги]"]) */
+  tags?: string | string[];
 }
 
 export interface Location {

@@ -2,21 +2,35 @@
 
 import { apiService } from '../services/api.js';
 import { router } from '../router/index.js';
-import type { UserStatistics } from '../types/index.js';
+import { getRole } from '../utils/auth.js';
+import type { UserStatistics, MeUser } from '../types/index.js';
 import { devLog } from '../utils/logger.js';
 
 export async function createProfilePage(): Promise<HTMLElement> {
   const page = document.createElement('div');
   page.className = 'profile-page';
 
-  // Загружаем данные пользователя
   let userStats: UserStatistics | null = null;
+  let meUser: MeUser | null = null;
   try {
-    const response = await apiService.getUserStatistics();
-    userStats = response.data;
-  } catch (error) {
-    console.error('Ошибка загрузки статистики пользователя:', error);
+    meUser = (await apiService.getMe()).data;
+  } catch (_) {
+    /* 401 или сеть */
   }
+  const isEmployer = getRole() === 'employer';
+  if (!isEmployer) {
+    try {
+      userStats = (await apiService.getUserStatistics()).data;
+    } catch (error) {
+      console.error('Ошибка загрузки статистики пользователя:', error);
+    }
+  }
+
+  const fromMe = meUser ? `${meUser.name || ''} ${meUser.surname || ''}`.trim() : '';
+  const fromStats = userStats ? `${userStats.name || ''} ${userStats.surname || ''}`.trim() : '';
+  const displayName = fromMe || fromStats || 'Загрузка...';
+  const displayEmail = meUser?.email ?? userStats?.email ?? 'Загрузка...';
+  const displayPhone = meUser?.phone ?? userStats?.phone ?? 'Загрузка...';
 
   page.innerHTML = `
     <div class="relative w-full">
@@ -31,13 +45,22 @@ export async function createProfilePage(): Promise<HTMLElement> {
               <div class="flex items-center gap-4 mb-4">
                 <div id="user-avatar" class="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center text-6xl leading-none"></div>
                 <div>
-                  <h2 id="user-name" class="text-xl font-semibold">${userStats ? userStats.name : 'Загрузка...'}</h2>
-                  <p id="user-email" class="text-slate-600">${userStats?.email || 'Загрузка...'}</p>
-                  <p id="user-phone" class="text-slate-600">${userStats?.phone || 'Загрузка...'}</p>
+                  <h2 id="user-name" class="text-xl font-semibold">${displayName}</h2>
+                  <p id="user-email" class="text-slate-600">${displayEmail}</p>
+                  <p id="user-phone" class="text-slate-600">${displayPhone}</p>
+                  ${isEmployer && meUser?.company ? `<p id="user-company" class="text-slate-600 font-medium">${meUser.company}</p>` : ''}
                 </div>
               </div>
               
-              <div class="grid grid-cols-2 gap-4">
+              ${isEmployer ? `
+              <div id="employer-info" class="mb-4 p-3 bg-slate-50 rounded-lg">
+                ${meUser?.company ? `<p class="text-sm text-slate-700"><span class="font-medium">Компания:</span> ${meUser.company}</p>` : ''}
+                ${meUser?.description ? `<p class="text-sm text-slate-600 mt-1">${meUser.description}</p>` : ''}
+                ${meUser?.website ? `<a href="${meUser.website}" target="_blank" rel="noopener" class="text-sm text-primary hover:underline">${meUser.website}</a>` : ''}
+              </div>
+              ` : ''}
+              
+              <div id="user-stats-grid" class="grid grid-cols-2 gap-4 ${isEmployer ? 'hidden' : ''}">
                 <div id="user-stats-orders" class="text-center">
                   <div class="text-2xl font-bold text-primary">${userStats ? userStats.total_applications : '...'}</div>
                   <div class="text-sm text-slate-600">заказов</div>

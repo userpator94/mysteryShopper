@@ -1,6 +1,7 @@
 // Сервис для работы с API
-import type { Offer, SearchParams, FavoriteOfferSummary, AddToFavoritesResponse, RemoveFromFavoritesResponse, UserStatisticsResponse, FavoriteStatusResponse, ApplyResponse, ApplicationsResponse, Application } from '../types/index.js';
+import type { Offer, SearchParams, FavoriteOfferSummary, AddToFavoritesResponse, RemoveFromFavoritesResponse, UserStatisticsResponse, FavoriteStatusResponse, ApplyResponse, ApplicationsResponse, Application, MeUser, CreateOfferPayload, UpdateOfferPayload, UserRole } from '../types/index.js';
 import { devLog } from '../utils/logger.js';
+import { setRole, clearRole } from '../utils/auth.js';
 
 const API_BASE_URL = '/api';
 
@@ -134,14 +135,18 @@ export class ApiService {
     if (!response.ok) {
       try {
         const errorData = await this.parseResponse(response);
-        const errorMessage = errorData.error?.message || `API request failed: ${response.status} ${response.statusText}`;
-        throw new Error(errorMessage);
+        const errorMessage = errorData.error?.message || errorData.message || `API request failed: ${response.status} ${response.statusText}`;
+        const err = new Error(errorMessage);
+        (err as any).code = errorData.error?.code;
+        throw err;
       } catch (error: any) {
-        // Если ошибка уже содержит наше сообщение о технических работах, пробрасываем её
         if (error.message && error.message.includes('технические работы')) {
           throw error;
         }
-        // Иначе пробуем стандартную обработку
+        // Сообщение от бэкенда (например VALIDATION_ERROR) — пробрасываем как есть
+        if (error.message && !error.message.startsWith('API request failed')) {
+          throw error;
+        }
         throw new Error(`Ошибка запроса: ${response.status} ${response.statusText}`);
       }
     }
@@ -433,44 +438,98 @@ export class ApiService {
       throw error;
     }
 
-    // Сохраняем токен в localStorage
+    // Сохраняем токен и роль в localStorage
     if (data.success && data.data?.token) {
       localStorage.setItem('auth_token', data.data.token);
       localStorage.setItem('user_id', data.data.user?.id?.toString() || '');
+      const role = data.data.user?.role;
+      if (role === 'user' || role === 'employer') setRole(role);
     }
 
     return data;
   }
 
-  public async signup(name: string, lastname: string, email: string, phone: string, password: string): Promise<{ success: boolean; data: { token: string; user: any; expiresIn: number } }> {
+  public async signup(
+    name: string,
+    lastname: string,
+    email: string,
+    phone: string,
+    password: string,
+    options?: { role?: UserRole; company?: string; description?: string; website?: string }
+  ): Promise<{ success: boolean; data: { token: string; user: any; expiresIn: number } }> {
     const url = `${API_BASE_URL}/signup`;
-    
+    const body: Record<string, unknown> = { name, lastname, email, phone, password };
+    if (options?.role) body.role = options.role;
+    if (options?.company !== undefined) body.company = options.company;
+    if (options?.description !== undefined) body.description = options.description;
+    if (options?.website !== undefined) body.website = options.website;
+
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ name, lastname, email, phone, password }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
     });
 
-    // Используем безопасный парсинг ответа
     const data = await this.parseResponse(response);
 
     if (!response.ok || !data.success) {
       const error: any = new Error(data.error?.message || `Signup failed: ${response.status} ${response.statusText}`);
       error.code = data.error?.code;
       error.field = data.error?.field;
-      error.errors = data.error?.errors; // Массив ошибок для множественной валидации
+      error.errors = data.error?.errors;
       throw error;
     }
 
-    // Сохраняем токен в localStorage
     if (data.success && data.data?.token) {
       localStorage.setItem('auth_token', data.data.token);
       localStorage.setItem('user_id', data.data.user?.id?.toString() || '');
+      const role = data.data.user?.role;
+      if (role === 'user' || role === 'employer') setRole(role);
     }
 
     return data;
+  }
+
+  /** GET /api/me — профиль текущего пользователя (роль, для employer — company и т.д.) */
+  public async getMe(): Promise<{ success: boolean; data: MeUser }> {
+    const data = await this.request<{ success: boolean; data: MeUser }>('/me');
+    if (data.data?.role === 'user' || data.data?.role === 'employer') {
+      setRole(data.data.role);
+    }
+    return data;
+  }
+
+  /** GET /api/my/offers — офферы текущего заказчика (только employer) */
+  public async getMyOffers(params?: { page?: number; limit?: number }): Promise<Offer[]> {
+    const query = new URLSearchParams();
+    if (params?.page != null) query.set('page', String(params.page));
+    if (params?.limit != null) query.set('limit', String(params.limit));
+    const endpoint = query.toString() ? `/my/offers?${query}` : '/my/offers';
+    const response = await this.request<{ success: boolean; data: Offer[] }>(endpoint);
+    return response.data ?? [];
+  }
+
+  /** POST /api/offers — создание оффера (только employer) */
+  public async createOffer(payload: CreateOfferPayload): Promise<Offer> {
+    const response = await this.request<{ success: boolean; data: Offer }>('/offers', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return response.data;
+  }
+
+  /** PATCH /api/offers/:id — редактирование оффера (владелец) */
+  public async updateOffer(offerId: string, payload: UpdateOfferPayload): Promise<Offer> {
+    const response = await this.request<{ success: boolean; data: Offer }>(`/offers/${offerId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+    return response.data;
+  }
+
+  /** DELETE /api/offers/:id — удаление/деактивация оффера (владелец) */
+  public async deleteOffer(offerId: string): Promise<void> {
+    await this.request(`/offers/${offerId}`, { method: 'DELETE' });
   }
 
   // Метод для выхода
@@ -484,10 +543,9 @@ export class ApiService {
       // Даже если запрос завершился с ошибкой, очищаем localStorage
       console.error('Ошибка при выходе:', error);
     } finally {
-      // Удаляем токен из localStorage после успешного или неуспешного выхода
       localStorage.removeItem('auth_token');
       localStorage.removeItem('user_id');
-      // Очищаем кэш
+      clearRole();
       this.clearCache();
     }
   }

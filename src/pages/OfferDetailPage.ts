@@ -2,7 +2,12 @@
 
 import type { Offer } from '../types/index.js';
 import { apiService } from '../services/api.js';
+import { formatTagsForDisplay } from '../utils/formatTags.js';
 import { devLog } from '../utils/logger.js';
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
 
 // Map для хранения обработчиков событий по кнопкам
 const buttonHandlers = new WeakMap<HTMLButtonElement, (e: MouseEvent) => void>();
@@ -290,13 +295,15 @@ function renderOffer(offer: Offer, page: HTMLElement) {
     }
   }
   
-  // Теги
+  // Теги (API может вернуть string или string[]; отображаем как слова через запятую без [])
   if (tagsEl) {
-    if (offer.tags && offer.tags.trim()) {
-      tagsEl.innerHTML = offer.tags
+    const tagsStr = formatTagsForDisplay(offer.tags);
+    if (tagsStr) {
+      tagsEl.innerHTML = tagsStr
         .split(',')
-        .filter(tag => tag.trim())
-        .map(tag => `<span class="bg-primary/10 text-primary text-sm px-3 py-1 rounded-full font-medium">${tag.trim()}</span>`)
+        .map((t) => t.trim())
+        .filter(Boolean)
+        .map((tag) => `<span class="bg-primary/10 text-primary text-sm px-3 py-1 rounded-full font-medium">${escapeHtml(tag)}</span>`)
         .join('');
     } else {
       tagsEl.innerHTML = '<p class="text-slate-500 italic">Теги не указаны</p>';

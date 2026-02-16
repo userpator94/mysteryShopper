@@ -2,6 +2,7 @@
 
 import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
+import { getRedirectByRole } from '../utils/auth.js';
 import { devLog } from '../utils/logger.js';
 
 export async function createSignUpPage(): Promise<HTMLElement> {
@@ -21,6 +22,41 @@ export async function createSignUpPage(): Promise<HTMLElement> {
           <h1 class="text-slate-900 tracking-tight text-[32px] font-bold leading-tight text-center">Регистрация</h1>
           
           <div class="flex w-full flex-col items-stretch gap-4">
+            <div class="flex flex-col">
+              <p class="text-slate-700 text-base font-medium leading-normal pb-2">Кто вы?</p>
+              <div class="flex gap-4">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="signup-role" value="user" class="rounded-full border-slate-300 text-primary focus:ring-primary" checked />
+                  <span>Исполнитель</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="signup-role" value="employer" class="rounded-full border-slate-300 text-primary focus:ring-primary" />
+                  <span>Заказчик</span>
+                </label>
+              </div>
+            </div>
+            
+            <div id="signup-employer-fields" class="hidden flex-col gap-4">
+              <div class="flex flex-col">
+                <label class="flex flex-col min-w-40 flex-1">
+                  <p class="text-slate-700 text-base font-medium leading-normal pb-2">Компания <span class="text-red-500">*</span></p>
+                  <input id="signup-company" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-slate-900 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-300 bg-white h-14 placeholder:text-slate-400 p-[15px] text-base font-normal leading-normal" placeholder="Название компании" type="text" value="" />
+                </label>
+              </div>
+              <div class="flex flex-col">
+                <label class="flex flex-col min-w-40 flex-1">
+                  <p class="text-slate-700 text-base font-medium leading-normal pb-2">Описание (необязательно)</p>
+                  <textarea id="signup-description" class="form-input w-full rounded-lg border border-slate-300 bg-white p-3 text-base resize-none h-20 placeholder:text-slate-400" placeholder="Кратко о компании"></textarea>
+                </label>
+              </div>
+              <div class="flex flex-col">
+                <label class="flex flex-col min-w-40 flex-1">
+                  <p class="text-slate-700 text-base font-medium leading-normal pb-2">Сайт (необязательно)</p>
+                  <input id="signup-website" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-slate-900 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-300 bg-white h-14 placeholder:text-slate-400 p-[15px] text-base font-normal leading-normal" placeholder="https://..." type="url" value="" />
+                </label>
+              </div>
+            </div>
+            
             <div class="flex flex-col">
               <label class="flex flex-col min-w-40 flex-1">
                 <p class="text-slate-700 text-base font-medium leading-normal pb-2">Имя</p>
@@ -152,13 +188,22 @@ export async function createSignUpPage(): Promise<HTMLElement> {
     </div>
   `;
 
-  // Настраиваем обработчики событий
   setupEventHandlers(page);
 
   return page;
 }
 
 function setupEventHandlers(page: HTMLElement) {
+  // Показать/скрыть поля заказчика при смене роли
+  const roleInputs = page.querySelectorAll<HTMLInputElement>('input[name="signup-role"]');
+  const employerFields = page.querySelector('#signup-employer-fields') as HTMLElement;
+  roleInputs.forEach((input) => {
+    input.addEventListener('change', () => {
+      if (employerFields) employerFields.classList.toggle('hidden', input.value !== 'employer');
+      if (employerFields) employerFields.classList.toggle('flex', input.value === 'employer');
+    });
+  });
+
   // Создание и показ тултипа с ошибкой
   const showPasswordTooltip = (input: HTMLInputElement, message: string) => {
     // Удаляем существующий тултип, если есть
@@ -333,7 +378,6 @@ function setupEventHandlers(page: HTMLElement) {
     });
   };
 
-  // Обработчик формы регистрации
   const signupButton = page.querySelector('#signup-button') as HTMLButtonElement;
   const nameInput = page.querySelector('#signup-name') as HTMLInputElement;
   const lastnameInput = page.querySelector('#signup-lastname') as HTMLInputElement;
@@ -341,6 +385,10 @@ function setupEventHandlers(page: HTMLElement) {
   const phoneInput = page.querySelector('#signup-phone') as HTMLInputElement;
   const passwordInputHandler = page.querySelector('#signup-password') as HTMLInputElement;
   const confirmPasswordInputHandler = page.querySelector('#signup-confirm-password') as HTMLInputElement;
+  const roleEmployerRadio = page.querySelector('input[name="signup-role"][value="employer"]') as HTMLInputElement;
+  const companyInput = page.querySelector('#signup-company') as HTMLInputElement;
+  const descriptionInput = page.querySelector('#signup-description') as HTMLTextAreaElement;
+  const websiteInput = page.querySelector('#signup-website') as HTMLInputElement;
 
   // Настраиваем валидацию для имени и фамилии
   if (nameInput) setupNameValidation(nameInput);
@@ -501,7 +549,7 @@ function setupEventHandlers(page: HTMLElement) {
   }
 
   // Функция для добавления красной обводки незаполненным полям
-  const markFieldAsInvalid = (input: HTMLInputElement) => {
+  const markFieldAsInvalid = (input: HTMLInputElement | HTMLTextAreaElement) => {
     input.classList.remove('border-slate-300');
     input.classList.add('border-red-500', 'border-2');
     input.style.borderColor = '#ef4444'; // Явно устанавливаем красный цвет
@@ -528,13 +576,13 @@ function setupEventHandlers(page: HTMLElement) {
   const handleSignUp = async () => {
     let isValid = true;
     
-    // Сбрасываем предыдущие ошибки
     if (nameInput) resetFieldValidation(nameInput);
     if (lastnameInput) resetFieldValidation(lastnameInput);
     if (emailInput) resetFieldValidation(emailInput);
     if (phoneInput) resetFieldValidation(phoneInput);
     if (passwordInputHandler) resetFieldValidation(passwordInputHandler);
     if (confirmPasswordInputHandler) resetFieldValidation(confirmPasswordInputHandler);
+    if (companyInput) resetFieldValidation(companyInput);
 
     const name = nameInput?.value.trim() || '';
     const lastname = lastnameInput?.value.trim() || '';
@@ -604,7 +652,13 @@ function setupEventHandlers(page: HTMLElement) {
       isValid = false;
     }
 
-    // Если есть ошибки, не продолжаем
+    const isEmployer = roleEmployerRadio?.checked ?? false;
+    const company = companyInput?.value.trim() ?? '';
+    if (isEmployer && !company) {
+      if (companyInput) markFieldAsInvalid(companyInput);
+      isValid = false;
+    }
+
     if (!isValid) {
       // Фокусируемся на первом невалидном поле
       if (!name && nameInput) {
@@ -617,28 +671,34 @@ function setupEventHandlers(page: HTMLElement) {
         phoneInput.focus();
       } else if (!password && passwordInputHandler) {
         passwordInputHandler.focus();
+      } else if (isEmployer && !company && companyInput) {
+        companyInput.focus();
       } else if (!confirmPassword && confirmPasswordInputHandler) {
         confirmPasswordInputHandler.focus();
       }
       return;
     }
 
-    // Показываем состояние загрузки
     if (signupButton) {
       signupButton.disabled = true;
       signupButton.textContent = 'Регистрация...';
     }
 
     try {
-      // Вызов API для регистрации
-      const response = await apiService.signup(name, lastname, email, phone, password);
-      
+      const options: { role?: 'user' | 'employer'; company?: string; description?: string; website?: string } = {};
+      if (isEmployer) {
+        options.role = 'employer';
+        options.company = company;
+        if (descriptionInput?.value.trim()) options.description = descriptionInput.value.trim();
+        if (websiteInput?.value.trim()) options.website = websiteInput.value.trim();
+      } else {
+        options.role = 'user';
+      }
+      const response = await apiService.signup(name, lastname, email, phone, password, options);
+
       if (response.success) {
-        // Успешная регистрация
         devLog.log('Успешная регистрация:', response.data.user);
-        
-        // Переход на главную страницу
-        router.navigate('/');
+        router.navigate(getRedirectByRole());
       }
     } catch (error: any) {
       // Обработка ошибок
@@ -649,17 +709,16 @@ function setupEventHandlers(page: HTMLElement) {
       // Если есть массив ошибок (для множественной валидации), обрабатываем их
       if (error.errors && Array.isArray(error.errors)) {
         error.errors.forEach((err: any) => {
-          if (err.field === 'email' || err.field === 'name' || err.field === 'lastname' || err.field === 'phone' || err.field === 'password') {
-            const fieldMap: Record<string, HTMLInputElement | null> = {
-              email: emailInput,
-              name: nameInput,
-              lastname: lastnameInput,
-              phone: phoneInput,
-              password: passwordInputHandler,
-            };
-            const field = fieldMap[err.field];
-            if (field) markFieldAsInvalid(field);
-          }
+          const fieldMap: Record<string, HTMLInputElement | HTMLTextAreaElement | null> = {
+            email: emailInput,
+            name: nameInput,
+            lastname: lastnameInput,
+            phone: phoneInput,
+            password: passwordInputHandler,
+            company: companyInput,
+          };
+          const field = fieldMap[err.field];
+          if (field) markFieldAsInvalid(field);
         });
         alert(error.errors.map((e: any) => e.message).join('\n'));
       } else {
