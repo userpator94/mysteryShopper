@@ -56,8 +56,8 @@ export function clearRole(): void {
 }
 
 /**
- * Путь для редиректа после логина/регистрации по роли (employer → /my-offers, user → /).
+ * Путь для редиректа после логина/регистрации по роли (employer → / главная=Мои задачи, user → /).
  */
 export function getRedirectByRole(): string {
-  return getRole() === 'employer' ? '/my-offers' : '/';
+  return getRole() === 'employer' ? '/' : '/';
 }

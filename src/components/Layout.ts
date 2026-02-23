@@ -43,7 +43,7 @@ export function createLayout(): HTMLElement {
         </div>
         <!-- Навигация для заказчика (employer) -->
         <div id="nav-employer" class="hidden flex justify-around items-start w-full" data-nav-role="employer">
-          <a class="flex flex-col items-center justify-center gap-1 text-slate-500 w-1/4 nav-link" href="#" data-route="/my-offers">
+          <a class="flex flex-col items-center justify-center gap-1 text-slate-500 w-1/4 nav-link" href="#" data-route="/">
             <svg fill="currentColor" height="24" viewBox="0 0 256 256" width="24" xmlns="http://www.w3.org/2000/svg">
               <path d="M208,40H48A16,16,0,0,0,32,56V200a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40ZM160,168H96a8,8,0,0,1,0-16h64a8,8,0,0,1,0,16Zm0-32H96a8,8,0,0,1,0-16h64a8,8,0,0,1,0,16Zm32-32H64a8,8,0,0,1,0-16H192a8,8,0,0,1,0,16Z"></path>
             </svg>
@@ -87,7 +87,10 @@ function updateActiveNavLink(activeRoute: string) {
   const navLinks = document.querySelectorAll('.nav-link');
   navLinks.forEach(link => {
     const route = link.getAttribute('data-route') || '';
-    const isActive = route === activeRoute || (route === '/my-offers' && activeRoute.startsWith('/my-offers'));
+    const isMyOffersPath = activeRoute === '/' || activeRoute === '/my-offers' || /^\/my-offers\/[^/]+\/edit$/.test(activeRoute);
+    const isActive = route === activeRoute
+      || (route === '/my-offers' && activeRoute.startsWith('/my-offers'))
+      || (route === '/' && isMyOffersPath);
     const icon = link.querySelector('svg');
     if (isActive) {
       link.classList.remove('text-slate-500');

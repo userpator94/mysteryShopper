@@ -16,7 +16,7 @@ import { createEditOfferPage } from './pages/EditOfferPage.js'
 import { showWebDeviceModal } from './components/WebDeviceMessage.js'
 import { detectDevice } from './utils/deviceDetection.js'
 import { apiService } from './services/api.js'
-import { isAuthenticated } from './utils/auth.js'
+import { isAuthenticated, getRole } from './utils/auth.js'
 import { updateNavByRole } from './components/Layout.js'
 
 // Проверяем тип устройства
@@ -51,7 +51,7 @@ router.setContainer(mainContent)
 // Добавляем маршруты
 router.addRoute({
   path: '/',
-  component: createHomePage,
+  component: async () => (getRole() === 'employer' ? createMyOffersPage() : createHomePage()),
   title: 'Главная',
   requiresAuth: true // Главная страница требует аутентификации
 })

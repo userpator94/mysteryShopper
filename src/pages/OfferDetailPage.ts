@@ -11,6 +11,13 @@ function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+function isOfferExpired(offer: Offer): boolean {
+  if (!offer.end_date) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return new Date(offer.end_date).setHours(0, 0, 0, 0) < today.getTime();
+}
+
 // Map для хранения обработчиков событий по кнопкам
 const buttonHandlers = new WeakMap<HTMLButtonElement, (e: MouseEvent) => void>();
 
@@ -198,7 +205,11 @@ async function loadOffer(page: HTMLElement, offerId: string) {
     if (actionsEmployer) actionsEmployer.classList.toggle('hidden', !isEmployer);
     
     if (isEmployer) {
-      // Для заказчика не вызываем API избранного и заявок
+      const expired = isOfferExpired(offer);
+      const editBtn = page.querySelector('#edit-offer-btn') as HTMLElement;
+      const deleteBtn = page.querySelector('#delete-offer-btn') as HTMLElement;
+      if (editBtn) editBtn.classList.toggle('hidden', expired);
+      if (deleteBtn) deleteBtn.classList.toggle('hidden', expired);
     } else {
       // Проверяем статус избранного
       await checkAndSetFavoriteStatus(offerId, page);
