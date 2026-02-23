@@ -2,8 +2,10 @@
 
 import type { Offer } from '../types/index.js';
 import { apiService } from '../services/api.js';
+import { getRole } from '../utils/auth.js';
 import { formatTagsForDisplay } from '../utils/formatTags.js';
 import { devLog } from '../utils/logger.js';
+import { router } from '../router/index.js';
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -125,8 +127,8 @@ export async function createOfferDetailPage(offerId: string): Promise<HTMLElemen
               </div>
               
               
-              <!-- Кнопки действий -->
-              <div class="space-y-3">
+              <!-- Кнопки действий (для исполнителя: участвовать + избранное; для заказчика: изменить + удалить) -->
+              <div id="offer-actions-user" class="space-y-3">
                 <div>
                   <button id="apply-btn" class="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors">
                     Участвовать
@@ -137,6 +139,14 @@ export async function createOfferDetailPage(offerId: string): Promise<HTMLElemen
                 </div>
                 <button id="add-to-favorites-btn" class="w-full bg-slate-200 text-slate-700 py-3 rounded-lg font-semibold hover:bg-slate-300 transition-colors">
                   Добавить в избранное
+                </button>
+              </div>
+              <div id="offer-actions-employer" class="hidden flex flex-wrap gap-3">
+                <button id="edit-offer-btn" type="button" class="flex-1 min-w-[120px] bg-primary text-white py-3 px-4 rounded-lg font-semibold hover:bg-primary/90 transition-colors">
+                  Изменить
+                </button>
+                <button id="delete-offer-btn" type="button" class="flex-1 min-w-[120px] bg-red-50 text-red-600 py-3 px-4 rounded-lg font-semibold hover:bg-red-100 border border-red-200 transition-colors">
+                  Удалить
                 </button>
               </div>
             </div>
@@ -181,11 +191,20 @@ async function loadOffer(page: HTMLElement, offerId: string) {
     // Показываем контент перед проверкой статусов
     showState(offerContent, [errorState]);
     
-    // Проверяем статус избранного
-    await checkAndSetFavoriteStatus(offerId, page);
+    const isEmployer = getRole() === 'employer';
+    const actionsUser = page.querySelector('#offer-actions-user') as HTMLElement;
+    const actionsEmployer = page.querySelector('#offer-actions-employer') as HTMLElement;
+    if (actionsUser) actionsUser.classList.toggle('hidden', isEmployer);
+    if (actionsEmployer) actionsEmployer.classList.toggle('hidden', !isEmployer);
     
-    // Проверяем наличие заявки на это предложение
-    await checkAndSetApplyStatus(offerId, page);
+    if (isEmployer) {
+      // Для заказчика не вызываем API избранного и заявок
+    } else {
+      // Проверяем статус избранного
+      await checkAndSetFavoriteStatus(offerId, page);
+      // Проверяем наличие заявки на это предложение
+      await checkAndSetApplyStatus(offerId, page);
+    }
 
   } catch (error) {
     console.error('Ошибка загрузки предложения:', error);
@@ -344,6 +363,15 @@ function setupEventHandlers(page: HTMLElement, offerId: string) {
     } else {
       applyForOffer(offerId, applyBtn);
     }
+  });
+
+  // Для заказчика: кнопки "Изменить" и "Удалить"
+  const editOfferBtn = page.querySelector('#edit-offer-btn');
+  editOfferBtn?.addEventListener('click', () => router.navigate(`/my-offers/${offerId}/edit`));
+  const deleteOfferBtn = page.querySelector('#delete-offer-btn');
+  deleteOfferBtn?.addEventListener('click', () => {
+    if (!confirm('Удалить эту задачу?')) return;
+    apiService.deleteOffer(offerId).then(() => router.navigate('/my-offers')).catch((err) => alert(err?.message || 'Ошибка удаления'));
   });
 
   // Обработчик кнопки "Добавить в избранное" будет установлен в checkAndSetFavoriteStatus

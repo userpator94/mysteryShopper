@@ -12,7 +12,7 @@ export async function createMyOffersPage(): Promise<HTMLElement> {
     <div class="relative w-full">
       <header class="sticky top-0 bg-white/80 backdrop-blur-sm z-10 px-4 pt-4">
         <h1 class="text-2xl font-bold mb-4">Мои задачи</h1>
-        <a id="create-offer-link" href="#" class="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90">
+        <a id="create-offer-link" href="#" class="hidden inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90">
           <span>+</span> Создать задачу
         </a>
       </header>
@@ -86,7 +86,7 @@ function renderOfferCard(offer: Offer): string {
         <span class="font-semibold text-primary">${price}</span>
       </div>
       <div class="flex gap-2">
-        <a href="#" class="edit-offer-link px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-sm font-medium hover:bg-slate-200" data-offer-id="${offer.id}">Редактировать</a>
+        <a href="#" class="edit-offer-link px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-sm font-medium hover:bg-slate-200" data-offer-id="${offer.id}">Изменить</a>
         <button type="button" class="delete-offer-btn px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-sm font-medium hover:bg-red-100" data-offer-id="${offer.id}">Удалить</button>
       </div>
     </div>
