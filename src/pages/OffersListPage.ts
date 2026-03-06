@@ -71,7 +71,7 @@ export async function createOffersListPage(): Promise<HTMLElement> {
             
             <div id="offers-container" class="space-y-4">
               <!-- Секция "Принятые" -->
-              <div class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+              <div id="accepted-section" class="bg-white rounded-lg border border-slate-200 overflow-hidden transition-colors">
                 <button id="accepted-section-header" class="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors">
                   <span class="font-semibold text-lg">Принятые</span>
                   <svg id="accepted-section-icon" class="w-5 h-5 text-slate-500 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -123,6 +123,8 @@ async function loadOffers(page: HTMLElement, category?: string | null) {
   const offersContainer = page.querySelector('#offers-container') as HTMLElement;
 
   try {
+    // Сбрасываем кэш списка предложений, чтобы видеть актуальные данные
+    apiService.clearCache('/offers');
     // Показываем состояние загрузки
     showState(loadingState, [errorState, emptyState, offersContainer]);
 
@@ -164,9 +166,10 @@ async function loadOffers(page: HTMLElement, category?: string | null) {
     hideState(loadingState);
 
     // 3. Фильтруем предложения по алгоритму
-    const pendingOfferIds = new Set(
+    // Принятые: заявка на рассмотрении (pending) или уже принята (approved)
+    const acceptedOfferIds = new Set(
       applications
-        .filter(app => app.status === 'pending')
+        .filter(app => app.status === 'pending' || app.status === 'approved')
         .map(app => app.offer_id)
     );
     
@@ -176,12 +179,11 @@ async function loadOffers(page: HTMLElement, category?: string | null) {
         .map(app => app.offer_id)
     );
 
-    // Принятые: предложения со статусом "pending" в заявках
-    const acceptedOffers = offers.filter(offer => pendingOfferIds.has(offer.id));
+    const acceptedOffers = offers.filter(offer => acceptedOfferIds.has(offer.id));
     
-    // Доступные: все остальные, кроме тех, у которых статус = "done"
+    // Доступные: офферы, по которым нет заявки или заявка отклонена (не pending, не approved, не done)
     const availableOffers = offers.filter(offer => 
-      !pendingOfferIds.has(offer.id) && !doneOfferIds.has(offer.id)
+      !acceptedOfferIds.has(offer.id) && !doneOfferIds.has(offer.id)
     );
 
     // Отображаем предложения
@@ -201,12 +203,19 @@ async function loadOffers(page: HTMLElement, category?: string | null) {
 
 // Функция отображения предложений
 function renderOffers(page: HTMLElement, acceptedOffers: Offer[], availableOffers: Offer[]) {
+  const acceptedSection = page.querySelector('#accepted-section') as HTMLElement;
   const acceptedContainer = page.querySelector('#accepted-offers') as HTMLElement;
   const availableContainer = page.querySelector('#available-offers') as HTMLElement;
   const acceptedContent = page.querySelector('#accepted-section-content') as HTMLElement;
   const availableContent = page.querySelector('#available-section-content') as HTMLElement;
   const acceptedIcon = page.querySelector('#accepted-section-icon') as HTMLElement;
   const availableIcon = page.querySelector('#available-section-icon') as HTMLElement;
+
+  // Лёгкий полутон у секции «Принятые», если в ней есть заявки
+  if (acceptedSection) {
+    acceptedSection.classList.toggle('bg-primary/5', acceptedOffers.length > 0);
+    acceptedSection.classList.toggle('bg-white', acceptedOffers.length === 0);
+  }
 
   // Рендерим принятые предложения
   if (acceptedOffers.length > 0) {

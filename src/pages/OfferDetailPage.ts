@@ -1,6 +1,6 @@
 // Страница детального просмотра предложения
 
-import type { Offer } from '../types/index.js';
+import type { Offer, Application } from '../types/index.js';
 import { apiService } from '../services/api.js';
 import { getRole } from '../utils/auth.js';
 import { formatTagsForDisplay } from '../utils/formatTags.js';
@@ -136,16 +136,22 @@ export async function createOfferDetailPage(offerId: string): Promise<HTMLElemen
               
               <!-- Кнопки действий (для исполнителя: участвовать + избранное; для заказчика: изменить + удалить) -->
               <div id="offer-actions-user" class="space-y-3">
-                <div>
+                <div id="apply-block">
                   <button id="apply-btn" class="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors">
                     Участвовать
                   </button>
-                  <p class="text-xs text-slate-500 text-center mt-2">
+                  <p id="apply-hint" class="text-xs text-slate-500 text-center mt-2">
                     Заказчик может рассматривать вашу заявку в течение некоторого времени
                   </p>
                 </div>
+                <button id="report-btn" class="hidden w-full bg-emerald-600 text-white py-3 rounded-lg font-semibold hover:bg-emerald-700 transition-colors">
+                  Отчитаться
+                </button>
                 <button id="add-to-favorites-btn" class="w-full bg-slate-200 text-slate-700 py-3 rounded-lg font-semibold hover:bg-slate-300 transition-colors">
                   Добавить в избранное
+                </button>
+                <button id="cancel-apply-btn" class="hidden w-full bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors mt-2">
+                  Отказаться
                 </button>
               </div>
               <div id="offer-actions-employer" class="hidden flex flex-wrap gap-3">
@@ -213,8 +219,8 @@ async function loadOffer(page: HTMLElement, offerId: string) {
     } else {
       // Проверяем статус избранного
       await checkAndSetFavoriteStatus(offerId, page);
-      // Проверяем наличие заявки на это предложение
-      await checkAndSetApplyStatus(offerId, page);
+      // Проверяем наличие заявки; для просроченных офферов кнопка «Участвовать» не показывается
+      await checkAndSetApplyStatus(offerId, page, offer);
     }
 
   } catch (error) {
@@ -365,16 +371,14 @@ function setupEventHandlers(page: HTMLElement, offerId: string) {
     await loadOffer(page, offerId);
   });
 
-  // Обработчик кнопки "Участвовать" / "Отказаться"
   const applyBtn = page.querySelector('#apply-btn') as HTMLButtonElement;
-  applyBtn?.addEventListener('click', () => {
-    const buttonText = applyBtn.textContent?.trim();
-    if (buttonText === 'Отказаться') {
-      cancelApply(offerId, applyBtn);
-    } else {
-      applyForOffer(offerId, applyBtn);
-    }
-  });
+  applyBtn?.addEventListener('click', () => applyForOffer(offerId, applyBtn, page));
+
+  const cancelApplyBtn = page.querySelector('#cancel-apply-btn') as HTMLButtonElement;
+  cancelApplyBtn?.addEventListener('click', () => cancelApply(offerId, cancelApplyBtn, page));
+
+  const reportBtn = page.querySelector('#report-btn');
+  reportBtn?.addEventListener('click', () => router.navigate(`/report/${offerId}`));
 
   // Для заказчика: кнопки "Изменить" и "Удалить"
   const editOfferBtn = page.querySelector('#edit-offer-btn');
@@ -412,35 +416,42 @@ async function checkAndSetFavoriteStatus(offerId: string, page: HTMLElement) {
 }
 
 // Функция проверки и установки статуса заявки
-async function checkAndSetApplyStatus(offerId: string, page: HTMLElement) {
+async function checkAndSetApplyStatus(offerId: string, page: HTMLElement, offer: Offer) {
   try {
     devLog.log('Проверка статуса заявки для offerId:', offerId);
     const application = await apiService.getApplyByOfferId(offerId);
     devLog.log('Результат проверки заявки:', application);
     
-    // Ждем немного, чтобы убедиться, что DOM готов
     await new Promise(resolve => setTimeout(resolve, 100));
     
     const applyBtn = page.querySelector('#apply-btn') as HTMLButtonElement;
-    devLog.log('Кнопка найдена:', applyBtn);
-    devLog.log('Текущий текст кнопки:', applyBtn?.textContent);
+    const applyBlock = page.querySelector('#apply-block') as HTMLElement;
+    const cancelApplyBtn = page.querySelector('#cancel-apply-btn') as HTMLElement;
+    const reportBtn = page.querySelector('#report-btn') as HTMLElement;
+    const addToFavoritesBtn = page.querySelector('#add-to-favorites-btn') as HTMLElement;
+    const offerExpired = isOfferExpired(offer);
     
-    if (!applyBtn) {
-      console.error('Кнопка #apply-btn не найдена в DOM!');
-      return;
-    }
+    if (!applyBtn) return;
     
     if (application) {
-      // Заявка существует - меняем текст кнопки на "Отказаться"
-      devLog.log('Заявка найдена, меняем текст кнопки на "Отказаться"');
-      applyBtn.textContent = 'Отказаться';
-      devLog.log('Новый текст кнопки:', applyBtn.textContent);
+      devLog.log('Заявка найдена, показываем кнопку "Отказаться" внизу');
+      if (applyBlock) applyBlock.classList.add('hidden');
+      if (cancelApplyBtn) cancelApplyBtn.classList.remove('hidden');
+      const isApproved = (application as Application).status === 'approved';
+      if (reportBtn) reportBtn.classList.toggle('hidden', !isApproved);
+      const applyHint = page.querySelector('#apply-hint') as HTMLElement;
+      if (applyHint) applyHint.classList.toggle('hidden', isApproved);
+      if (addToFavoritesBtn) addToFavoritesBtn.classList.add('hidden');
     } else {
-      devLog.log('Заявка не найдена, оставляем текст "Участвовать"');
+      devLog.log('Заявка не найдена');
+      if (cancelApplyBtn) cancelApplyBtn.classList.add('hidden');
+      if (reportBtn) reportBtn.classList.add('hidden');
+      if (addToFavoritesBtn) addToFavoritesBtn.classList.remove('hidden');
+      // Кнопку «Участвовать» не показываем, если у оффера вышел срок
+      if (applyBlock) applyBlock.classList.toggle('hidden', offerExpired);
     }
   } catch (error) {
     console.error('Ошибка проверки статуса заявки:', error);
-    // В случае ошибки оставляем кнопку в исходном состоянии
   }
 }
 
@@ -552,46 +563,39 @@ async function removeFromFavorites(offerId: string, button: HTMLElement) {
 }
 
 // Функция подачи заявки на участие
-async function applyForOffer(offerId: string, button: HTMLButtonElement) {
+async function applyForOffer(offerId: string, button: HTMLButtonElement, page: HTMLElement) {
   try {
     button.disabled = true;
-
     await apiService.apply(offerId);
-    
-    // Успешно подана заявка - меняем на "Отказаться"
-    button.textContent = 'Отказаться';
     button.disabled = false;
-    
+    const applyBlock = page.querySelector('#apply-block') as HTMLElement;
+    const cancelApplyBtn = page.querySelector('#cancel-apply-btn') as HTMLElement;
+    const addToFavoritesBtn = page.querySelector('#add-to-favorites-btn') as HTMLElement;
+    if (applyBlock) applyBlock.classList.add('hidden');
+    if (cancelApplyBtn) cancelApplyBtn.classList.remove('hidden');
+    if (addToFavoritesBtn) addToFavoritesBtn.classList.add('hidden');
   } catch (error: any) {
     console.error('Ошибка подачи заявки:', error);
-    // В случае ошибки оставляем кнопку в состоянии "Участвовать"
-    button.textContent = 'Участвовать';
     button.disabled = false;
   }
 }
 
 // Функция отказа от заявки
-async function cancelApply(offerId: string, button: HTMLButtonElement) {
+async function cancelApply(offerId: string, button: HTMLButtonElement, page: HTMLElement) {
   try {
     button.disabled = true;
-
     const success = await apiService.cancelApply(offerId);
-    
+    button.disabled = false;
     if (success) {
-      // Успешно отменена заявка - меняем текст кнопки на "Участвовать"
-      button.textContent = 'Участвовать';
-      button.disabled = false;
-    } else {
-      // Ошибка - оставляем в состоянии "Отказаться"
-      button.textContent = 'Отказаться';
-      button.disabled = false;
+      const applyBlock = page.querySelector('#apply-block') as HTMLElement;
+      const cancelApplyBtn = page.querySelector('#cancel-apply-btn') as HTMLElement;
+      const addToFavoritesBtn = page.querySelector('#add-to-favorites-btn') as HTMLElement;
+      if (applyBlock) applyBlock.classList.remove('hidden');
+      if (cancelApplyBtn) cancelApplyBtn.classList.add('hidden');
+      if (addToFavoritesBtn) addToFavoritesBtn.classList.remove('hidden');
     }
-    
   } catch (error: any) {
     console.error('Ошибка отказа от заявки:', error);
-    
-    // В случае ошибки оставляем в состоянии "Отказаться"
-    button.textContent = 'Отказаться';
     button.disabled = false;
   }
 }
