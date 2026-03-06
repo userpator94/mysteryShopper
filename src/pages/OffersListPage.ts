@@ -123,8 +123,9 @@ async function loadOffers(page: HTMLElement, category?: string | null) {
   const offersContainer = page.querySelector('#offers-container') as HTMLElement;
 
   try {
-    // Сбрасываем кэш списка предложений, чтобы видеть актуальные данные
+    // Сбрасываем кэш, чтобы видеть актуальные предложения и заявки
     apiService.clearCache('/offers');
+    apiService.clearCache('/applies');
     // Показываем состояние загрузки
     showState(loadingState, [errorState, emptyState, offersContainer]);
 

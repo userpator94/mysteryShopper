@@ -18,6 +18,22 @@ function isOfferExpired(offer: Offer): boolean {
   return new Date(offer.end_date).setHours(0, 0, 0, 0) < today.getTime();
 }
 
+/** Задача в периоде исполнения: текущая дата в рамках [start_date, end_date] */
+function isOfferInPeriod(offer: Offer): boolean {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const t = today.getTime();
+  if (offer.start_date) {
+    const start = new Date(offer.start_date).setHours(0, 0, 0, 0);
+    if (t < start) return false;
+  }
+  if (offer.end_date) {
+    const end = new Date(offer.end_date).setHours(0, 0, 0, 0);
+    if (t > end) return false;
+  }
+  return true;
+}
+
 // Map для хранения обработчиков событий по кнопкам
 const buttonHandlers = new WeakMap<HTMLButtonElement, (e: MouseEvent) => void>();
 
@@ -437,10 +453,15 @@ async function checkAndSetApplyStatus(offerId: string, page: HTMLElement, offer:
       devLog.log('Заявка найдена, показываем кнопку "Отказаться" внизу');
       if (applyBlock) applyBlock.classList.add('hidden');
       if (cancelApplyBtn) cancelApplyBtn.classList.remove('hidden');
-      const isApproved = (application as Application).status === 'approved';
-      if (reportBtn) reportBtn.classList.toggle('hidden', !isApproved);
+      // «Отчитаться»: задача в списке принятых и текущая дата в рамках start_date & end_date
+      const inAcceptedList = !!application;
+      const taskInPeriod = isOfferInPeriod(offer);
+      const canReport = inAcceptedList && taskInPeriod;
+      if (reportBtn) reportBtn.classList.toggle('hidden', !canReport);
+      const status = (application as Application).status?.toLowerCase?.() ?? (application as any).status ?? '';
+      const hintHidden = status === 'approved' || status === 'accepted';
       const applyHint = page.querySelector('#apply-hint') as HTMLElement;
-      if (applyHint) applyHint.classList.toggle('hidden', isApproved);
+      if (applyHint) applyHint.classList.toggle('hidden', hintHidden);
       if (addToFavoritesBtn) addToFavoritesBtn.classList.add('hidden');
     } else {
       devLog.log('Заявка не найдена');
@@ -582,20 +603,26 @@ async function applyForOffer(offerId: string, button: HTMLButtonElement, page: H
 
 // Функция отказа от заявки
 async function cancelApply(offerId: string, button: HTMLButtonElement, page: HTMLElement) {
+  button.disabled = true;
+  button.classList.add('hidden');
   try {
-    button.disabled = true;
     const success = await apiService.cancelApply(offerId);
-    button.disabled = false;
     if (success) {
       const applyBlock = page.querySelector('#apply-block') as HTMLElement;
-      const cancelApplyBtn = page.querySelector('#cancel-apply-btn') as HTMLElement;
+      const applyHint = page.querySelector('#apply-hint') as HTMLElement;
+      const reportBtn = page.querySelector('#report-btn') as HTMLElement;
       const addToFavoritesBtn = page.querySelector('#add-to-favorites-btn') as HTMLElement;
       if (applyBlock) applyBlock.classList.remove('hidden');
-      if (cancelApplyBtn) cancelApplyBtn.classList.add('hidden');
+      if (applyHint) applyHint.classList.remove('hidden');
+      if (reportBtn) reportBtn.classList.add('hidden');
       if (addToFavoritesBtn) addToFavoritesBtn.classList.remove('hidden');
+    } else {
+      button.classList.remove('hidden');
+      button.disabled = false;
     }
   } catch (error: any) {
     console.error('Ошибка отказа от заявки:', error);
+    button.classList.remove('hidden');
     button.disabled = false;
   }
 }
