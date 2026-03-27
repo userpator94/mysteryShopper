@@ -87,7 +87,11 @@ function updateActiveNavLink(activeRoute: string) {
   const navLinks = document.querySelectorAll('.nav-link');
   navLinks.forEach(link => {
     const route = link.getAttribute('data-route') || '';
-    const isMyOffersPath = activeRoute === '/' || activeRoute === '/my-offers' || /^\/my-offers\/[^/]+\/edit$/.test(activeRoute);
+    const isMyOffersPath =
+      activeRoute === '/' ||
+      activeRoute === '/my-offers' ||
+      /^\/my-offers\/[^/]+\/edit$/.test(activeRoute) ||
+      /^\/my-offers\/[^/]+\/reports(\/|$)/.test(activeRoute);
     const isActive = route === activeRoute
       || (route === '/my-offers' && activeRoute.startsWith('/my-offers'))
       || (route === '/' && isMyOffersPath);

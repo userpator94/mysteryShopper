@@ -13,6 +13,8 @@ import { createSignUpPage } from './pages/SignUpPage.js'
 import { createMyOffersPage } from './pages/MyOffersPage.js'
 import { createCreateOfferPage } from './pages/CreateOfferPage.js'
 import { createEditOfferPage } from './pages/EditOfferPage.js'
+import { createOfferReportsListPage } from './pages/OfferReportsListPage.js'
+import { createOfferReportDetailPage } from './pages/OfferReportDetailPage.js'
 import { showWebDeviceModal } from './components/WebDeviceMessage.js'
 import { detectDevice } from './utils/deviceDetection.js'
 import { apiService } from './services/api.js'
@@ -133,6 +135,36 @@ router.addRoute({
   path: '/my-offers/new',
   component: createCreateOfferPage,
   title: 'Создать задачу',
+  requiresAuth: true,
+  requiresRole: 'employer'
+})
+
+router.addRoute({
+  path: '/my-offers/:offerId/reports/:reportId',
+  component: () => {
+    const path = window.location.hash ? window.location.hash.substring(1) : window.location.pathname
+    const parts = path.split('/').filter(Boolean)
+    const offerIdx = parts.indexOf('my-offers') >= 0 ? parts.indexOf('my-offers') : -1
+    const reportsIdx = parts.indexOf('reports')
+    const offerId = offerIdx >= 0 && reportsIdx > offerIdx ? parts[offerIdx + 1] : ''
+    const reportId = reportsIdx >= 0 ? parts[reportsIdx + 1] : ''
+    return createOfferReportDetailPage(offerId, reportId)
+  },
+  title: 'Отчёт',
+  requiresAuth: true,
+  requiresRole: 'employer'
+})
+
+router.addRoute({
+  path: '/my-offers/:offerId/reports',
+  component: () => {
+    const path = window.location.hash ? window.location.hash.substring(1) : window.location.pathname
+    const parts = path.split('/').filter(Boolean)
+    const idx = parts.indexOf('reports')
+    const offerId = idx > 0 ? parts[idx - 1] : ''
+    return createOfferReportsListPage(offerId)
+  },
+  title: 'Отчёты по заданию',
   requiresAuth: true,
   requiresRole: 'employer'
 })

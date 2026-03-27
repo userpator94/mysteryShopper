@@ -1,6 +1,7 @@
 // Страница «Мои задачи» (кабинет заказчика)
 
 import type { Offer } from '../types/index.js';
+import { formatExecutorMoneyRewardShort } from '../utils/offerDisplay.js';
 import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
 
@@ -121,12 +122,17 @@ function isOfferExpired(offer: Offer): boolean {
 function renderOfferCard(offer: Offer, isExpired: boolean): string {
   const start = offer.start_date ? new Date(offer.start_date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
   const end = offer.end_date ? new Date(offer.end_date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
-  const price = offer.price ? `${Number(offer.price).toLocaleString()} ₽` : '';
+  const price = formatExecutorMoneyRewardShort(offer);
   const status = isExpired ? 'Вышел срок' : (offer.is_active ? 'Активно' : 'Неактивно');
   const statusClass = isExpired ? 'text-sm text-red-600' : (offer.is_active ? 'text-sm text-green-600' : 'text-sm text-slate-500');
+  const canEdit = offer.can_edit !== false;
+  const editLink =
+    canEdit && !isExpired
+      ? `<a href="#" class="edit-offer-link px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-sm font-medium hover:bg-slate-200" data-offer-id="${offer.id}">Изменить</a>`
+      : '';
   const actionsHtml = isExpired
     ? ''
-    : `<a href="#" class="edit-offer-link px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-sm font-medium hover:bg-slate-200" data-offer-id="${offer.id}">Изменить</a>
+    : `${editLink}
         <button type="button" class="delete-offer-btn px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-sm font-medium hover:bg-red-100" data-offer-id="${offer.id}">Удалить</button>`;
   const actionsSection = actionsHtml ? `<div class="flex gap-2">${actionsHtml}</div>` : '';
   return `

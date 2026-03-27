@@ -4,6 +4,7 @@ import type { Offer, UpdateOfferPayload } from '../types/index.js';
 import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
 import { formatTagsForDisplay } from '../utils/formatTags.js';
+import { checklistSectionHtml, initChecklistBuilder, collectOfferChecklistFromPage } from '../utils/checklistOfferUi.js';
 
 export async function createEditOfferPage(offerId: string): Promise<HTMLElement> {
   const page = document.createElement('div');
@@ -24,6 +25,12 @@ export async function createEditOfferPage(offerId: string): Promise<HTMLElement>
         <div id="error-state" class="hidden text-center py-8">
           <p class="text-slate-600 mb-4">Не удалось загрузить задачу</p>
           <button id="retry-btn" class="px-4 py-2 bg-primary text-white rounded-lg">Повторить</button>
+        </div>
+        <div id="locked-state" class="hidden text-center py-8 px-4">
+          <p class="text-slate-600 mb-4">
+            Редактирование недоступно: по задаче есть отчёт или заявка исполнителя в работе (принята, выполняется или завершена).
+          </p>
+          <button type="button" id="locked-back-btn" class="px-4 py-2 bg-primary text-white rounded-lg">К моим задачам</button>
         </div>
         <form id="edit-offer-form" class="hidden px-4 py-4 space-y-4">
           <div>
@@ -72,6 +79,7 @@ export async function createEditOfferPage(offerId: string): Promise<HTMLElement>
             <input id="offer-is-active" name="is_active" type="checkbox" class="rounded border-slate-300 text-primary focus:ring-primary" checked />
             <label for="offer-is-active" class="text-sm text-slate-700">Активно</label>
           </div>
+          ${checklistSectionHtml()}
           <div id="form-error" class="hidden text-red-600 text-sm"></div>
           <button type="submit" id="submit-btn" class="w-full h-14 rounded-lg bg-primary text-white font-semibold hover:bg-primary/90">Сохранить</button>
         </form>
@@ -81,22 +89,41 @@ export async function createEditOfferPage(offerId: string): Promise<HTMLElement>
 
   const loading = page.querySelector('#loading-state') as HTMLElement;
   const error = page.querySelector('#error-state') as HTMLElement;
+  const locked = page.querySelector('#locked-state') as HTMLElement;
   const form = page.querySelector('#edit-offer-form') as HTMLFormElement;
 
   try {
     const offer = await apiService.getOfferById(offerId);
     loading.classList.add('hidden');
     error.classList.add('hidden');
-    form?.classList.remove('hidden');
-    fillForm(page, offer);
+    if (offer.can_edit === false) {
+      locked?.classList.remove('hidden');
+      form?.classList.add('hidden');
+    } else {
+      locked?.classList.add('hidden');
+      form?.classList.remove('hidden');
+      fillForm(page, offer);
+      initChecklistBuilder(page, offer.checklist_schema ?? null);
+    }
   } catch (e) {
     loading.classList.add('hidden');
     error.classList.remove('hidden');
     page.querySelector('#retry-btn')?.addEventListener('click', () => router.navigate(`/my-offers/${offerId}/edit`));
   }
 
+  page.querySelector('#locked-back-btn')?.addEventListener('click', () => router.navigate('/my-offers'));
+
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const cl = collectOfferChecklistFromPage(page);
+    if (cl.mode === 'custom' && !cl.schema) {
+      const errEl = page.querySelector('#form-error') as HTMLElement;
+      if (errEl) {
+        errEl.textContent = 'Заполните чек-лист или выберите стандартный формат.';
+        errEl.classList.remove('hidden');
+      }
+      return;
+    }
     const payload: UpdateOfferPayload = {
       title: (page.querySelector('#offer-title') as HTMLInputElement)?.value.trim(),
       description: (page.querySelector('#offer-description') as HTMLTextAreaElement)?.value.trim(),
@@ -112,6 +139,7 @@ export async function createEditOfferPage(offerId: string): Promise<HTMLElement>
       max_participants: parseInt((page.querySelector('#offer-max-participants') as HTMLInputElement)?.value || '1', 10),
       is_promo: (page.querySelector('#offer-is-promo') as HTMLInputElement)?.checked ?? false,
       is_active: (page.querySelector('#offer-is-active') as HTMLInputElement)?.checked ?? true,
+      checklist_schema: cl.mode === 'custom' ? cl.schema : null,
     };
 
     const btn = page.querySelector('#submit-btn') as HTMLButtonElement;

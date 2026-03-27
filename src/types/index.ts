@@ -16,6 +16,21 @@ export interface MeUser {
   website?: string;
 }
 
+/** Элемент кастомного чек-листа (согласовано с API) */
+export type ChecklistItemType = 'boolean' | 'scale_1_5' | 'text' | 'single_choice';
+
+export interface ChecklistItem {
+  id: string;
+  type: ChecklistItemType;
+  label: string;
+  required: boolean;
+  options?: string[];
+}
+
+export interface ChecklistSchema {
+  items: ChecklistItem[];
+}
+
 /** Тело запроса создания оффера (POST /api/offers). price — целое число (integer). */
 export interface CreateOfferPayload {
   title: string;
@@ -29,6 +44,9 @@ export interface CreateOfferPayload {
   max_participants: number;
   is_promo?: boolean;
   image_id?: string;
+  /** null — стандартный отчёт; объект — кастомный чек-лист */
+  checklist_schema?: ChecklistSchema | null;
+  schema_version?: number;
 }
 
 /** Тело запроса обновления оффера (PATCH /api/offers/:id) — все поля опциональны. price — целое число. */
@@ -45,6 +63,8 @@ export interface UpdateOfferPayload {
   is_promo?: boolean;
   is_active?: boolean;
   image_id?: string;
+  checklist_schema?: ChecklistSchema | null;
+  schema_version?: number;
 }
 
 export interface User {
@@ -88,6 +108,25 @@ export interface Offer {
   available_slots: number;
   /** API может вернуть string или string[] (например ["[задача", "сложная", "деньги]"]) */
   tags?: string | string[];
+  checklist_schema?: ChecklistSchema | null;
+  schema_version?: number;
+  /** false — заказчик не может менять задачу (есть отчёт или заявка в работе). См. API */
+  can_edit?: boolean;
+}
+
+/** Строка списка отчётов для заказчика (GET /api/offers/:id/reports) */
+export interface EmployerReportListItem {
+  id: string;
+  submitted_at: string;
+  task_completed_at: string | null;
+  rating: number | null;
+  comments: string | null;
+  feedback: unknown;
+  checklist_answers: Record<string, unknown> | null;
+  checklist_schema_version: number | null;
+  checklist_schema_snapshot: ChecklistSchema | null;
+  photos: unknown;
+  executor_label: string;
 }
 
 export interface Location {
@@ -215,9 +254,10 @@ export interface Application {
   application_id: string;
   offer_id: string;
   user_id: string;
-  status: 'pending' | 'approved' | 'rejected' | 'done';
+  status: 'pending' | 'approved' | 'rejected' | 'done' | 'in_progress' | 'completed' | 'cancelled' | string;
   applied_at: string;
   approved_at?: string;
+  has_report?: boolean;
 }
 
 export interface ApplicationsResponse {

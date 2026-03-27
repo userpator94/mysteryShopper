@@ -6,10 +6,15 @@ import { getRole } from '../utils/auth.js';
 import { formatTagsForDisplay } from '../utils/formatTags.js';
 import { devLog } from '../utils/logger.js';
 import { router } from '../router/index.js';
+import {
+  escapeHtml,
+  descriptionToParagraphsHtml,
+  requirementsToBulletsHtml,
+  formatCompensationLines
+} from '../utils/offerDisplay.js';
 
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+const REPORT_IRREVERSIBLE_MSG =
+  'Отправка отчёта — необратимое действие. После отправки вы не сможете изменить отчёт. Продолжить?';
 
 function isOfferExpired(offer: Offer): boolean {
   if (!offer.end_date) return false;
@@ -91,14 +96,12 @@ export async function createOfferDetailPage(offerId: string): Promise<HTMLElemen
                   <span class="text-slate-400">•</span>
                   <span id="offer-company" class="text-slate-600 text-sm"></span>
                 </div>
-                <p id="offer-description" class="text-slate-600 mb-4"></p>
               </div>
               
-              <!-- Цена и даты -->
+              <!-- Вознаграждение и даты -->
               <div class="bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-4 mb-4">
-                <div class="mb-2">
-                  <span id="offer-price" class="text-3xl font-bold text-primary"></span>
-                </div>
+                <h3 class="text-sm font-semibold text-slate-700 mb-2">Вознаграждение</h3>
+                <div id="offer-compensation" class="text-slate-800 text-sm space-y-1 mb-3"></div>
                 <div class="flex items-center gap-4 text-sm text-slate-600">
                   <div class="flex items-center gap-1">
                     <svg fill="currentColor" height="16" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg">
@@ -127,15 +130,19 @@ export async function createOfferDetailPage(offerId: string): Promise<HTMLElemen
                 <p id="offer-location" class="text-slate-600"></p>
               </div>
               
-              <!-- Условия -->
+              <!-- Суть задания (описание) + доп. условия -->
               <div class="bg-white rounded-lg p-4 border border-slate-200 mb-4">
                 <h3 class="font-semibold mb-2 flex items-center gap-2">
                   <svg fill="currentColor" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
                     <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
                   </svg>
-                  Условия участия
+                  Суть задания
                 </h3>
-                <div id="offer-requirements" class="text-slate-600"></div>
+                <div id="offer-description" class="text-slate-600 text-sm leading-relaxed"></div>
+                <div id="offer-requirements-extra-wrap" class="hidden mt-4 pt-3 border-t border-slate-100">
+                  <h4 class="text-sm font-medium text-slate-700 mb-2">Дополнительные условия участия</h4>
+                  <div id="offer-requirements-extra" class="text-slate-600 text-sm"></div>
+                </div>
               </div>
               
               <!-- Теги -->
@@ -160,6 +167,9 @@ export async function createOfferDetailPage(offerId: string): Promise<HTMLElemen
                     Заказчик может рассматривать вашу заявку в течение некоторого времени
                   </p>
                 </div>
+                <p id="report-sent-note" class="hidden text-center text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg py-2 px-3">
+                  Отчёт по этой задаче уже отправлен. Повторная отправка недоступна.
+                </p>
                 <button id="report-btn" class="hidden w-full bg-emerald-600 text-white py-3 rounded-lg font-semibold hover:bg-emerald-700 transition-colors">
                   Отчитаться
                 </button>
@@ -170,13 +180,21 @@ export async function createOfferDetailPage(offerId: string): Promise<HTMLElemen
                   Отказаться
                 </button>
               </div>
-              <div id="offer-actions-employer" class="hidden flex flex-wrap gap-3">
+              <div id="offer-actions-employer" class="hidden flex flex-col gap-2">
+                <p id="offer-edit-locked-note" class="hidden text-xs text-slate-500 text-center order-last w-full">
+                  Редактирование недоступно: по задаче есть отчёт или заявка исполнителя в работе.
+                </p>
+                <div class="flex flex-wrap gap-3">
+                <button id="employer-reports-btn" type="button" class="flex-1 min-w-[120px] bg-slate-800 text-white py-3 px-4 rounded-lg font-semibold hover:bg-slate-900 transition-colors">
+                  Отчёты
+                </button>
                 <button id="edit-offer-btn" type="button" class="flex-1 min-w-[120px] bg-primary text-white py-3 px-4 rounded-lg font-semibold hover:bg-primary/90 transition-colors">
                   Изменить
                 </button>
                 <button id="delete-offer-btn" type="button" class="flex-1 min-w-[120px] bg-red-50 text-red-600 py-3 px-4 rounded-lg font-semibold hover:bg-red-100 border border-red-200 transition-colors">
                   Удалить
                 </button>
+                </div>
               </div>
             </div>
           </div>
@@ -228,10 +246,13 @@ async function loadOffer(page: HTMLElement, offerId: string) {
     
     if (isEmployer) {
       const expired = isOfferExpired(offer);
+      const editLocked = offer.can_edit === false;
       const editBtn = page.querySelector('#edit-offer-btn') as HTMLElement;
       const deleteBtn = page.querySelector('#delete-offer-btn') as HTMLElement;
-      if (editBtn) editBtn.classList.toggle('hidden', expired);
+      const editLockedNote = page.querySelector('#offer-edit-locked-note') as HTMLElement;
+      if (editBtn) editBtn.classList.toggle('hidden', expired || editLocked);
       if (deleteBtn) deleteBtn.classList.toggle('hidden', expired);
+      if (editLockedNote) editLockedNote.classList.toggle('hidden', !editLocked);
     } else {
       // Проверяем статус избранного
       await checkAndSetFavoriteStatus(offerId, page);
@@ -255,11 +276,12 @@ function renderOffer(offer: Offer, page: HTMLElement) {
   // Основная информация
   const titleEl = page.querySelector('#offer-title') as HTMLElement;
   const descriptionEl = page.querySelector('#offer-description') as HTMLElement;
-  const priceEl = page.querySelector('#offer-price') as HTMLElement;
+  const compensationEl = page.querySelector('#offer-compensation') as HTMLElement;
   const ratingEl = page.querySelector('#offer-rating') as HTMLElement;
   const companyEl = page.querySelector('#offer-company') as HTMLElement;
   const locationEl = page.querySelector('#offer-location') as HTMLElement;
-  const requirementsEl = page.querySelector('#offer-requirements') as HTMLElement;
+  const requirementsExtraEl = page.querySelector('#offer-requirements-extra') as HTMLElement;
+  const requirementsExtraWrap = page.querySelector('#offer-requirements-extra-wrap') as HTMLElement;
   const tagsEl = page.querySelector('#offer-tags') as HTMLElement;
   
   // Изображение
@@ -273,8 +295,11 @@ function renderOffer(offer: Offer, page: HTMLElement) {
 
   // Заполняем основную информацию
   if (titleEl) titleEl.textContent = offer.title || 'Название не указано';
-  if (descriptionEl) descriptionEl.textContent = offer.description || 'Описание не указано';
-  if (priceEl) priceEl.textContent = offer.price ? `${parseFloat(offer.price).toLocaleString()} ₽` : 'Цена не указана';
+  if (descriptionEl) descriptionEl.innerHTML = descriptionToParagraphsHtml(offer.description || '');
+  if (compensationEl) {
+    const lines = formatCompensationLines(offer);
+    compensationEl.innerHTML = lines.map((p) => `<p>${escapeHtml(p)}</p>`).join('');
+  }
   if (ratingEl) ratingEl.textContent = offer.numeric_info ? offer.numeric_info.toString() : '0';
   if (companyEl) companyEl.textContent = offer.employer_company || 'Компания не указана';
   if (locationEl) locationEl.textContent = offer.location || 'Местоположение не указано';
@@ -331,19 +356,14 @@ function renderOffer(offer: Offer, page: HTMLElement) {
   }
   
   
-  // Условия
-  if (requirementsEl) {
-    if (offer.requirements && offer.requirements.trim()) {
-      requirementsEl.innerHTML = offer.requirements
-        .split('\n')
-        .filter(req => req.trim())
-        .map(req => `<div class="flex items-start gap-2 mb-2">
-          <span class="text-primary mt-1">•</span>
-          <span>${req.trim()}</span>
-        </div>`)
-        .join('');
+  const extraHtml = requirementsToBulletsHtml(offer.requirements || '', offer.description || '');
+  if (requirementsExtraEl && requirementsExtraWrap) {
+    if (extraHtml) {
+      requirementsExtraEl.innerHTML = extraHtml;
+      requirementsExtraWrap.classList.remove('hidden');
     } else {
-      requirementsEl.innerHTML = '<p class="text-slate-500 italic">Условия не указаны</p>';
+      requirementsExtraEl.innerHTML = '';
+      requirementsExtraWrap.classList.add('hidden');
     }
   }
   
@@ -394,9 +414,15 @@ function setupEventHandlers(page: HTMLElement, offerId: string) {
   cancelApplyBtn?.addEventListener('click', () => cancelApply(offerId, cancelApplyBtn, page));
 
   const reportBtn = page.querySelector('#report-btn');
-  reportBtn?.addEventListener('click', () => router.navigate(`/report/${offerId}`));
+  reportBtn?.addEventListener('click', () => {
+    if (!confirm(REPORT_IRREVERSIBLE_MSG)) return;
+    router.navigate(`/report/${offerId}`);
+  });
 
-  // Для заказчика: кнопки "Изменить" и "Удалить"
+  // Для заказчика: отчёты, изменить, удалить
+  page.querySelector('#employer-reports-btn')?.addEventListener('click', () => {
+    router.navigate(`/my-offers/${offerId}/reports`);
+  });
   const editOfferBtn = page.querySelector('#edit-offer-btn');
   editOfferBtn?.addEventListener('click', () => router.navigate(`/my-offers/${offerId}/edit`));
   const deleteOfferBtn = page.querySelector('#delete-offer-btn');
@@ -444,6 +470,7 @@ async function checkAndSetApplyStatus(offerId: string, page: HTMLElement, offer:
     const applyBlock = page.querySelector('#apply-block') as HTMLElement;
     const cancelApplyBtn = page.querySelector('#cancel-apply-btn') as HTMLElement;
     const reportBtn = page.querySelector('#report-btn') as HTMLElement;
+    const reportSentNote = page.querySelector('#report-sent-note') as HTMLElement;
     const addToFavoritesBtn = page.querySelector('#add-to-favorites-btn') as HTMLElement;
     const offerExpired = isOfferExpired(offer);
     
@@ -452,12 +479,24 @@ async function checkAndSetApplyStatus(offerId: string, page: HTMLElement, offer:
     if (application) {
       devLog.log('Заявка найдена, показываем кнопку "Отказаться" внизу');
       if (applyBlock) applyBlock.classList.add('hidden');
-      if (cancelApplyBtn) cancelApplyBtn.classList.remove('hidden');
-      // «Отчитаться»: задача в списке принятых и текущая дата в рамках start_date & end_date
-      const inAcceptedList = !!application;
+      const app = application as Application;
+      const hasReport = Boolean(app.has_report);
+      const st = (app.status || '').toLowerCase();
+      const taskDoneByReportOrStatus =
+        hasReport || st === 'completed' || st === 'done';
+      if (cancelApplyBtn) cancelApplyBtn.classList.toggle('hidden', taskDoneByReportOrStatus);
+      const canReportStatus =
+        st === 'approved' ||
+        st === 'in_progress' ||
+        st === 'accepted' ||
+        st === 'done' ||
+        st === 'completed';
       const taskInPeriod = isOfferInPeriod(offer);
-      const canReport = inAcceptedList && taskInPeriod;
+      const canReport = canReportStatus && taskInPeriod && !hasReport;
       if (reportBtn) reportBtn.classList.toggle('hidden', !canReport);
+      if (reportSentNote) {
+        reportSentNote.classList.toggle('hidden', !hasReport);
+      }
       const status = (application as Application).status?.toLowerCase?.() ?? (application as any).status ?? '';
       const hintHidden = status === 'approved' || status === 'accepted';
       const applyHint = page.querySelector('#apply-hint') as HTMLElement;
@@ -467,6 +506,7 @@ async function checkAndSetApplyStatus(offerId: string, page: HTMLElement, offer:
       devLog.log('Заявка не найдена');
       if (cancelApplyBtn) cancelApplyBtn.classList.add('hidden');
       if (reportBtn) reportBtn.classList.add('hidden');
+      page.querySelector('#report-sent-note')?.classList.add('hidden');
       if (addToFavoritesBtn) addToFavoritesBtn.classList.remove('hidden');
       // Кнопку «Участвовать» не показываем, если у оффера вышел срок
       if (applyBlock) applyBlock.classList.toggle('hidden', offerExpired);
@@ -603,6 +643,21 @@ async function applyForOffer(offerId: string, button: HTMLButtonElement, page: H
 
 // Функция отказа от заявки
 async function cancelApply(offerId: string, button: HTMLButtonElement, page: HTMLElement) {
+  try {
+    const application = await apiService.getApplyByOfferId(offerId);
+    if (application) {
+      const app = application as Application;
+      const hasReport = Boolean(app.has_report);
+      const st = (app.status || '').toLowerCase();
+      if (hasReport || st === 'completed' || st === 'done') {
+        alert('Отказаться от задания нельзя: отчёт уже отправлен или заявка считается выполненной.');
+        return;
+      }
+    }
+  } catch {
+    // продолжаем — сервер проверит повторно
+  }
+
   button.disabled = true;
   button.classList.add('hidden');
   try {

@@ -1,6 +1,7 @@
 // Страница избранного
 
 import type { FavoriteOfferSummary } from '../types/index.js';
+import { formatExecutorMoneyRewardShort } from '../utils/offerDisplay.js';
 import { apiService } from '../services/api.js';
 import { devLog } from '../utils/logger.js';
 
@@ -155,7 +156,7 @@ function renderFavorites(container: HTMLElement, favorites: FavoriteOfferSummary
       <h3 class="font-semibold mb-2">${favorite.title}</h3>
       <p class="text-slate-600 text-sm mb-2">${favorite.description}</p>
       <div class="flex justify-between items-center">
-        <span class="text-primary font-bold">${parseFloat(favorite.price).toLocaleString()} ₽</span>
+        <span class="text-primary font-bold">${formatExecutorMoneyRewardShort({ price: favorite.price })}</span>
         <button class="text-red-500 hover:text-red-700 p-1" data-remove-favorite="${favorite.id}" title="Удалить из избранного">
           <svg fill="currentColor" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
             <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/>

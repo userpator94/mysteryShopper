@@ -1286,8 +1286,75 @@ input[type="checkbox"]:checked + .toggle-switch::after {
   transform: translateX(1.5rem);
 }
 
-input[type="checkbox"] {
+/* Не скрывать все чекбоксы: иначе невидимы поля чек-листа отчёта и др. Скрываем только пару с визуальным .toggle-switch */
+input[type="checkbox"]:has(+ .toggle-switch) {
   display: none;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Android / Material — переключатель да/нет в чек-листе отчёта               */
+/* -------------------------------------------------------------------------- */
+label.checklist-bool-switch-label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+label.checklist-bool-switch-label input.checklist-bool[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+  pointer-events: none;
+}
+
+label.checklist-bool-switch-label .android-switch-track {
+  position: relative;
+  width: 52px;
+  height: 32px;
+  border-radius: 16px;
+  background-color: #e0e0e0;
+  transition: background-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+label.checklist-bool-switch-label .android-switch-track::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.2),
+    0 2px 4px rgba(0, 0, 0, 0.18);
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+label.checklist-bool-switch-label input.checklist-bool:checked + .android-switch-track {
+  background-color: var(--primary-color, #6750a4);
+}
+
+label.checklist-bool-switch-label input.checklist-bool:checked + .android-switch-track::after {
+  transform: translateX(20px);
+}
+
+label.checklist-bool-switch-label:focus-within .android-switch-track {
+  outline: 2px solid var(--primary-color, #6750a4);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  label.checklist-bool-switch-label .android-switch-track,
+  label.checklist-bool-switch-label .android-switch-track::after {
+    transition: none;
+  }
 }
 
 /* Страница истории заказов */

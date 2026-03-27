@@ -1,5 +1,5 @@
 // Сервис для работы с API
-import type { Offer, SearchParams, FavoriteOfferSummary, AddToFavoritesResponse, RemoveFromFavoritesResponse, UserStatisticsResponse, FavoriteStatusResponse, ApplyResponse, ApplicationsResponse, Application, MeUser, CreateOfferPayload, UpdateOfferPayload, UserRole } from '../types/index.js';
+import type { Offer, SearchParams, FavoriteOfferSummary, AddToFavoritesResponse, RemoveFromFavoritesResponse, UserStatisticsResponse, FavoriteStatusResponse, ApplyResponse, ApplicationsResponse, Application, MeUser, CreateOfferPayload, UpdateOfferPayload, UserRole, EmployerReportListItem } from '../types/index.js';
 import { devLog } from '../utils/logger.js';
 import { setRole, clearRole } from '../utils/auth.js';
 
@@ -550,25 +550,29 @@ export class ApiService {
     }
   }
 
-  public async submitReport(
-    applicationId: string,
-    offerId: string,
-    userId: string,
-    rating: number,
-    feedback: object,
-    photos: File[]
-  ): Promise<{ success: boolean; data: any }> {
+  /** Отчёт: стандарт (рейтинг + текст + фото) или кастомный чек-лист */
+  public async submitReport(params: {
+    applicationId: string;
+    offerId: string;
+    userId: string;
+    feedback: Record<string, unknown>;
+    photos: File[];
+    rating?: number;
+    checklistAnswers?: Record<string, unknown> | null;
+  }): Promise<{ success: boolean; data: any }> {
     const url = `${API_BASE_URL}/report`;
-    
-    // Создаём FormData
+    const { applicationId, offerId, userId, feedback, photos, rating, checklistAnswers } = params;
+
     const formData = new FormData();
     formData.append('application_id', applicationId);
     formData.append('offer_id', offerId);
     formData.append('user_id', userId);
-    formData.append('rating', rating.toString());
     formData.append('feedback', JSON.stringify(feedback));
-    
-    // Добавляем файлы
+    if (checklistAnswers != null) {
+      formData.append('checklist_answers', JSON.stringify(checklistAnswers));
+    } else if (rating !== undefined) {
+      formData.append('rating', String(rating));
+    }
     photos.forEach((file) => {
       formData.append('photos', file);
     });
@@ -614,6 +618,26 @@ export class ApiService {
 
     const data = await this.parseResponse(response);
     return data;
+  }
+
+  /** Список отчётов по офферу (заказчик) */
+  public async getEmployerOfferReports(
+    offerId: string,
+    sortBy: 'submitted_at' | 'task_completed_at' = 'submitted_at'
+  ): Promise<EmployerReportListItem[]> {
+    const q = new URLSearchParams({ sortBy });
+    const response = await this.request<{ success: boolean; data: EmployerReportListItem[] }>(
+      `/offers/${offerId}/reports?${q}`
+    );
+    return response.data ?? [];
+  }
+
+  /** Один отчёт для заказчика */
+  public async getEmployerOfferReport(offerId: string, reportId: string): Promise<EmployerReportListItem> {
+    const response = await this.request<{ success: boolean; data: EmployerReportListItem }>(
+      `/offers/${offerId}/reports/${reportId}`
+    );
+    return response.data;
   }
 }
 

@@ -14,6 +14,7 @@ export interface Route {
 class Router {
   private routes: Route[] = [];
   private currentRoute: Route | null = null;
+  private lastRenderedCleanPath: string | null = null;
   private container: HTMLElement | null = null;
   private isInitialized = false;
   private isHandlingRoute = false; // Флаг для предотвращения рекурсии
@@ -116,11 +117,10 @@ class Router {
       
       // Проверяем, что это действительно новый маршрут
       if (route) {
-        // Проверяем, изменился ли маршрут (сравниваем по path, а не по объекту)
-        const currentPath = this.currentRoute?.path;
-        const newPath = route.path;
-        
-        if (currentPath !== newPath) {
+        // Сравниваем полный URL (включая параметры), иначе /offers/:id не перерисуется при смене id
+        const pathChanged = this.lastRenderedCleanPath !== cleanPath;
+        if (pathChanged) {
+          this.lastRenderedCleanPath = cleanPath;
           this.currentRoute = route;
           document.title = `${route.title} - Mystery Shopper`;
           

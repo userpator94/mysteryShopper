@@ -3,6 +3,7 @@
 import type { Offer } from '../types/index.js';
 import { getCurrentLocation, formatCityName } from '../utils/geolocation.js';
 import { formatTagsForDisplay } from '../utils/formatTags.js';
+import { formatExecutorMoneyRewardShort } from '../utils/offerDisplay.js';
 import { devLog } from '../utils/logger.js';
 
 // Кэш для промо-предложений
@@ -66,7 +67,7 @@ async function fetchPromoOffers(): Promise<Offer[]> {
 
 // Функция для генерации HTML карточки предложения
 function generateOfferCard(offer: any): string {
-  const discountPercentage = offer.numericInfo || Math.round((offer.price / 100) * 20) || 20;
+  const priceLabel = formatExecutorMoneyRewardShort({ price: offer.price });
   const imageUrl = offer.imageId ? `https://via.placeholder.com/300x300?text=${encodeURIComponent(offer.title)}` : '';
   const tagsStr = formatTagsForDisplay(offer.tags);
   return `
@@ -74,7 +75,7 @@ function generateOfferCard(offer: any): string {
       <div class="w-full aspect-square bg-slate-200 rounded-lg ${imageUrl ? '' : ''}" ${imageUrl ? `style="background-image: url('${imageUrl}'); background-size: cover; background-position: center;"` : ''}></div>
       <div class="flex justify-between items-start">
         <h3 class="text-slate-900 text-sm font-semibold leading-tight">${offer.title}</h3>
-        <span class="text-primary text-sm font-bold">${discountPercentage}₽</span>
+        <span class="text-primary text-sm font-bold">${priceLabel}</span>
       </div>
       <div class="flex items-center gap-1.5">
         ${tagsStr && tagsStr.includes('популярно') ? '<span class="bg-slate-200 text-slate-600 text-xs font-medium px-2 py-0.5 rounded">Популярно</span>' : ''}

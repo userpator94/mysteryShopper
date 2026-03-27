@@ -3,6 +3,7 @@
 import type { CreateOfferPayload } from '../types/index.js';
 import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
+import { checklistSectionHtml, initChecklistBuilder, collectOfferChecklistFromPage } from '../utils/checklistOfferUi.js';
 
 export async function createCreateOfferPage(): Promise<HTMLElement> {
   const page = document.createElement('div');
@@ -60,12 +61,15 @@ export async function createCreateOfferPage(): Promise<HTMLElement> {
             <input id="offer-is-promo" name="is_promo" type="checkbox" class="rounded border-slate-300 text-primary focus:ring-primary" />
             <label for="offer-is-promo" class="text-sm text-slate-700">Промо-предложение</label>
           </div>
+          ${checklistSectionHtml()}
           <div id="form-error" class="hidden text-red-600 text-sm"></div>
           <button type="submit" id="submit-btn" class="w-full h-14 rounded-lg bg-primary text-white font-semibold hover:bg-primary/90">Создать</button>
         </form>
       </main>
     </div>
   `;
+
+  initChecklistBuilder(page, null);
 
   const form = page.querySelector('#create-offer-form') as HTMLFormElement;
   form?.addEventListener('submit', async (e) => {
@@ -88,6 +92,16 @@ export async function createCreateOfferPage(): Promise<HTMLElement> {
       return;
     }
 
+    const cl = collectOfferChecklistFromPage(page);
+    if (cl.mode === 'custom' && !cl.schema) {
+      const errEl = page.querySelector('#form-error') as HTMLElement;
+      if (errEl) {
+        errEl.textContent = 'Заполните чек-лист или вернитесь к стандартному формату.';
+        errEl.classList.remove('hidden');
+      }
+      return;
+    }
+
     const payload: CreateOfferPayload = {
       title,
       description,
@@ -99,6 +113,7 @@ export async function createCreateOfferPage(): Promise<HTMLElement> {
       end_date,
       max_participants: Math.max(1, max_participants),
       is_promo,
+      checklist_schema: cl.mode === 'custom' ? cl.schema : null,
     };
 
     const btn = page.querySelector('#submit-btn') as HTMLButtonElement;
