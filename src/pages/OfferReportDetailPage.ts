@@ -62,7 +62,14 @@ export async function createOfferReportDetailPage(offerId: string, reportId: str
 
     const body = buildReportReadOnlyBodyHtml(r, { showExecutorLabel: true });
     const meta = buildReportStatusAndDisclaimerHtml(r);
-    content.innerHTML = `<div class="read-only-report space-y-3">${body}${meta}</div>`;
+    const profileBtn =
+      r.executor_user_id != null && String(r.executor_user_id).length > 0
+        ? `<p class="pt-2"><button type="button" id="exec-profile-link" class="text-sm font-semibold text-primary hover:underline">Профиль исполнителя</button></p>`
+        : '';
+    content.innerHTML = `<div class="read-only-report space-y-3">${profileBtn}${body}${meta}</div>`;
+    content.querySelector('#exec-profile-link')?.addEventListener('click', () => {
+      router.navigate(`/my-offers/${offerId}/executor/${r.executor_user_id}`);
+    });
   } catch (e: unknown) {
     loading.classList.add('hidden');
     err.textContent = e instanceof Error ? e.message : 'Не удалось загрузить отчёт';

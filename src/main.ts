@@ -16,6 +16,7 @@ import { createCreateOfferPage } from './pages/CreateOfferPage.js'
 import { createEditOfferPage } from './pages/EditOfferPage.js'
 import { createOfferReportsListPage } from './pages/OfferReportsListPage.js'
 import { createOfferReportDetailPage } from './pages/OfferReportDetailPage.js'
+import { createEmployerExecutorProfilePage } from './pages/EmployerExecutorProfilePage.js'
 import { showWebDeviceModal } from './components/WebDeviceMessage.js'
 import { detectDevice } from './utils/deviceDetection.js'
 import { apiService } from './services/api.js'
@@ -149,6 +150,21 @@ router.addRoute({
   path: '/my-offers/new',
   component: createCreateOfferPage,
   title: 'Создать задачу',
+  requiresAuth: true,
+  requiresRole: 'employer'
+})
+
+router.addRoute({
+  path: '/my-offers/:offerId/executor/:executorUserId',
+  component: () => {
+    const path = window.location.hash ? window.location.hash.substring(1) : window.location.pathname
+    const parts = path.split('/').filter(Boolean)
+    const exIdx = parts.indexOf('executor')
+    const offerId = exIdx > 0 ? decodeURIComponent(parts[exIdx - 1] || '').trim() : ''
+    const executorUserId = exIdx >= 0 ? decodeURIComponent(parts[exIdx + 1] || '').trim() : ''
+    return createEmployerExecutorProfilePage(offerId, executorUserId)
+  },
+  title: 'Исполнитель',
   requiresAuth: true,
   requiresRole: 'employer'
 })

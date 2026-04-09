@@ -115,8 +115,12 @@ export interface Offer {
   image_alt_text?: string;
   /** null — без лимита мест; иначе свободные места */
   available_slots: number | null;
-  /** Только для владельца задачи: принятые исполнители (в работе) */
-  executors_active?: Array<{ user_id: string; initials: string }>;
+  /** Только для владельца: заявки в статусе pending */
+  executors_pending?: Array<{ user_id: string; initials: string }>;
+  /** Только для владельца: приняты, отчёта ещё нет */
+  executors_in_work?: Array<{ user_id: string; initials: string }>;
+  /** Только для владельца: есть отправленный отчёт по задаче */
+  executors_reported?: Array<{ user_id: string; initials: string }>;
   /** API может вернуть string или string[] (например ["[задача", "сложная", "деньги]"]) */
   tags?: string | string[];
   checklist_schema?: ChecklistSchema | null;
@@ -138,8 +142,27 @@ export interface EmployerReportListItem {
   checklist_schema_snapshot: ChecklistSchema | null;
   photos: unknown;
   executor_label?: string;
+  /** id исполнителя (заказчик) — для ссылки на профиль */
+  executor_user_id?: string;
   /** accepted_auto — текущая логика «принят автоматически» */
   report_status?: string;
+}
+
+/** Профиль исполнителя в кабинете заказчика (GET /api/offers/:offerId/executors/:id/profile) */
+export interface EmployerExecutorProfile {
+  user_id: string;
+  masked_name: string;
+  executor_label: string;
+  avatar_url: string | null;
+  registered_at: string;
+  /** IANA или null, если в БД нет поля */
+  executor_timezone: string | null;
+  stats: {
+    active_tasks_without_report: number;
+    completed_tasks_with_report: number;
+    executor_self_cancellations: number;
+  };
+  worked_with_this_employer: boolean;
 }
 
 export interface Location {

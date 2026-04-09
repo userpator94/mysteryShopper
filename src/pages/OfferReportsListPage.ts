@@ -69,28 +69,51 @@ export async function createOfferReportsListPage(offerId: string): Promise<HTMLE
             const d1 = r.submitted_at ? new Date(r.submitted_at).toLocaleString('ru-RU') : '—';
             const d2 = r.task_completed_at ? new Date(r.task_completed_at).toLocaleString('ru-RU') : '—';
             const exec = r.executor_label || 'Исполнитель';
+            const execId = r.executor_user_id;
             const st =
               r.report_status === 'accepted_auto'
                 ? 'Принят автоматически'
                 : r.report_status
                   ? r.report_status
                   : '';
+            const profileBtn =
+              execId != null && execId !== ''
+                ? `<button type="button" class="report-exec-profile text-xs font-semibold text-primary px-2 py-0.5 rounded hover:bg-primary/5" data-uid="${escapeHtml(execId)}">Профиль</button>`
+                : '';
             return `
-            <button type="button" class="w-full text-left bg-white border border-slate-200 rounded-lg p-3 hover:bg-slate-50 report-row" data-rid="${r.id}">
-              <div class="flex justify-between gap-2">
-                <span class="font-medium text-slate-800">${escapeHtml(exec)}</span>
-                <span class="text-xs text-slate-500">${escapeHtml(d1)}</span>
+            <div class="relative w-full text-left bg-white border border-slate-200 rounded-lg p-3 hover:bg-slate-50 report-row cursor-pointer" data-rid="${r.id}" role="button" tabindex="0">
+              <div class="flex justify-between gap-2 items-start">
+                <span class="font-medium text-slate-800 min-w-0 pr-2">${escapeHtml(exec)}</span>
+                <span class="flex items-center gap-1 shrink-0">
+                  ${profileBtn}
+                  <span class="text-xs text-slate-500 whitespace-nowrap">${escapeHtml(d1)}</span>
+                </span>
               </div>
               <div class="text-xs text-slate-500 mt-1">Выполнено: ${escapeHtml(d2)}</div>
               ${st ? `<div class="text-xs text-emerald-800 mt-1">${escapeHtml(st)}</div>` : ''}
-            </button>`;
+            </div>`;
           })
           .join('');
         list.classList.remove('hidden');
-        list.querySelectorAll('.report-row').forEach((btn) => {
-          btn.addEventListener('click', () => {
-            const id = (btn as HTMLElement).dataset.rid;
+        list.querySelectorAll('.report-row').forEach((row) => {
+          const goReport = () => {
+            const id = (row as HTMLElement).dataset.rid;
             if (id) router.navigate(`/my-offers/${offerId}/reports/${id}`);
+          };
+          row.addEventListener('click', goReport);
+          row.addEventListener('keydown', (e: Event) => {
+            const ke = e as KeyboardEvent;
+            if (ke.key === 'Enter' || ke.key === ' ') {
+              ke.preventDefault();
+              goReport();
+            }
+          });
+        });
+        list.querySelectorAll('.report-exec-profile').forEach((btn) => {
+          btn.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            const uid = (btn as HTMLElement).dataset.uid;
+            if (uid) router.navigate(`/my-offers/${offerId}/executor/${uid}`);
           });
         });
       } catch (e: any) {

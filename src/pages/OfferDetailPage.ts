@@ -17,6 +17,60 @@ import { MAX_PARTICIPANTS_UNLIMITED } from '../config/offerLimits.js';
 const REPORT_IRREVERSIBLE_MSG =
   'Отправка отчёта — необратимое действие. После отправки вы не сможете изменить отчёт. Продолжить?';
 
+/** Попап подтверждения досрочного завершения задачи (необратимо). */
+function showCloseEarlyConfirmModal(): Promise<boolean> {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-labelledby', 'close-early-modal-title');
+
+    const finish = (value: boolean) => {
+      window.removeEventListener('keydown', onKey);
+      overlay.remove();
+      resolve(value);
+    };
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') finish(false);
+    };
+    window.addEventListener('keydown', onKey);
+
+    overlay.innerHTML = `
+      <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-200">
+        <h2 id="close-early-modal-title" class="text-lg font-bold text-slate-900 mb-2">
+          Завершить задачу досрочно?
+        </h2>
+        <p class="text-sm font-semibold text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
+          Это необратимое действие. Отменить его будет нельзя.
+        </p>
+        <p class="text-sm text-slate-600 leading-relaxed mb-6">
+          Задача будет снята с публикации: новые отклики станут недоступны, ожидающие заявки будут отменены.
+          Принятые исполнители смогут сдать отчёт до календарной даты окончания срока.
+        </p>
+        <div class="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+          <button type="button" id="close-early-cancel" class="w-full sm:w-auto px-4 py-2.5 rounded-lg font-semibold border border-slate-300 text-slate-800 bg-white hover:bg-slate-50">
+            Отмена
+          </button>
+          <button type="button" id="close-early-confirm" class="w-full sm:w-auto px-4 py-2.5 rounded-lg font-semibold border border-amber-400 bg-amber-50 text-amber-950 hover:bg-amber-100">
+            Подтвердить
+          </button>
+        </div>
+      </div>
+    `;
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) finish(false);
+    });
+
+    overlay.querySelector('#close-early-cancel')?.addEventListener('click', () => finish(false));
+    overlay.querySelector('#close-early-confirm')?.addEventListener('click', () => finish(true));
+
+    document.body.appendChild(overlay);
+  });
+}
+
 function isOfferExpired(offer: Offer): boolean {
   if (!offer.end_date) return false;
   const today = new Date();
@@ -167,9 +221,8 @@ export async function createOfferDetailPage(offerId: string): Promise<HTMLElemen
               </div>
               
               <div id="employer-executors-block" class="hidden rounded-lg border border-slate-200 bg-slate-50 p-4 mb-4 text-sm">
-                <h4 class="font-semibold text-slate-800 mb-2">Исполнители в работе</h4>
-                <p id="employer-executors-summary" class="text-slate-600 mb-2"></p>
-                <ul id="employer-executors-list" class="space-y-1.5 text-slate-800"></ul>
+                <h4 class="font-semibold text-slate-800 mb-3">Исполнители</h4>
+                <div id="employer-executors-sections" class="space-y-4 text-slate-800"></div>
               </div>
               
               <!-- Кнопки действий (для исполнителя: участвовать + избранное; для заказчика: изменить + удалить) -->
@@ -282,7 +335,7 @@ async function loadOffer(page: HTMLElement, offerId: string) {
       if (editBtn) editBtn.classList.toggle('hidden', expired || editLocked);
       if (deleteBtn) deleteBtn.classList.toggle('hidden', expired);
       if (editLockedNote) editLockedNote.classList.toggle('hidden', !editLocked);
-      renderEmployerExecutorsPanel(offer, page);
+      renderEmployerExecutorsBlock(offer, page);
     } else {
       // Проверяем статус избранного
       await checkAndSetFavoriteStatus(offerId, page);
@@ -301,32 +354,62 @@ async function loadOffer(page: HTMLElement, offerId: string) {
   }
 }
 
-/** Блок для заказчика: сколько принятых исполнителей и id + инициалы (данные приходят только владельцу с API). */
-function renderEmployerExecutorsPanel(offer: Offer, page: HTMLElement) {
+/** Блок «Исполнители»: три списка (данные только у владельца задачи). Строка целиком ведёт в профиль. */
+function renderEmployerExecutorsBlock(offer: Offer, page: HTMLElement) {
   const block = page.querySelector('#employer-executors-block') as HTMLElement | null;
-  const summary = page.querySelector('#employer-executors-summary') as HTMLElement | null;
-  const list = page.querySelector('#employer-executors-list') as HTMLElement | null;
-  if (!block || !summary || !list) return;
-  const execs = offer.executors_active;
-  if (execs === undefined) {
+  const sectionsEl = page.querySelector('#employer-executors-sections') as HTMLElement | null;
+  if (!block || !sectionsEl) return;
+
+  const pending = offer.executors_pending;
+  const inWork = offer.executors_in_work;
+  const reported = offer.executors_reported;
+  if (pending === undefined || inWork === undefined || reported === undefined) {
     block.classList.add('hidden');
     return;
   }
+
+  const subsections: { title: string; rows: Array<{ user_id: string; initials: string }> }[] = [
+    { title: 'Ожидают одобрения заявки', rows: pending },
+    { title: 'В работе', rows: inWork },
+    { title: 'Отчитались', rows: reported }
+  ];
+
+  const hasAny = subsections.some((s) => s.rows.length > 0);
+  if (!hasAny) {
+    block.classList.add('hidden');
+    return;
+  }
+
   block.classList.remove('hidden');
-  const n = execs.length;
-  summary.textContent =
-    n === 0
-      ? 'Пока нет принятых исполнителей (статусы «принят» / «в работе»).'
-      : `В работе: ${n}`;
-  list.innerHTML =
-    n === 0
-      ? ''
-      : execs
-          .map(
-            (e) =>
-              `<li class="flex flex-wrap items-baseline gap-x-2 gap-y-1"><span class="font-mono text-xs text-slate-500 break-all">${escapeHtml(e.user_id)}</span><span class="text-slate-400">·</span><span class="font-semibold tracking-wide">${escapeHtml(e.initials)}</span></li>`
-          )
-          .join('');
+
+  const rowHtml = (e: { user_id: string; initials: string }) =>
+    `<li>
+      <button type="button" class="exec-profile-row w-full flex flex-wrap items-baseline gap-x-2 gap-y-1 text-left rounded-lg px-2 py-2 -mx-2 hover:bg-white/90 border border-transparent hover:border-slate-200 transition-colors"
+        data-offer="${escapeHtml(offer.id)}" data-uid="${escapeHtml(e.user_id)}">
+        <span class="font-mono text-xs text-slate-500 break-all">${escapeHtml(e.user_id)}</span>
+        <span class="text-slate-400">·</span>
+        <span class="font-semibold tracking-wide text-slate-900">${escapeHtml(e.initials)}</span>
+      </button>
+    </li>`;
+
+  sectionsEl.innerHTML = subsections
+    .filter((s) => s.rows.length > 0)
+    .map(
+      (s) => `
+    <div class="exec-subsection">
+      <p class="text-xs font-semibold text-slate-600 mb-1.5">${escapeHtml(s.title)}</p>
+      <ul class="space-y-0.5">${s.rows.map(rowHtml).join('')}</ul>
+    </div>`
+    )
+    .join('');
+
+  sectionsEl.querySelectorAll('.exec-profile-row').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const uid = (btn as HTMLElement).dataset.uid;
+      const oid = (btn as HTMLElement).dataset.offer;
+      if (uid && oid) router.navigate(`/my-offers/${oid}/executor/${uid}`);
+    });
+  });
 }
 
 // Функция отображения данных предложения
@@ -494,13 +577,8 @@ function setupEventHandlers(page: HTMLElement, offerId: string) {
   });
 
   page.querySelector('#close-offer-early-btn')?.addEventListener('click', async () => {
-    if (
-      !confirm(
-        'Снять задачу с публикации? Новые отклики будут недоступны; ожидающие заявки отменятся. Принятые исполнители смогут сдать отчёт до даты окончания срока.'
-      )
-    ) {
-      return;
-    }
+    const ok = await showCloseEarlyConfirmModal();
+    if (!ok) return;
     try {
       await apiService.closeOfferEarly(offerId);
       await loadOffer(page, offerId);

@@ -1,5 +1,5 @@
 // Сервис для работы с API
-import type { Offer, SearchParams, FavoriteOfferSummary, AddToFavoritesResponse, RemoveFromFavoritesResponse, UserStatisticsResponse, FavoriteStatusResponse, ApplyResponse, ApplicationsResponse, Application, MeUser, CreateOfferPayload, UpdateOfferPayload, UserRole, EmployerReportListItem } from '../types/index.js';
+import type { Offer, SearchParams, FavoriteOfferSummary, AddToFavoritesResponse, RemoveFromFavoritesResponse, UserStatisticsResponse, FavoriteStatusResponse, ApplyResponse, ApplicationsResponse, Application, MeUser, CreateOfferPayload, UpdateOfferPayload, UserRole, EmployerReportListItem, EmployerExecutorProfile } from '../types/index.js';
 import { devLog } from '../utils/logger.js';
 import { setRole, clearRole } from '../utils/auth.js';
 
@@ -135,7 +135,18 @@ export class ApiService {
     if (!response.ok) {
       try {
         const errorData = await this.parseResponse(response);
-        const errorMessage = errorData.error?.message || errorData.message || `API request failed: ${response.status} ${response.statusText}`;
+        let errorMessage =
+          errorData.error?.message || errorData.message || `API request failed: ${response.status} ${response.statusText}`;
+        // Технический 404 Express (маршрут не смонтирован / старый инстанс) — не показывать пользователю raw URL
+        if (
+          response.status === 404 &&
+          typeof errorMessage === 'string' &&
+          errorMessage.includes('Route ') &&
+          errorMessage.includes('not found')
+        ) {
+          errorMessage =
+            'Сервер не обработал запрос. Обновите страницу или попробуйте позже. Если ошибка повторяется — проверьте, что backend обновлён на всех узлах.';
+        }
         const err = new Error(errorMessage);
         (err as any).code = errorData.error?.code;
         throw err;
@@ -652,6 +663,14 @@ export class ApiService {
   public async getEmployerOfferReport(offerId: string, reportId: string): Promise<EmployerReportListItem> {
     const response = await this.request<{ success: boolean; data: EmployerReportListItem }>(
       `/offers/${offerId}/reports/${reportId}`
+    );
+    return response.data;
+  }
+
+  /** Профиль исполнителя (заказчик; доступ только при связи по задаче) */
+  public async getEmployerExecutorProfile(offerId: string, executorUserId: string): Promise<EmployerExecutorProfile> {
+    const response = await this.request<{ success: boolean; data: EmployerExecutorProfile }>(
+      `/offers/${offerId}/executors/${executorUserId}/profile`
     );
     return response.data;
   }
