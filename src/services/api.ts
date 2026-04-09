@@ -532,6 +532,16 @@ export class ApiService {
     await this.request(`/offers/${offerId}`, { method: 'DELETE' });
   }
 
+  /** POST /api/offers/:id/close-early — досрочное закрытие: деактивация + отмена pending-заявок (владелец) */
+  public async closeOfferEarly(offerId: string): Promise<Offer> {
+    this.clearCache('/offers');
+    const response = await this.request<{ success: boolean; data: Offer }>(`/offers/${offerId}/close-early`, {
+      method: 'POST',
+      body: '{}'
+    });
+    return response.data;
+  }
+
   // Метод для выхода
   public async logout(): Promise<void> {
     try {
@@ -559,9 +569,12 @@ export class ApiService {
     photos: File[];
     rating?: number;
     checklistAnswers?: Record<string, unknown> | null;
+    /** Порядок совпадает с `photos`: id пункта чеклиста типа photo_text для каждого файла */
+    checklistPhotoItemIds?: string[];
   }): Promise<{ success: boolean; data: any }> {
     const url = `${API_BASE_URL}/report`;
-    const { applicationId, offerId, userId, feedback, photos, rating, checklistAnswers } = params;
+    const { applicationId, offerId, userId, feedback, photos, rating, checklistAnswers, checklistPhotoItemIds } =
+      params;
 
     const formData = new FormData();
     formData.append('application_id', applicationId);
@@ -572,6 +585,9 @@ export class ApiService {
       formData.append('checklist_answers', JSON.stringify(checklistAnswers));
     } else if (rating !== undefined) {
       formData.append('rating', String(rating));
+    }
+    if (checklistPhotoItemIds != null && checklistPhotoItemIds.length > 0) {
+      formData.append('checklist_photo_item_ids', JSON.stringify(checklistPhotoItemIds));
     }
     photos.forEach((file) => {
       formData.append('photos', file);
@@ -638,6 +654,50 @@ export class ApiService {
       `/offers/${offerId}/reports/${reportId}`
     );
     return response.data;
+  }
+
+  /** Свой отчёт по задаче (исполнитель) */
+  public async getMyOfferReport(offerId: string): Promise<EmployerReportListItem> {
+    const response = await this.request<{ success: boolean; data: EmployerReportListItem }>(
+      `/offers/${offerId}/my-report`
+    );
+    return response.data;
+  }
+
+  /** Скачать PDF отчёта (заказчик); при ошибке бросает Error с текстом сервера */
+  public async downloadEmployerReportPdf(offerId: string, reportId: string): Promise<void> {
+    const url = `${API_BASE_URL}/offers/${offerId}/reports/${reportId}/pdf`;
+    const token = this.getAuthToken();
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    });
+    if (response.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user_id');
+      window.location.href = '/login';
+      throw new Error('Токен авторизации невалиден или истек');
+    }
+    if (!response.ok) {
+      try {
+        const err = await this.parseResponse(response);
+        const msg = err.error?.message || `Ошибка загрузки PDF (${response.status})`;
+        throw new Error(msg);
+      } catch (e: unknown) {
+        if (e instanceof Error && e.message && !e.message.includes('технические работы')) throw e;
+        throw new Error(`Ошибка загрузки PDF: ${response.status}`);
+      }
+    }
+    const blob = await response.blob();
+    const a = document.createElement('a');
+    const href = URL.createObjectURL(blob);
+    a.href = href;
+    a.download = `report-${reportId}.pdf`;
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(href);
   }
 }
 

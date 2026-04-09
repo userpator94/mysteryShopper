@@ -37,7 +37,8 @@ function typeSelectHtml(selected: ChecklistItemType): string {
     { v: 'boolean', l: 'Да/нет' },
     { v: 'scale_1_5', l: 'Шкала 1–5' },
     { v: 'text', l: 'Текст' },
-    { v: 'single_choice', l: 'Выбор из вариантов' }
+    { v: 'single_choice', l: 'Выбор из вариантов' },
+    { v: 'photo_text', l: 'Фото и пояснение' }
   ];
   return types
     .map(
@@ -55,7 +56,7 @@ export function renderChecklistItemRow(item: Partial<ChecklistItem> & { id: stri
   wrap.innerHTML = `
     <div class="flex flex-wrap gap-2 items-end">
       <div class="flex-1 min-w-[120px]">
-        <label class="text-xs text-slate-600">Текст вопроса</label>
+        <label class="text-xs text-slate-600 cl-question-label">Текст вопроса</label>
         <input type="text" class="cl-label w-full px-2 py-1 border rounded text-sm" value="${escapeAttr(item.label || '')}" />
       </div>
       <div>
@@ -76,8 +77,15 @@ export function renderChecklistItemRow(item: Partial<ChecklistItem> & { id: stri
   `;
   const typeSel = wrap.querySelector('.cl-type') as HTMLSelectElement;
   const optWrap = wrap.querySelector('.cl-options-wrap') as HTMLElement;
+  const syncQuestionLabel = () => {
+    const lab = wrap.querySelector('.cl-question-label');
+    if (lab)
+      lab.textContent = typeSel.value === 'photo_text' ? 'Инструкция к фото' : 'Текст вопроса';
+  };
+  syncQuestionLabel();
   typeSel?.addEventListener('change', () => {
     optWrap.classList.toggle('hidden', typeSel.value !== 'single_choice');
+    syncQuestionLabel();
   });
   wrap.querySelector('.cl-remove')?.addEventListener('click', () => wrap.remove());
   return wrap;

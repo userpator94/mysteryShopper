@@ -1,6 +1,7 @@
 // Страница списка предложений (исполнитель): секции, фильтры, сортировка
 
 import type { Offer, Application, SearchParams } from '../types/index.js';
+import { MAX_PARTICIPANTS_UNLIMITED } from '../config/offerLimits.js';
 import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
 import {
@@ -272,7 +273,7 @@ function renderOfferCard(offer: Offer, variant: 'default' | 'completed'): string
         <span class="text-primary font-bold">${priceStr}</span>
         <span class="text-slate-500 text-xs">${escapeHtml(badge)}</span>
       </div>
-      <div class="mt-1 text-xs text-slate-400">Исполнителей: ${Number(offer.current_participants ?? 0)} / ${Number(offer.max_participants ?? 0)}</div>
+      <div class="mt-1 text-xs text-slate-400">Исполнителей: ${Number(offer.current_participants ?? 0)} / ${offer.max_participants === MAX_PARTICIPANTS_UNLIMITED ? 'без лимита' : Number(offer.max_participants)}</div>
     </div>
   `;
 }

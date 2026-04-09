@@ -1,5 +1,6 @@
 // Страница отчёта о выполнении задания
 
+import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
 import { getUserId } from '../utils/auth.js';
 import type { ChecklistItem, ChecklistSchema, Offer } from '../types/index.js';
@@ -48,6 +49,9 @@ export async function createReportPage(offerId: string): Promise<HTMLElement> {
           
           <div id="blocked-state" class="hidden text-center py-8 px-4">
             <p id="blocked-message" class="text-slate-700 mb-4"></p>
+            <button id="blocked-view-report-btn" type="button" class="hidden w-full max-w-sm mx-auto mb-3 px-4 py-2 bg-slate-800 text-white rounded-lg font-semibold hover:bg-slate-900">
+              Просмотреть отчёт
+            </button>
             <button id="blocked-back-btn" type="button" class="px-4 py-2 bg-slate-200 text-slate-800 rounded-lg font-semibold hover:bg-slate-300">
               Назад к заданию
             </button>
@@ -147,6 +151,7 @@ async function loadOfferInfo(page: HTMLElement, offerId: string) {
       hideState(loadingState);
       const msg = page.querySelector('#blocked-message') as HTMLElement;
       if (msg) msg.textContent = 'Нет активной заявки на это задание. Сначала примите участие.';
+      page.querySelector('#blocked-view-report-btn')?.classList.add('hidden');
       showState(blockedState, [errorState, reportContent]);
       return;
     }
@@ -154,6 +159,7 @@ async function loadOfferInfo(page: HTMLElement, offerId: string) {
       hideState(loadingState);
       const msg = page.querySelector('#blocked-message') as HTMLElement;
       if (msg) msg.textContent = 'Отчёт по этому заданию уже отправлен. Повторная отправка недоступна.';
+      page.querySelector('#blocked-view-report-btn')?.classList.remove('hidden');
       showState(blockedState, [errorState, reportContent]);
       return;
     }
@@ -201,6 +207,7 @@ function renderReportForm(offer: Offer, page: HTMLElement) {
   const schema = offer.checklist_schema as ChecklistSchema | null | undefined;
   const hasChecklist = Boolean(schema?.items && schema.items.length > 0);
   root.innerHTML = hasChecklist ? buildChecklistHtml(schema!.items) : buildStandardReportHtml();
+  root.dataset.checklistItems = hasChecklist ? JSON.stringify(schema!.items) : '';
 }
 
 function buildStandardReportHtml(): string {
@@ -230,6 +237,7 @@ function normalizeChecklistItemType(t: unknown): string {
   if (s === 'scale_1_5' || s === 'scale' || s === 'rating') return 'scale_1_5';
   if (s === 'text' || s === 'textarea') return 'text';
   if (s === 'single_choice' || s === 'choice') return 'single_choice';
+  if (s === 'photo_text' || s === 'photo' || s === 'photo_with_caption') return 'photo_text';
   return s;
 }
 
@@ -272,6 +280,16 @@ function buildChecklistHtml(items: ChecklistItem[]): string {
           .join('');
         return `<div class="space-y-1"><span class="block text-sm font-medium text-slate-700">${escapeHtml(item.label)}${req}</span>${opts}</div>`;
       }
+      if (ty === 'photo_text') {
+        return `<div class="space-y-2 py-3 border-b border-slate-100 last:border-b-0">
+          <p class="text-sm font-medium text-slate-800">${escapeHtml(item.label)}${req}</p>
+          <div>
+            <span class="text-xs text-slate-500">Фото</span>
+            <input type="file" accept="image/*" class="checklist-photo-file block w-full text-sm mt-1 file:mr-2 file:py-1 file:px-2 file:rounded file:border file:border-slate-300 file:bg-white" ${base} />
+          </div>
+          <textarea class="checklist-photo-text w-full min-h-[80px] px-3 py-2 border border-slate-300 rounded-lg text-sm" ${base} placeholder="Пояснение к фото"></textarea>
+        </div>`;
+      }
       return '';
     })
     .join('');
@@ -306,7 +324,61 @@ function collectChecklistAnswers(page: HTMLElement): Record<string, unknown> | n
     const id = (el as HTMLElement).dataset.itemId;
     if (id) out[id] = (el as HTMLInputElement).value;
   });
+  page.querySelectorAll('textarea.checklist-photo-text').forEach((el) => {
+    const id = (el as HTMLElement).dataset.itemId;
+    if (!id) return;
+    const expl = (el as HTMLTextAreaElement).value.trim();
+    const fileInput = [...page.querySelectorAll('input.checklist-photo-file')].find(
+      (n) => (n as HTMLInputElement).dataset.itemId === id
+    ) as HTMLInputElement | undefined;
+    const hasFile = Boolean(fileInput?.files?.length);
+    if (!hasFile && !expl) return;
+    out[id] = { explanation: expl };
+  });
   return out;
+}
+
+function collectChecklistPhotosInOrder(page: HTMLElement, items: ChecklistItem[]): {
+  files: File[];
+  itemIds: string[];
+} {
+  const files: File[] = [];
+  const itemIds: string[] = [];
+  for (const it of items) {
+    if (normalizeChecklistItemType(it.type) !== 'photo_text') continue;
+    const input = [...page.querySelectorAll('input.checklist-photo-file')].find(
+      (n) => (n as HTMLInputElement).dataset.itemId === it.id
+    ) as HTMLInputElement | undefined;
+    const f = input?.files?.[0];
+    if (f) {
+      files.push(f);
+      itemIds.push(it.id);
+    }
+  }
+  return { files, itemIds };
+}
+
+function validateChecklistPhotoItems(page: HTMLElement, items: ChecklistItem[]): string | null {
+  for (const it of items) {
+    if (normalizeChecklistItemType(it.type) !== 'photo_text') continue;
+    const input = [...page.querySelectorAll('input.checklist-photo-file')].find(
+      (n) => (n as HTMLInputElement).dataset.itemId === it.id
+    ) as HTMLInputElement | undefined;
+    const textEl = [...page.querySelectorAll('textarea.checklist-photo-text')].find(
+      (n) => (n as HTMLTextAreaElement).dataset.itemId === it.id
+    ) as HTMLTextAreaElement | undefined;
+    const expl = textEl?.value?.trim() ?? '';
+    const hasFile = Boolean(input?.files?.length);
+    if (!it.required) {
+      if (!hasFile && !expl) continue;
+      if (hasFile && !expl) return `Заполните пояснение к фото: ${it.label}`;
+      if (!hasFile && expl) return `Прикрепите фото: ${it.label}`;
+      continue;
+    }
+    if (!hasFile) return `Прикрепите фото: ${it.label}`;
+    if (!expl) return `Заполните пояснение к фото: ${it.label}`;
+  }
+  return null;
 }
 
 // Функции управления состояниями
@@ -327,6 +399,9 @@ function setupEventHandlers(page: HTMLElement, offerId: string) {
   });
 
   page.querySelector('#blocked-back-btn')?.addEventListener('click', () => window.history.back());
+  page.querySelector('#blocked-view-report-btn')?.addEventListener('click', () => {
+    router.navigate(`/report/${offerId}/view`);
+  });
 
   const submitBtn = page.querySelector('#submit-report-btn');
   submitBtn?.addEventListener('click', async () => {
@@ -352,7 +427,25 @@ function setupEventHandlers(page: HTMLElement, offerId: string) {
       return;
     }
 
-    const isChecklist = page.querySelector('.checklist-bool, .checklist-scale, .checklist-text, .checklist-choice') !== null;
+    const formInner = page.querySelector('#report-form-inner') as HTMLElement | null;
+    const isChecklist =
+      formInner?.querySelector(
+        '.checklist-bool, .checklist-scale, .checklist-text, .checklist-choice, .checklist-photo-file, .checklist-photo-text'
+      ) != null;
+
+    if (isChecklist && formInner) {
+      let items: ChecklistItem[] = [];
+      try {
+        items = JSON.parse(formInner.dataset.checklistItems || '[]') as ChecklistItem[];
+      } catch {
+        items = [];
+      }
+      const photoErr = validateChecklistPhotoItems(page, items);
+      if (photoErr) {
+        alert(photoErr);
+        return;
+      }
+    }
 
     if (submitBtn instanceof HTMLButtonElement) {
       submitBtn.disabled = true;
@@ -360,15 +453,23 @@ function setupEventHandlers(page: HTMLElement, offerId: string) {
     }
 
     try {
-      if (isChecklist) {
+      if (isChecklist && formInner) {
+        let items: ChecklistItem[] = [];
+        try {
+          items = JSON.parse(formInner.dataset.checklistItems || '[]') as ChecklistItem[];
+        } catch {
+          items = [];
+        }
         const checklistAnswers = collectChecklistAnswers(page);
+        const { files: photoFiles, itemIds: checklistPhotoItemIds } = collectChecklistPhotosInOrder(page, items);
         const response = await apiService.submitReport({
           applicationId,
           offerId,
           userId,
           feedback: {},
-          photos: [],
-          checklistAnswers
+          photos: photoFiles,
+          checklistAnswers,
+          checklistPhotoItemIds: checklistPhotoItemIds.length ? checklistPhotoItemIds : undefined
         });
         if (response.success) {
           alert('Отчёт отправлен.');

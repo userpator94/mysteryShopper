@@ -17,7 +17,13 @@ export interface MeUser {
 }
 
 /** Элемент кастомного чек-листа (согласовано с API) */
-export type ChecklistItemType = 'boolean' | 'scale_1_5' | 'text' | 'single_choice';
+export type ChecklistItemType =
+  | 'boolean'
+  | 'scale_1_5'
+  | 'text'
+  | 'single_choice'
+  /** Одно фото + текстовое пояснение; label — инструкция заказчика к кадру */
+  | 'photo_text';
 
 export interface ChecklistItem {
   id: string;
@@ -41,6 +47,7 @@ export interface CreateOfferPayload {
   tags: string;
   start_date: string;
   end_date: string;
+  /** 999 — без ограничения числа исполнителей (как на бэкенде) */
   max_participants: number;
   is_promo?: boolean;
   image_id?: string;
@@ -93,6 +100,7 @@ export interface Offer {
   end_date: string;
   is_active: boolean;
   price: string;
+  /** 999 — без лимита исполнителей */
   max_participants: number;
   current_participants: number;
   description: string;
@@ -105,7 +113,10 @@ export interface Offer {
   employer_company: string;
   image_url?: string;
   image_alt_text?: string;
-  available_slots: number;
+  /** null — без лимита мест; иначе свободные места */
+  available_slots: number | null;
+  /** Только для владельца задачи: принятые исполнители (в работе) */
+  executors_active?: Array<{ user_id: string; initials: string }>;
   /** API может вернуть string или string[] (например ["[задача", "сложная", "деньги]"]) */
   tags?: string | string[];
   checklist_schema?: ChecklistSchema | null;
@@ -114,7 +125,7 @@ export interface Offer {
   can_edit?: boolean;
 }
 
-/** Строка списка отчётов для заказчика (GET /api/offers/:id/reports) */
+/** Строка списка отчётов для заказчика (GET /api/offers/:id/reports) и детали; у исполнителя GET /my-report — без executor_label */
 export interface EmployerReportListItem {
   id: string;
   submitted_at: string;
@@ -126,7 +137,9 @@ export interface EmployerReportListItem {
   checklist_schema_version: number | null;
   checklist_schema_snapshot: ChecklistSchema | null;
   photos: unknown;
-  executor_label: string;
+  executor_label?: string;
+  /** accepted_auto — текущая логика «принят автоматически» */
+  report_status?: string;
 }
 
 export interface Location {

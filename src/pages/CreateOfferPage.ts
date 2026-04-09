@@ -1,6 +1,7 @@
 // Страница создания задачи (заказчик)
 
 import type { CreateOfferPayload } from '../types/index.js';
+import { MAX_PARTICIPANTS_UNLIMITED } from '../config/offerLimits.js';
 import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
 import { checklistSectionHtml, initChecklistBuilder, collectOfferChecklistFromPage } from '../utils/checklistOfferUi.js';
@@ -54,8 +55,13 @@ export async function createCreateOfferPage(): Promise<HTMLElement> {
             </div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Макс. участников *</label>
-            <input id="offer-max-participants" name="max_participants" type="number" min="1" required class="w-full h-12 px-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary" value="1" />
+            <label class="block text-sm font-medium text-slate-700 mb-1">Число исполнителей</label>
+            <div class="flex items-center gap-2 mb-2">
+              <input id="offer-unlimited-participants" name="unlimited_participants" type="checkbox" class="rounded border-slate-300 text-primary focus:ring-primary" />
+              <label for="offer-unlimited-participants" class="text-sm text-slate-700">Без ограничения</label>
+            </div>
+            <input id="offer-max-participants" name="max_participants" type="number" min="1" max="998" step="1" class="w-full h-12 px-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary" value="1" />
+            <p class="text-xs text-slate-500 mt-1">Если лимит не нужен, отметьте «Без ограничения».</p>
           </div>
           <div class="flex items-center gap-2">
             <input id="offer-is-promo" name="is_promo" type="checkbox" class="rounded border-slate-300 text-primary focus:ring-primary" />
@@ -71,6 +77,18 @@ export async function createCreateOfferPage(): Promise<HTMLElement> {
 
   initChecklistBuilder(page, null);
 
+  const unlimitedCb = page.querySelector('#offer-unlimited-participants') as HTMLInputElement;
+  const maxInput = page.querySelector('#offer-max-participants') as HTMLInputElement;
+  const syncMaxParticipantsUi = () => {
+    const un = unlimitedCb?.checked ?? false;
+    if (maxInput) {
+      maxInput.disabled = un;
+      maxInput.classList.toggle('opacity-50', un);
+    }
+  };
+  unlimitedCb?.addEventListener('change', syncMaxParticipantsUi);
+  syncMaxParticipantsUi();
+
   const form = page.querySelector('#create-offer-form') as HTMLFormElement;
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -82,7 +100,10 @@ export async function createCreateOfferPage(): Promise<HTMLElement> {
     const tags = (page.querySelector('#offer-tags') as HTMLInputElement)?.value.trim();
     const start_date = (page.querySelector('#offer-start-date') as HTMLInputElement)?.value;
     const end_date = (page.querySelector('#offer-end-date') as HTMLInputElement)?.value;
-    const max_participants = parseInt((page.querySelector('#offer-max-participants') as HTMLInputElement)?.value || '1', 10);
+    const unlimited = (page.querySelector('#offer-unlimited-participants') as HTMLInputElement)?.checked ?? false;
+    const max_participants = unlimited
+      ? MAX_PARTICIPANTS_UNLIMITED
+      : Math.min(998, Math.max(1, parseInt((page.querySelector('#offer-max-participants') as HTMLInputElement)?.value || '1', 10)));
     const is_promo = (page.querySelector('#offer-is-promo') as HTMLInputElement)?.checked ?? false;
 
     const price = priceRaw !== undefined && priceRaw !== '' ? Math.floor(Number(priceRaw)) : NaN;
@@ -111,7 +132,7 @@ export async function createCreateOfferPage(): Promise<HTMLElement> {
       tags: tags || '',
       start_date,
       end_date,
-      max_participants: Math.max(1, max_participants),
+      max_participants,
       is_promo,
       checklist_schema: cl.mode === 'custom' ? cl.schema : null,
     };

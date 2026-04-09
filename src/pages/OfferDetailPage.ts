@@ -12,6 +12,7 @@ import {
   requirementsToBulletsHtml,
   formatCompensationLines
 } from '../utils/offerDisplay.js';
+import { MAX_PARTICIPANTS_UNLIMITED } from '../config/offerLimits.js';
 
 const REPORT_IRREVERSIBLE_MSG =
   'Отправка отчёта — необратимое действие. После отправки вы не сможете изменить отчёт. Продолжить?';
@@ -37,6 +38,12 @@ function isOfferInPeriod(offer: Offer): boolean {
     if (t > end) return false;
   }
   return true;
+}
+
+/** Задача снята с публикации до календарного окончания (деактивация / досрочное закрытие). */
+function isOfferInactiveBeforeEnd(offer: Offer): boolean {
+  if (offer.is_active) return false;
+  return !isOfferExpired(offer);
 }
 
 // Map для хранения обработчиков событий по кнопкам
@@ -74,6 +81,9 @@ export async function createOfferDetailPage(offerId: string): Promise<HTMLElemen
           </div>
           
           <div id="offer-content" class="hidden">
+            <div id="inactive-before-end-banner" class="hidden mx-4 mt-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800">
+              <p class="font-medium">Задача не принимает новые отклики (снята с публикации до даты окончания).</p>
+            </div>
             <!-- Изображение предложения -->
             <!-- <div id="offer-image-container" class="hidden w-full h-64 bg-slate-200 relative overflow-hidden">
               <div id="offer-image-placeholder" class="w-full h-full flex items-center justify-center text-slate-400">
@@ -156,6 +166,11 @@ export async function createOfferDetailPage(offerId: string): Promise<HTMLElemen
                 <div id="offer-tags" class="flex flex-wrap gap-2"></div>
               </div>
               
+              <div id="employer-executors-block" class="hidden rounded-lg border border-slate-200 bg-slate-50 p-4 mb-4 text-sm">
+                <h4 class="font-semibold text-slate-800 mb-2">Исполнители в работе</h4>
+                <p id="employer-executors-summary" class="text-slate-600 mb-2"></p>
+                <ul id="employer-executors-list" class="space-y-1.5 text-slate-800"></ul>
+              </div>
               
               <!-- Кнопки действий (для исполнителя: участвовать + избранное; для заказчика: изменить + удалить) -->
               <div id="offer-actions-user" class="space-y-3">
@@ -170,6 +185,9 @@ export async function createOfferDetailPage(offerId: string): Promise<HTMLElemen
                 <p id="report-sent-note" class="hidden text-center text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg py-2 px-3">
                   Отчёт по этой задаче уже отправлен. Повторная отправка недоступна.
                 </p>
+                <button id="view-report-btn" type="button" class="hidden w-full bg-slate-800 text-white py-3 rounded-lg font-semibold hover:bg-slate-900 transition-colors">
+                  Просмотреть отчёт
+                </button>
                 <button id="report-btn" class="hidden w-full bg-emerald-600 text-white py-3 rounded-lg font-semibold hover:bg-emerald-700 transition-colors">
                   Отчитаться
                 </button>
@@ -184,6 +202,9 @@ export async function createOfferDetailPage(offerId: string): Promise<HTMLElemen
                 <p id="offer-edit-locked-note" class="hidden text-xs text-slate-500 text-center order-last w-full">
                   Редактирование недоступно: по задаче есть отчёт или заявка исполнителя в работе.
                 </p>
+                <button id="close-offer-early-btn" type="button" class="hidden w-full border border-amber-300 bg-amber-50 text-amber-950 py-3 px-4 rounded-lg font-semibold hover:bg-amber-100 transition-colors">
+                  Завершить задачу досрочно
+                </button>
                 <div class="flex flex-wrap gap-3">
                 <button id="employer-reports-btn" type="button" class="flex-1 min-w-[120px] bg-slate-800 text-white py-3 px-4 rounded-lg font-semibold hover:bg-slate-900 transition-colors">
                   Отчёты
@@ -234,6 +255,14 @@ async function loadOffer(page: HTMLElement, offerId: string) {
 
     // Отображаем данные предложения
     renderOffer(offer, page);
+
+    const inactiveBeforeEnd = isOfferInactiveBeforeEnd(offer);
+    const banner = page.querySelector('#inactive-before-end-banner') as HTMLElement;
+    if (banner) banner.classList.toggle('hidden', !inactiveBeforeEnd);
+    const closeEarlyBtn = page.querySelector('#close-offer-early-btn') as HTMLElement;
+    if (closeEarlyBtn) {
+      closeEarlyBtn.classList.toggle('hidden', inactiveBeforeEnd || isOfferExpired(offer) || !offer.is_active);
+    }
     
     // Показываем контент перед проверкой статусов
     showState(offerContent, [errorState]);
@@ -253,6 +282,7 @@ async function loadOffer(page: HTMLElement, offerId: string) {
       if (editBtn) editBtn.classList.toggle('hidden', expired || editLocked);
       if (deleteBtn) deleteBtn.classList.toggle('hidden', expired);
       if (editLockedNote) editLockedNote.classList.toggle('hidden', !editLocked);
+      renderEmployerExecutorsPanel(offer, page);
     } else {
       // Проверяем статус избранного
       await checkAndSetFavoriteStatus(offerId, page);
@@ -269,6 +299,34 @@ async function loadOffer(page: HTMLElement, offerId: string) {
     // Показываем состояние ошибки
     showState(errorState, [offerContent]);
   }
+}
+
+/** Блок для заказчика: сколько принятых исполнителей и id + инициалы (данные приходят только владельцу с API). */
+function renderEmployerExecutorsPanel(offer: Offer, page: HTMLElement) {
+  const block = page.querySelector('#employer-executors-block') as HTMLElement | null;
+  const summary = page.querySelector('#employer-executors-summary') as HTMLElement | null;
+  const list = page.querySelector('#employer-executors-list') as HTMLElement | null;
+  if (!block || !summary || !list) return;
+  const execs = offer.executors_active;
+  if (execs === undefined) {
+    block.classList.add('hidden');
+    return;
+  }
+  block.classList.remove('hidden');
+  const n = execs.length;
+  summary.textContent =
+    n === 0
+      ? 'Пока нет принятых исполнителей (статусы «принят» / «в работе»).'
+      : `В работе: ${n}`;
+  list.innerHTML =
+    n === 0
+      ? ''
+      : execs
+          .map(
+            (e) =>
+              `<li class="flex flex-wrap items-baseline gap-x-2 gap-y-1"><span class="font-mono text-xs text-slate-500 break-all">${escapeHtml(e.user_id)}</span><span class="text-slate-400">·</span><span class="font-semibold tracking-wide">${escapeHtml(e.initials)}</span></li>`
+          )
+          .join('');
 }
 
 // Функция отображения данных предложения
@@ -419,6 +477,10 @@ function setupEventHandlers(page: HTMLElement, offerId: string) {
     router.navigate(`/report/${offerId}`);
   });
 
+  page.querySelector('#view-report-btn')?.addEventListener('click', () => {
+    router.navigate(`/report/${offerId}/view`);
+  });
+
   // Для заказчика: отчёты, изменить, удалить
   page.querySelector('#employer-reports-btn')?.addEventListener('click', () => {
     router.navigate(`/my-offers/${offerId}/reports`);
@@ -429,6 +491,23 @@ function setupEventHandlers(page: HTMLElement, offerId: string) {
   deleteOfferBtn?.addEventListener('click', () => {
     if (!confirm('Удалить эту задачу?')) return;
     apiService.deleteOffer(offerId).then(() => router.navigate('/my-offers')).catch((err) => alert(err?.message || 'Ошибка удаления'));
+  });
+
+  page.querySelector('#close-offer-early-btn')?.addEventListener('click', async () => {
+    if (
+      !confirm(
+        'Снять задачу с публикации? Новые отклики будут недоступны; ожидающие заявки отменятся. Принятые исполнители смогут сдать отчёт до даты окончания срока.'
+      )
+    ) {
+      return;
+    }
+    try {
+      await apiService.closeOfferEarly(offerId);
+      await loadOffer(page, offerId);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Ошибка';
+      alert(msg);
+    }
   });
 
   // Обработчик кнопки "Добавить в избранное" будет установлен в checkAndSetFavoriteStatus
@@ -470,9 +549,11 @@ async function checkAndSetApplyStatus(offerId: string, page: HTMLElement, offer:
     const applyBlock = page.querySelector('#apply-block') as HTMLElement;
     const cancelApplyBtn = page.querySelector('#cancel-apply-btn') as HTMLElement;
     const reportBtn = page.querySelector('#report-btn') as HTMLElement;
+    const viewReportBtn = page.querySelector('#view-report-btn') as HTMLElement;
     const reportSentNote = page.querySelector('#report-sent-note') as HTMLElement;
     const addToFavoritesBtn = page.querySelector('#add-to-favorites-btn') as HTMLElement;
     const offerExpired = isOfferExpired(offer);
+    const inactiveBeforeEnd = isOfferInactiveBeforeEnd(offer);
     
     if (!applyBtn) return;
     
@@ -494,6 +575,7 @@ async function checkAndSetApplyStatus(offerId: string, page: HTMLElement, offer:
       const taskInPeriod = isOfferInPeriod(offer);
       const canReport = canReportStatus && taskInPeriod && !hasReport;
       if (reportBtn) reportBtn.classList.toggle('hidden', !canReport);
+      if (viewReportBtn) viewReportBtn.classList.toggle('hidden', !hasReport);
       if (reportSentNote) {
         reportSentNote.classList.toggle('hidden', !hasReport);
       }
@@ -506,10 +588,25 @@ async function checkAndSetApplyStatus(offerId: string, page: HTMLElement, offer:
       devLog.log('Заявка не найдена');
       if (cancelApplyBtn) cancelApplyBtn.classList.add('hidden');
       if (reportBtn) reportBtn.classList.add('hidden');
+      page.querySelector('#view-report-btn')?.classList.add('hidden');
       page.querySelector('#report-sent-note')?.classList.add('hidden');
       if (addToFavoritesBtn) addToFavoritesBtn.classList.remove('hidden');
-      // Кнопку «Участвовать» не показываем, если у оффера вышел срок
-      if (applyBlock) applyBlock.classList.toggle('hidden', offerExpired);
+      const slotsFull =
+        offer.max_participants !== MAX_PARTICIPANTS_UNLIMITED &&
+        offer.available_slots != null &&
+        offer.available_slots <= 0;
+      // Кнопку «Участвовать» не показываем, если срок, задача снята с публикации или набран лимит
+      if (applyBlock) applyBlock.classList.toggle('hidden', offerExpired || inactiveBeforeEnd || slotsFull);
+      const applyHint = page.querySelector('#apply-hint') as HTMLElement;
+      if (applyHint) {
+        if (slotsFull && !offerExpired && !inactiveBeforeEnd) {
+          applyHint.textContent = 'Набран максимум исполнителей по этой задаче';
+          applyHint.classList.remove('hidden');
+        } else {
+          applyHint.textContent =
+            'Заказчик может рассматривать вашу заявку в течение некоторого времени';
+        }
+      }
     }
   } catch (error) {
     console.error('Ошибка проверки статуса заявки:', error);
@@ -638,6 +735,10 @@ async function applyForOffer(offerId: string, button: HTMLButtonElement, page: H
   } catch (error: any) {
     console.error('Ошибка подачи заявки:', error);
     button.disabled = false;
+    const msg = error?.message || '';
+    if (msg.includes('лимит') || error?.code === 'OFFER_FULL') {
+      alert(msg || 'Достигнут лимит исполнителей по этой задаче');
+    }
   }
 }
 

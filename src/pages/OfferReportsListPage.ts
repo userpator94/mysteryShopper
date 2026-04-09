@@ -68,13 +68,21 @@ export async function createOfferReportsListPage(offerId: string): Promise<HTMLE
           .map((r) => {
             const d1 = r.submitted_at ? new Date(r.submitted_at).toLocaleString('ru-RU') : '—';
             const d2 = r.task_completed_at ? new Date(r.task_completed_at).toLocaleString('ru-RU') : '—';
+            const exec = r.executor_label || 'Исполнитель';
+            const st =
+              r.report_status === 'accepted_auto'
+                ? 'Принят автоматически'
+                : r.report_status
+                  ? r.report_status
+                  : '';
             return `
             <button type="button" class="w-full text-left bg-white border border-slate-200 rounded-lg p-3 hover:bg-slate-50 report-row" data-rid="${r.id}">
               <div class="flex justify-between gap-2">
-                <span class="font-medium text-slate-800">${escapeHtml(r.executor_label)}</span>
+                <span class="font-medium text-slate-800">${escapeHtml(exec)}</span>
                 <span class="text-xs text-slate-500">${escapeHtml(d1)}</span>
               </div>
               <div class="text-xs text-slate-500 mt-1">Выполнено: ${escapeHtml(d2)}</div>
+              ${st ? `<div class="text-xs text-emerald-800 mt-1">${escapeHtml(st)}</div>` : ''}
             </button>`;
           })
           .join('');

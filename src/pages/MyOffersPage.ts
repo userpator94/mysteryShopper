@@ -123,8 +123,15 @@ function renderOfferCard(offer: Offer, isExpired: boolean): string {
   const start = offer.start_date ? new Date(offer.start_date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
   const end = offer.end_date ? new Date(offer.end_date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
   const price = formatExecutorMoneyRewardShort(offer);
-  const status = isExpired ? 'Вышел срок' : (offer.is_active ? 'Активно' : 'Неактивно');
-  const statusClass = isExpired ? 'text-sm text-red-600' : (offer.is_active ? 'text-sm text-green-600' : 'text-sm text-slate-500');
+  let status: string;
+  let statusClass: string;
+  if (isExpired) {
+    status = 'Вышел срок';
+    statusClass = 'text-sm text-red-600';
+  } else {
+    status = offer.is_active ? 'Активно' : 'Неактивно';
+    statusClass = offer.is_active ? 'text-sm text-green-600' : 'text-sm text-slate-500';
+  }
   const canEdit = offer.can_edit !== false;
   const editLink =
     canEdit && !isExpired
