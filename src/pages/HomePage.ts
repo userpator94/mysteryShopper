@@ -125,19 +125,22 @@ export async function createHomePage(): Promise<HTMLElement> {
   let cityName = 'Москва'; // Значение по умолчанию
   let promoOffers: Offer[] = [];
   
+  // Важно: геолокация может зависнуть/долго отвечать во встроенных webview.
+  // Не блокируем рендер — берём город по умолчанию и обновим позже, если получится.
+  const offersPromise = fetchPromoOffers().catch(() => []);
+  const locationPromise = (async () => {
+    // уменьшаем ожидание до 1.5с, иначе UX ощущается «приложение зависло»
+    const timeoutMs = 1500;
+    const t = new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs));
+    const loc = await Promise.race([getCurrentLocation().catch(() => null), t]);
+    return loc;
+  })();
+
   try {
-    const [locationInfo, offers] = await Promise.all([
-      getCurrentLocation().catch(() => null),
-      fetchPromoOffers()
-    ]);
-    
-    if (locationInfo) {
-      cityName = formatCityName(locationInfo);
-    }
-    
+    const offers = await offersPromise;
     promoOffers = offers.slice(0, 2); // Берем только первые два предложения
   } catch (error) {
-    console.error('Ошибка при загрузке данных:', error);
+    console.error('Ошибка при загрузке промо-предложений:', error);
   }
   
   // Обновляем страницу с полученным городом
@@ -262,6 +265,16 @@ export async function createHomePage(): Promise<HTMLElement> {
       </div>
     </div>
   `;
+
+  // Догружаем местоположение «в фоне», без блокировки UI
+  locationPromise
+    .then((locationInfo) => {
+      if (!locationInfo) return;
+      const nextCity = formatCityName(locationInfo);
+      const input = page.querySelector('header input') as HTMLInputElement | null;
+      if (input) input.placeholder = `Поиск в ${nextCity}`;
+    })
+    .catch(() => {});
 
   // Настраиваем обработчики событий
   setupEventHandlers(page);

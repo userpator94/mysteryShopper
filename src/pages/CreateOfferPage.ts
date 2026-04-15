@@ -29,7 +29,7 @@ export async function createCreateOfferPage(): Promise<HTMLElement> {
             <textarea id="offer-description" name="description" required rows="4" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary resize-none" placeholder="Описание задачи"></textarea>
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Цена (₽) *</label>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Вознаграждение (бонусы) *</label>
             <input id="offer-price" name="price" type="number" min="0" step="1" required class="w-full h-12 px-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary" placeholder="0" />
           </div>
           <div>
@@ -109,7 +109,7 @@ export async function createCreateOfferPage(): Promise<HTMLElement> {
     const price = priceRaw !== undefined && priceRaw !== '' ? Math.floor(Number(priceRaw)) : NaN;
     if (!title || !description || Number.isNaN(price) || price < 0 || !location || !requirements || !start_date || !end_date) {
       const errEl = page.querySelector('#form-error') as HTMLElement;
-      if (errEl) { errEl.textContent = 'Заполните обязательные поля. Цена — целое число.'; errEl.classList.remove('hidden'); }
+      if (errEl) { errEl.textContent = 'Заполните обязательные поля. Вознаграждение — целое число.'; errEl.classList.remove('hidden'); }
       return;
     }
 

@@ -1,10 +1,10 @@
 import type { Offer } from '../types/index.js';
 
-/** Карточки исполнителя: без «0 ₽», если денежная сумма не задана */
-export const EXECUTOR_PRICE_NOT_SET_LABEL = 'Сумма не указана';
+/** Карточки исполнителя: без «0 бонусов», если сумма не задана */
+export const EXECUTOR_PRICE_NOT_SET_LABEL = 'Вознаграждение не указано';
 
 /**
- * Положительная сумма вознаграждения в ₽ или 0 (null, пусто, 0 и ниже — «не задано»).
+ * Положительная сумма вознаграждения в бонусах или 0 (null, пусто, 0 и ниже — «не задано»).
  */
 export function getOfferMoneyRubPositive(offer: Pick<Offer, 'price'>): number {
   const raw = offer.price != null ? String(offer.price).replace(/\s/g, '').replace(',', '.') : '';
@@ -13,10 +13,10 @@ export function getOfferMoneyRubPositive(offer: Pick<Offer, 'price'>): number {
   return num;
 }
 
-/** Одна строка для списков/карточек: «N ₽» или нейтральная подпись. */
+/** Одна строка для списков/карточек: «N бонусов» или нейтральная подпись. */
 export function formatExecutorMoneyRewardShort(offer: Pick<Offer, 'price'>): string {
   const n = getOfferMoneyRubPositive(offer);
-  return n > 0 ? `${n.toLocaleString('ru-RU')} ₽` : EXECUTOR_PRICE_NOT_SET_LABEL;
+  return n > 0 ? `${n.toLocaleString('ru-RU')} бонусов` : EXECUTOR_PRICE_NOT_SET_LABEL;
 }
 
 export function escapeHtml(s: string): string {
@@ -50,22 +50,22 @@ export function requirementsToBulletsHtml(requirements: string, description: str
 }
 
 /**
- * Вознаграждение: не только «сумма в ₽» — денежная часть + текст из полей задания
+ * Вознаграждение: отображение суммы в бонусах + текст из полей задания
  * (в тестовых данных суть невыкупных форматов задаётся в описании).
  */
 export function formatCompensationLines(offer: Offer): string[] {
   const lines: string[] = [];
   const n = getOfferMoneyRubPositive(offer);
   if (n > 0) {
-    lines.push(`Денежная компенсация: ${n.toLocaleString('ru-RU')} ₽`);
+    lines.push(`Вознаграждение: ${n.toLocaleString('ru-RU')} бонусов`);
   } else {
-    lines.push('Фиксированная сумма в рублях не задана — условия вознаграждения см. в описании задания.');
+    lines.push('Фиксированная сумма бонусов не задана — условия вознаграждения см. в описании задания.');
   }
   return lines;
 }
 
 /** Грубая классификация типа вознаграждения для фильтра/сортировки в списке (без отдельного поля в БД). */
-export type RewardKindInferred = 'money' | 'non_money' | 'mixed' | 'unknown';
+export type RewardKindInferred = 'bonus' | 'non_bonus' | 'mixed' | 'unknown';
 
 export function inferRewardKind(offer: Offer): RewardKindInferred {
   const hasMoney = getOfferMoneyRubPositive(offer) > 0;
@@ -75,15 +75,15 @@ export function inferRewardKind(offer: Offer): RewardKindInferred {
       text
     );
   if (hasMoney && nonMoneyHints) return 'mixed';
-  if (hasMoney && !nonMoneyHints) return 'money';
-  if (!hasMoney || nonMoneyHints) return 'non_money';
+  if (hasMoney && !nonMoneyHints) return 'bonus';
+  if (!hasMoney || nonMoneyHints) return 'non_bonus';
   return 'unknown';
 }
 
 const REWARD_SORT_ORDER: Record<RewardKindInferred, number> = {
-  money: 0,
+  bonus: 0,
   mixed: 1,
-  non_money: 2,
+  non_bonus: 2,
   unknown: 3
 };
 

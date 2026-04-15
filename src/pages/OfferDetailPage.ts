@@ -6,6 +6,7 @@ import { getRole } from '../utils/auth.js';
 import { formatTagsForDisplay } from '../utils/formatTags.js';
 import { devLog } from '../utils/logger.js';
 import { router } from '../router/index.js';
+import { addRecentOffer } from '../utils/recentOffers.js';
 import {
   escapeHtml,
   descriptionToParagraphsHtml,
@@ -166,6 +167,7 @@ export async function createOfferDetailPage(offerId: string): Promise<HTMLElemen
               <div class="bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-4 mb-4">
                 <h3 class="text-sm font-semibold text-slate-700 mb-2">Вознаграждение</h3>
                 <div id="offer-compensation" class="text-slate-800 text-sm space-y-1 mb-3"></div>
+                <p id="offer-slots" class="text-xs text-slate-600 mb-3"></p>
                 <div class="flex items-center gap-4 text-sm text-slate-600">
                   <div class="flex items-center gap-1">
                     <svg fill="currentColor" height="16" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg">
@@ -308,6 +310,8 @@ async function loadOffer(page: HTMLElement, offerId: string) {
 
     // Отображаем данные предложения
     renderOffer(offer, page);
+    // Для истории профиля исполнителя: последние просмотренные
+    addRecentOffer({ offerId: offer.id, title: offer.title || 'Без названия' });
 
     const inactiveBeforeEnd = isOfferInactiveBeforeEnd(offer);
     const banner = page.querySelector('#inactive-before-end-banner') as HTMLElement;
@@ -418,6 +422,7 @@ function renderOffer(offer: Offer, page: HTMLElement) {
   const titleEl = page.querySelector('#offer-title') as HTMLElement;
   const descriptionEl = page.querySelector('#offer-description') as HTMLElement;
   const compensationEl = page.querySelector('#offer-compensation') as HTMLElement;
+  const slotsEl = page.querySelector('#offer-slots') as HTMLElement;
   const ratingEl = page.querySelector('#offer-rating') as HTMLElement;
   const companyEl = page.querySelector('#offer-company') as HTMLElement;
   const locationEl = page.querySelector('#offer-location') as HTMLElement;
@@ -440,6 +445,19 @@ function renderOffer(offer: Offer, page: HTMLElement) {
   if (compensationEl) {
     const lines = formatCompensationLines(offer);
     compensationEl.innerHTML = lines.map((p) => `<p>${escapeHtml(p)}</p>`).join('');
+  }
+  if (slotsEl) {
+    const cur = Number(offer.current_participants ?? 0);
+    const max =
+      offer.max_participants === MAX_PARTICIPANTS_UNLIMITED
+        ? null
+        : Number(offer.max_participants ?? 0);
+    if (max == null) {
+      slotsEl.textContent = `Исполнителей: ${cur} / без лимита`;
+    } else {
+      const free = offer.available_slots != null ? Number(offer.available_slots) : Math.max(0, max - cur);
+      slotsEl.textContent = `Свободных мест: ${free} • Исполнителей: ${cur} / ${max}`;
+    }
   }
   if (ratingEl) ratingEl.textContent = offer.numeric_info ? offer.numeric_info.toString() : '0';
   if (companyEl) companyEl.textContent = offer.employer_company || 'Компания не указана';

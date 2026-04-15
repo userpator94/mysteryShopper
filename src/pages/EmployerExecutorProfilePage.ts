@@ -18,6 +18,35 @@ function escapeHtml(s: string): string {
   return el.innerHTML;
 }
 
+async function copyToClipboard(text: string): Promise<boolean> {
+  const value = String(text ?? '');
+  if (!value) return false;
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(value);
+      return true;
+    }
+  } catch {
+    // fallback below
+  }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = value;
+    ta.setAttribute('readonly', 'true');
+    ta.style.position = 'fixed';
+    ta.style.top = '-1000px';
+    ta.style.left = '-1000px';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = document.execCommand('copy');
+    ta.remove();
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function createEmployerExecutorProfilePage(offerId: string, executorUserId: string): Promise<HTMLElement> {
   const page = document.createElement('div');
   page.className = 'employer-executor-profile-page';
@@ -65,10 +94,16 @@ export async function createEmployerExecutorProfilePage(offerId: string, executo
         : '';
 
     content.innerHTML = `
-      <div class="flex flex-col items-center text-center gap-2">
+      <div class="flex flex-col items-start text-left gap-2">
         ${avatarBlock}
         <p class="text-lg font-semibold text-slate-900">${escapeHtml(p.masked_name)}</p>
-        <p class="text-xs font-mono text-slate-400 break-all">${escapeHtml(p.user_id)}</p>
+        <button type="button" class="inline-flex items-center gap-1 text-xs text-primary hover:underline px-0 py-0 bg-transparent" data-copy-text="${escapeHtml(p.user_id)}" aria-label="Скопировать ID">
+          <span class="font-mono break-all">${escapeHtml(p.user_id)}</span>
+          <svg class="w-3.5 h-3.5 text-primary/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 9h10v10H9V9z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+        </button>
         ${badge ? `<div class="pt-1">${badge}</div>` : ''}
         ${tzLine}
       </div>
@@ -94,6 +129,19 @@ export async function createEmployerExecutorProfilePage(offerId: string, executo
         </dl>
       </div>
     `;
+
+    content.querySelectorAll<HTMLElement>('[data-copy-text]').forEach((el) => {
+      el.addEventListener('click', async () => {
+        const text = el.getAttribute('data-copy-text') ?? '';
+        const ok = await copyToClipboard(text);
+        if (!ok) {
+          alert('Не удалось скопировать');
+          return;
+        }
+        el.classList.add('opacity-70');
+        setTimeout(() => el.classList.remove('opacity-70'), 600);
+      });
+    });
   } catch (e: unknown) {
     loading.classList.add('hidden');
     err.textContent = e instanceof Error ? e.message : 'Не удалось загрузить профиль';

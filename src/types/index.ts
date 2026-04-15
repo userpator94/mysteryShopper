@@ -37,10 +37,11 @@ export interface ChecklistSchema {
   items: ChecklistItem[];
 }
 
-/** Тело запроса создания оффера (POST /api/offers). price — целое число (integer). */
+/** Тело запроса создания оффера (POST /api/offers). `price` — вознаграждение в бонусах (целое число). */
 export interface CreateOfferPayload {
   title: string;
   description: string;
+  /** Вознаграждение в бонусах (целое). Поле в API называется `price`. */
   price: number;
   location: string;
   requirements: string;
@@ -56,10 +57,11 @@ export interface CreateOfferPayload {
   schema_version?: number;
 }
 
-/** Тело запроса обновления оффера (PATCH /api/offers/:id) — все поля опциональны. price — целое число. */
+/** Тело запроса обновления оффера (PATCH /api/offers/:id) — все поля опциональны. `price` — вознаграждение в бонусах (целое). */
 export interface UpdateOfferPayload {
   title?: string;
   description?: string;
+  /** Вознаграждение в бонусах (целое). Поле в API называется `price`. */
   price?: number;
   location?: string;
   requirements?: string;
@@ -99,6 +101,7 @@ export interface Offer {
   start_date: string;
   end_date: string;
   is_active: boolean;
+  /** Вознаграждение в бонусах. Поле в API называется `price`. */
   price: string;
   /** 999 — без лимита исполнителей */
   max_participants: number;

@@ -208,8 +208,9 @@ export class ApiService {
     const queryString = searchParams.toString();
     const endpoint = queryString ? `/offers?${queryString}` : '/offers';
     
-    // GET /api/offers - публичный эндпоинт, не требует аутентификации
-    const response = await this.request<{ success: boolean; data: Offer[] }>(endpoint, {}, false);
+    // GET /api/offers - публичный эндпоинт; если токен есть, отправляем его,
+    // чтобы сервер мог вернуть "мои" офферы даже если слоты заполнены.
+    const response = await this.request<{ success: boolean; data: Offer[] }>(endpoint, {}, true);
     return response.data;
   }
 
@@ -338,6 +339,17 @@ export class ApiService {
 
   public async getApplies(): Promise<ApplicationsResponse> {
     return this.request<ApplicationsResponse>('/applies');
+  }
+
+  // Вознаграждения (исполнитель)
+  public async getRewardsSummary(): Promise<{ success: true; data: any }> {
+    return this.request<{ success: true; data: any }>('/me/rewards/summary');
+  }
+
+  public async getRewards(params?: { limit?: number; offset?: number }): Promise<{ success: true; data: any[] }> {
+    const limit = params?.limit ?? 50;
+    const offset = params?.offset ?? 0;
+    return this.request<{ success: true; data: any[] }>(`/me/rewards?limit=${encodeURIComponent(String(limit))}&offset=${encodeURIComponent(String(offset))}`);
   }
 
   public async getApplyByOfferId(offerId: string): Promise<Application | null> {

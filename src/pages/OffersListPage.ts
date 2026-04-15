@@ -14,8 +14,8 @@ import {
 } from '../utils/offerDisplay.js';
 
 const REWARD_LABELS: Record<string, string> = {
-  money: 'Деньги',
-  non_money: 'Не деньги',
+  bonus: 'Бонусы',
+  non_bonus: 'Не бонусы',
   mixed: 'Смешанное',
   unknown: '—'
 };
@@ -165,8 +165,8 @@ export async function createOffersListPage(): Promise<HTMLElement> {
               <span>Вознаграждение</span>
               <select id="filter-reward" class="h-10 rounded-lg border border-slate-200 px-2 text-sm bg-white">
                 <option value="all">Все типы</option>
-                <option value="money">Денежное</option>
-                <option value="non_money">Не денежное</option>
+                <option value="bonus">Бонусы</option>
+                <option value="non_bonus">Не бонусы</option>
                 <option value="mixed">Смешанное</option>
               </select>
             </label>
@@ -175,8 +175,8 @@ export async function createOffersListPage(): Promise<HTMLElement> {
               <select id="sort-select" class="h-10 rounded-lg border border-slate-200 px-2 text-sm bg-white">
                 <option value="created_desc">Сначала новые</option>
                 <option value="created_asc">Сначала старые</option>
-                <option value="price_desc">Цена по убыванию</option>
-                <option value="price_asc">Цена по возрастанию</option>
+                <option value="price_desc">Вознаграждение по убыванию</option>
+                <option value="price_asc">Вознаграждение по возрастанию</option>
                 <option value="participants_desc">Больше исполнителей</option>
                 <option value="participants_asc">Меньше исполнителей</option>
                 <option value="reward_kind">Тип вознаграждения</option>

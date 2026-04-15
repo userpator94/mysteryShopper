@@ -23,7 +23,7 @@ export async function createOrderHistoryPage(): Promise<HTMLElement> {
                 </div>
                 <p class="text-slate-600 text-sm mb-2">15 января 2024</p>
                 <div class="flex justify-between items-center">
-                  <span class="text-primary font-bold">2,500 ₽</span>
+                  <span class="text-primary font-bold">2 500 бонусов</span>
                   <div class="flex items-center gap-1">
                     <span class="text-yellow-500">⭐</span>
                     <span class="text-sm">4.8</span>
@@ -38,7 +38,7 @@ export async function createOrderHistoryPage(): Promise<HTMLElement> {
                 </div>
                 <p class="text-slate-600 text-sm mb-2">14 января 2024</p>
                 <div class="flex justify-between items-center">
-                  <span class="text-primary font-bold">1,800 ₽</span>
+                  <span class="text-primary font-bold">1 800 бонусов</span>
                   <div class="flex items-center gap-1">
                     <span class="text-yellow-500">⭐</span>
                     <span class="text-sm">4.6</span>
@@ -53,7 +53,7 @@ export async function createOrderHistoryPage(): Promise<HTMLElement> {
                 </div>
                 <p class="text-slate-600 text-sm mb-2">13 января 2024</p>
                 <div class="flex justify-between items-center">
-                  <span class="text-primary font-bold">1,200 ₽</span>
+                  <span class="text-primary font-bold">1 200 бонусов</span>
                   <div class="flex items-center gap-1">
                     <span class="text-yellow-500">⭐</span>
                     <span class="text-sm">4.7</span>

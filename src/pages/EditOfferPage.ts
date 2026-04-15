@@ -43,7 +43,7 @@ export async function createEditOfferPage(offerId: string): Promise<HTMLElement>
             <textarea id="offer-description" name="description" required rows="4" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary resize-none"></textarea>
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Цена (₽) *</label>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Вознаграждение (бонусы) *</label>
             <input id="offer-price" name="price" type="number" min="0" step="1" required class="w-full h-12 px-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary" />
           </div>
           <div>

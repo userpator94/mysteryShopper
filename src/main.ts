@@ -17,6 +17,7 @@ import { createEditOfferPage } from './pages/EditOfferPage.js'
 import { createOfferReportsListPage } from './pages/OfferReportsListPage.js'
 import { createOfferReportDetailPage } from './pages/OfferReportDetailPage.js'
 import { createEmployerExecutorProfilePage } from './pages/EmployerExecutorProfilePage.js'
+import { createRewardsPage } from './pages/RewardsPage.js'
 import { showWebDeviceModal } from './components/WebDeviceMessage.js'
 import { detectDevice } from './utils/deviceDetection.js'
 import { apiService } from './services/api.js'
@@ -91,6 +92,14 @@ router.addRoute({
   component: createProfilePage,
   title: 'Профиль',
   requiresAuth: true
+})
+
+router.addRoute({
+  path: '/rewards',
+  component: createRewardsPage,
+  title: 'Вознаграждения',
+  requiresAuth: true,
+  requiresRole: 'user'
 })
 
 router.addRoute({

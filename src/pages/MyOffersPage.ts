@@ -2,6 +2,7 @@
 
 import type { Offer } from '../types/index.js';
 import { formatExecutorMoneyRewardShort } from '../utils/offerDisplay.js';
+import { MAX_PARTICIPANTS_UNLIMITED } from '../config/offerLimits.js';
 import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
 
@@ -123,6 +124,10 @@ function renderOfferCard(offer: Offer, isExpired: boolean): string {
   const start = offer.start_date ? new Date(offer.start_date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
   const end = offer.end_date ? new Date(offer.end_date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
   const price = formatExecutorMoneyRewardShort(offer);
+  const slotsLabel =
+    offer.max_participants === MAX_PARTICIPANTS_UNLIMITED
+      ? `Исполнителей: ${Number(offer.current_participants ?? 0)} / без лимита`
+      : `Исполнителей: ${Number(offer.current_participants ?? 0)} / ${Number(offer.max_participants ?? 0)}`;
   let status: string;
   let statusClass: string;
   if (isExpired) {
@@ -153,6 +158,7 @@ function renderOfferCard(offer: Offer, isExpired: boolean): string {
         <span>${start} — ${end}</span>
         <span class="font-semibold text-primary">${price}</span>
       </div>
+      <div class="text-xs text-slate-400 mb-2">${slotsLabel}</div>
       ${actionsSection}
     </div>
   `;
