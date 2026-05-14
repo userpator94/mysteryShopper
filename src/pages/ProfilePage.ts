@@ -323,6 +323,14 @@ export async function createProfilePage(): Promise<HTMLElement> {
                         Вознаграждения
                       </button>
                     `}
+                    ${
+                      meUser
+                        ? `
+                    <button type="button" id="go-change-password" class="w-full text-left px-2 py-2 cursor-pointer hover:bg-slate-50 rounded transition-colors border border-transparent hover:border-slate-100">
+                      Сменить пароль
+                    </button>`
+                        : ''
+                    }
                   </div>
 
                   <div class="space-y-2">
@@ -393,6 +401,10 @@ function setupEventHandlers(page: HTMLElement) {
       const action = htmlElement.dataset.action;
       handleAction(action);
     });
+  });
+
+  page.querySelector('#go-change-password')?.addEventListener('click', () => {
+    router.navigate('/profile/password');
   });
 
   // Обработчик кнопки выхода из аккаунта

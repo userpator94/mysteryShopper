@@ -3,6 +3,7 @@
 import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
 import type { EmployerReportListItem } from '../types/index.js';
+import { reportStatusLabel } from '../utils/reportViewContent.js';
 
 export async function createOfferReportsListPage(offerId: string): Promise<HTMLElement> {
   const page = document.createElement('div');
@@ -70,12 +71,14 @@ export async function createOfferReportsListPage(offerId: string): Promise<HTMLE
             const d2 = r.task_completed_at ? new Date(r.task_completed_at).toLocaleString('ru-RU') : '—';
             const exec = r.executor_label || 'Исполнитель';
             const execId = r.executor_user_id;
-            const st =
-              r.report_status === 'accepted_auto'
-                ? 'Принят автоматически'
-                : r.report_status
-                  ? r.report_status
-                  : '';
+            const stRaw = r.report_status || '';
+            const st = reportStatusLabel(stRaw);
+            const stClass =
+              stRaw === 'rejected'
+                ? 'text-amber-900 bg-amber-50 border border-amber-200'
+                : stRaw === 'pending_review'
+                  ? 'text-slate-800 bg-slate-100 border border-slate-200'
+                  : 'text-emerald-800 bg-emerald-50 border border-emerald-200';
             const profileBtn =
               execId != null && execId !== ''
                 ? `<button type="button" class="report-exec-profile text-xs font-semibold text-primary px-2 py-0.5 rounded hover:bg-primary/5" data-uid="${escapeHtml(execId)}">Профиль</button>`
@@ -90,7 +93,7 @@ export async function createOfferReportsListPage(offerId: string): Promise<HTMLE
                 </span>
               </div>
               <div class="text-xs text-slate-500 mt-1">Выполнено: ${escapeHtml(d2)}</div>
-              ${st ? `<div class="text-xs text-emerald-800 mt-1">${escapeHtml(st)}</div>` : ''}
+              ${st ? `<div class="text-xs mt-1 px-2 py-1 rounded inline-block ${stClass}">${escapeHtml(st)}</div>` : ''}
             </div>`;
           })
           .join('');

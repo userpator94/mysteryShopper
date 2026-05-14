@@ -1,5 +1,24 @@
 // Сервис для работы с API
-import type { Offer, SearchParams, FavoriteOfferSummary, AddToFavoritesResponse, RemoveFromFavoritesResponse, UserStatisticsResponse, FavoriteStatusResponse, ApplyResponse, ApplicationsResponse, Application, MeUser, CreateOfferPayload, UpdateOfferPayload, UserRole, EmployerReportListItem, EmployerExecutorProfile } from '../types/index.js';
+import type {
+  Offer,
+  SearchParams,
+  FavoriteOfferSummary,
+  AddToFavoritesResponse,
+  RemoveFromFavoritesResponse,
+  UserStatisticsResponse,
+  FavoriteStatusResponse,
+  ApplyResponse,
+  ApplicationsResponse,
+  Application,
+  MeUser,
+  CreateOfferPayload,
+  UpdateOfferPayload,
+  UserRole,
+  EmployerReportListItem,
+  EmployerExecutorProfile,
+  OfferApplicationRow,
+  EmployerPublicSummary
+} from '../types/index.js';
 import { devLog } from '../utils/logger.js';
 import { setRole, clearRole } from '../utils/auth.js';
 
@@ -122,16 +141,30 @@ export class ApiService {
 
     devLog.log('Выполняем API запрос:', url);
     const response = await fetch(url, defaultOptions);
-    
-    // Обработка ошибок аутентификации
+
+    // 401: либо неверный текущий пароль (PATCH /me/password), либо истёк JWT
     if (response.status === 401) {
-      // Токен невалиден или истек - удаляем его и перенаправляем на логин
+      let errorData: { error?: { code?: string; message?: string } } = {};
+      try {
+        errorData = await this.parseResponse(response);
+      } catch {
+        errorData = {};
+      }
+      const errCode = errorData?.error?.code;
+      const errMsg = errorData?.error?.message;
+      if (errCode === 'INVALID_CREDENTIALS') {
+        const err = new Error(
+          typeof errMsg === 'string' && errMsg.trim() ? errMsg : 'Неверный текущий пароль'
+        );
+        (err as { code?: string }).code = errCode;
+        throw err;
+      }
       localStorage.removeItem('auth_token');
       localStorage.removeItem('user_id');
       window.location.href = '/login';
       throw new Error('Токен авторизации невалиден или истек');
     }
-    
+
     if (!response.ok) {
       try {
         const errorData = await this.parseResponse(response);
@@ -693,6 +726,54 @@ export class ApiService {
       `/offers/${offerId}/my-report`
     );
     return response.data;
+  }
+
+  /** Решение заказчика по отчёту (принять / отклонить с комментарием ≥10 слов) */
+  public async reviewEmployerOfferReport(
+    offerId: string,
+    reportId: string,
+    body: { decision: 'approve' | 'reject'; comment?: string | null }
+  ): Promise<EmployerReportListItem> {
+    const response = await this.request<{ success: boolean; data: EmployerReportListItem }>(
+      `/offers/${offerId}/reports/${reportId}/review`,
+      { method: 'PATCH', body: JSON.stringify(body) }
+    );
+    return response.data;
+  }
+
+  /** Заявки по задаче (заказчик) */
+  public async getOfferApplications(offerId: string): Promise<OfferApplicationRow[]> {
+    const response = await this.request<{ success: boolean; data: OfferApplicationRow[] }>(
+      `/offers/${offerId}/applications`
+    );
+    return response.data ?? [];
+  }
+
+  public async patchApplicationStatus(
+    applicationId: string,
+    body: { status: 'approved' | 'rejected'; comment?: string }
+  ): Promise<OfferApplicationRow> {
+    const response = await this.request<{ success: boolean; data: OfferApplicationRow }>(
+      `/applications/${applicationId}`,
+      { method: 'PATCH', body: JSON.stringify(body) }
+    );
+    return response.data;
+  }
+
+  /** Публичные данные заказчика (исполнитель с заявкой) */
+  public async getOfferEmployerSummary(offerId: string): Promise<EmployerPublicSummary> {
+    const response = await this.request<{ success: boolean; data: EmployerPublicSummary }>(
+      `/offers/${offerId}/employer-summary`
+    );
+    return response.data;
+  }
+
+  public async changePassword(body: { current_password: string; new_password: string }): Promise<void> {
+    await this.request<{ success: boolean; data: { message: string } }>('/me/password', {
+      method: 'PATCH',
+      body: JSON.stringify(body)
+    });
+    await this.logout();
   }
 
   /** Скачать PDF отчёта (заказчик); при ошибке бросает Error с текстом сервера */

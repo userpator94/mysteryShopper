@@ -109,67 +109,111 @@ export async function createLoginPage(): Promise<HTMLElement> {
 }
 
 function setupEventHandlers(page: HTMLElement) {
-  // Создание и показ тултипа с ошибкой
-  const showPasswordTooltip = (input: HTMLInputElement, message: string) => {
-    // Удаляем существующий тултип, если есть
-    const existingTooltip = input.parentElement?.querySelector('.password-tooltip');
-    if (existingTooltip) {
-      existingTooltip.remove();
-    }
-
-    // Создаем тултип
-    const tooltip = document.createElement('div');
-    tooltip.className = 'password-tooltip';
-    tooltip.textContent = message;
-    tooltip.style.cssText = `
-      position: absolute;
-      bottom: -45px;
-      left: 0;
-      right: 0;
-      background-color: #ef4444;
-      color: white;
-      padding: 8px 12px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 500;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      z-index: 1000;
-      animation: tooltipFadeIn 0.2s ease-out;
-    `;
-
-    // Добавляем анимацию появления
+  const ensureLoginTooltipKeyframes = (): void => {
+    if (document.querySelector('#login-tooltip-keyframes')) return;
     const style = document.createElement('style');
+    style.id = 'login-tooltip-keyframes';
     style.textContent = `
       @keyframes tooltipFadeIn {
-        from {
-          opacity: 0;
-          transform: translateY(-5px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
+        from { opacity: 0; transform: translateY(-4px); }
+        to { opacity: 1; transform: translateY(0); }
       }
     `;
-    if (!document.querySelector('#password-tooltip-style')) {
-      style.id = 'password-tooltip-style';
-      document.head.appendChild(style);
-    }
+    document.head.appendChild(style);
+  };
 
-    // Вставляем тултип после поля ввода
-    const parent = input.parentElement;
-    if (parent) {
-      parent.style.position = 'relative';
-      parent.appendChild(tooltip);
+  /** Оверлей под полем: не меняет поток вёрстки (position: fixed). */
+  const showLoginFieldTooltip = (input: HTMLInputElement, message: string): void => {
+    document.querySelectorAll('.login-field-tooltip').forEach((n) => n.remove());
 
-      // Удаляем тултип через 3 секунды
-      setTimeout(() => {
-        tooltip.style.animation = 'tooltipFadeIn 0.2s ease-out reverse';
-        setTimeout(() => {
-          tooltip.remove();
-        }, 200);
-      }, 3000);
-    }
+    const tooltip = document.createElement('div');
+    tooltip.className = 'login-field-tooltip';
+    tooltip.textContent = message;
+    tooltip.setAttribute('role', 'status');
+    Object.assign(tooltip.style, {
+      position: 'fixed',
+      zIndex: '10000',
+      boxSizing: 'border-box',
+      backgroundColor: '#ef4444',
+      color: '#fff',
+      padding: '8px 12px',
+      borderRadius: '6px',
+      fontSize: '12px',
+      fontWeight: '500',
+      lineHeight: '1.35',
+      boxShadow: '0 4px 14px rgba(0,0,0,0.18)',
+      maxHeight: 'min(40vh, 200px)',
+      overflowY: 'auto',
+      pointerEvents: 'none',
+      wordBreak: 'break-word'
+    } as CSSStyleDeclaration);
+
+    const getScrollableAncestors = (el: HTMLElement): HTMLElement[] => {
+      const out: HTMLElement[] = [];
+      let p: HTMLElement | null = el.parentElement;
+      while (p) {
+        const st = getComputedStyle(p);
+        const oy = st.overflowY;
+        const ox = st.overflowX;
+        if (/(auto|scroll)/.test(oy) || /(auto|scroll)/.test(ox)) out.push(p);
+        p = p.parentElement;
+      }
+      return out;
+    };
+
+    const applyPosition = (): void => {
+      const r = input.getBoundingClientRect();
+      const pad = 12;
+      let left = r.left;
+      let width = r.width;
+      const vw = window.innerWidth;
+      if (width < 200) width = Math.min(200, vw - pad * 2);
+      if (left + width > vw - pad) {
+        width = Math.min(width, vw - pad * 2);
+        left = Math.max(pad, vw - width - pad);
+      }
+      const gap = 8;
+      let top = r.bottom + gap;
+      tooltip.style.left = `${left}px`;
+      tooltip.style.top = `${top}px`;
+      tooltip.style.width = `${width}px`;
+
+      void tooltip.offsetHeight;
+      const th = tooltip.getBoundingClientRect().height;
+      if (top + th > window.innerHeight - pad) {
+        top = Math.max(pad, r.top - th - gap);
+        tooltip.style.top = `${top}px`;
+      }
+    };
+
+    ensureLoginTooltipKeyframes();
+    tooltip.style.animation = 'tooltipFadeIn 0.2s ease-out';
+    document.body.appendChild(tooltip);
+    applyPosition();
+
+    const scrollParents = getScrollableAncestors(input);
+    const onMove = () => applyPosition();
+    window.addEventListener('resize', onMove);
+    scrollParents.forEach((el) => el.addEventListener('scroll', onMove, { passive: true }));
+
+    const cleanup = (): void => {
+      window.removeEventListener('resize', onMove);
+      scrollParents.forEach((el) => el.removeEventListener('scroll', onMove));
+      tooltip.remove();
+    };
+
+    setTimeout(() => {
+      tooltip.style.animation = 'tooltipFadeIn 0.2s ease-out reverse';
+      setTimeout(cleanup, 200);
+    }, 3000);
+  };
+
+  const showPasswordTooltip = (input: HTMLInputElement, message: string): void => {
+    showLoginFieldTooltip(input, message);
+  };
+
+  const showEmailTooltip = (input: HTMLInputElement, message: string): void => {
+    showLoginFieldTooltip(input, message);
   };
 
   // Функция валидации пароля (только латиница и безопасные специальные символы)
@@ -298,53 +342,6 @@ function setupEventHandlers(page: HTMLElement) {
         showEmailTooltip(input, emailMessage);
       }
     });
-  };
-
-  // Создание и показ тултипа для email
-  const showEmailTooltip = (input: HTMLInputElement, message: string) => {
-    // Удаляем существующий тултип, если есть
-    const labelContainer = input.closest('label')?.parentElement;
-    const existingTooltip = labelContainer?.querySelector('.email-tooltip');
-    if (existingTooltip) {
-      existingTooltip.remove();
-    }
-
-    // Создаем тултип
-    const tooltip = document.createElement('div');
-    tooltip.className = 'email-tooltip';
-    tooltip.textContent = message;
-    tooltip.style.cssText = `
-      position: absolute;
-      bottom: -45px;
-      left: 0;
-      right: 0;
-      background-color: #ef4444;
-      color: white;
-      padding: 8px 12px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 500;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      z-index: 1000;
-      animation: tooltipFadeIn 0.2s ease-out;
-    `;
-
-    // Вставляем тултип в контейнер поля (div.flex.flex-col)
-    const container = input.closest('label')?.parentElement;
-    if (container) {
-      if (getComputedStyle(container).position === 'static') {
-        container.style.position = 'relative';
-      }
-      container.appendChild(tooltip);
-
-      // Удаляем тултип через 3 секунды
-      setTimeout(() => {
-        tooltip.style.animation = 'tooltipFadeIn 0.2s ease-out reverse';
-        setTimeout(() => {
-          tooltip.remove();
-        }, 200);
-      }, 3000);
-    }
   };
 
   // Обработчик формы входа

@@ -34,6 +34,9 @@ export function parseReportPhotoIds(photos: unknown): string[] {
 
 export function reportStatusLabel(status: string | undefined): string {
   if (status === 'accepted_auto') return 'Принят автоматически';
+  if (status === 'pending_review') return 'На проверке у заказчика';
+  if (status === 'approved') return 'Принят, вознаграждение начислено';
+  if (status === 'rejected') return 'Отказ в вознаграждении';
   return status ? status : '—';
 }
 
@@ -104,6 +107,12 @@ export function buildReportReadOnlyBodyHtml(
 
 export function buildReportStatusAndDisclaimerHtml(r: EmployerReportListItem): string {
   const statusLine = `<p class="text-sm text-slate-700 mt-3"><span class="font-medium">Статус:</span> ${escapeHtml(reportStatusLabel(r.report_status))}</p>`;
+  const rejectComment =
+    String(r.report_status || '') === 'rejected' &&
+    r.employer_review_comment != null &&
+    String(r.employer_review_comment).trim() !== ''
+      ? `<div class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-slate-800"><p class="font-medium text-amber-900 mb-1">Комментарий заказчика</p><p class="whitespace-pre-wrap">${escapeHtml(String(r.employer_review_comment))}</p></div>`
+      : '';
   const disc = `<p class="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-3 mt-3">Отчёт будет архивирован и станет недоступен для просмотра через 3 месяца с даты предоставления отчёта.</p>`;
-  return statusLine + disc;
+  return statusLine + rejectComment + disc;
 }

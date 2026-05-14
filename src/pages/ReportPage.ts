@@ -164,6 +164,31 @@ async function loadOfferInfo(page: HTMLElement, offerId: string) {
       return;
     }
 
+    const appStatus = String(application.status || '').toLowerCase();
+    if (appStatus === 'pending') {
+      hideState(loadingState);
+      const msg = page.querySelector('#blocked-message') as HTMLElement;
+      if (msg) {
+        msg.textContent =
+          'Заявка на участие ожидает решения заказчика. После одобрения здесь появится форма отчёта.';
+      }
+      page.querySelector('#blocked-view-report-btn')?.classList.add('hidden');
+      showState(blockedState, [errorState, reportContent]);
+      return;
+    }
+    if (appStatus === 'rejected') {
+      hideState(loadingState);
+      const msg = page.querySelector('#blocked-message') as HTMLElement;
+      const dec = application.employer_decision_comment?.trim();
+      if (msg) {
+        msg.innerHTML = dec
+          ? `<span class="font-medium">Заявка отклонена заказчиком.</span><br/><span class="mt-2 block whitespace-pre-wrap text-slate-700">${escapeHtml(dec)}</span>`
+          : 'Заявка на участие отклонена заказчиком.';
+      }
+      page.querySelector('#blocked-view-report-btn')?.classList.add('hidden');
+      showState(blockedState, [errorState, reportContent]);
+      return;
+    }
     // Скрываем состояние загрузки
     hideState(loadingState);
 
@@ -221,6 +246,10 @@ function buildStandardReportHtml(): string {
         <option value="2">2 - Плохо</option>
         <option value="1">1 - Очень плохо</option>
       </select>
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-2">Фотографии к отчёту (необязательно, до 3 файлов, каждый до 5 МБ)</label>
+      <input type="file" id="report-photos" accept="image/*" multiple class="block w-full text-sm file:mr-2 file:py-1 file:px-2 file:rounded file:border file:border-slate-300 file:bg-white" />
     </div>
     <div>
       <label class="block text-sm font-medium text-slate-700 mb-2">Описание выполненной работы</label>
@@ -482,13 +511,26 @@ function setupEventHandlers(page: HTMLElement, offerId: string) {
           alert('Заполните описание выполненной работы.');
           return;
         }
+        const photoInput = page.querySelector('#report-photos') as HTMLInputElement | null;
+        const stdFiles = photoInput?.files ? Array.from(photoInput.files) : [];
+        const MAX_STD_BYTES = 5 * 1024 * 1024;
+        if (stdFiles.length > 3) {
+          alert('Можно приложить не более 3 фотографий.');
+          return;
+        }
+        for (const f of stdFiles) {
+          if (f.size > MAX_STD_BYTES) {
+            alert('Каждый файл не должен превышать 5 МБ.');
+            return;
+          }
+        }
         const response = await apiService.submitReport({
           applicationId,
           offerId,
           userId,
           rating,
           feedback: { comment: description },
-          photos: []
+          photos: stdFiles
         });
         if (response.success) {
           alert('Отчёт отправлен.');

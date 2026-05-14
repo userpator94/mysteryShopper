@@ -222,6 +222,8 @@ export async function createOfferDetailPage(offerId: string): Promise<HTMLElemen
                 <div id="offer-tags" class="flex flex-wrap gap-2"></div>
               </div>
               
+              <div id="employer-public-summary" class="hidden rounded-lg border border-slate-200 bg-slate-50 p-4 mb-4 text-sm text-slate-800"></div>
+              
               <div id="employer-executors-block" class="hidden rounded-lg border border-slate-200 bg-slate-50 p-4 mb-4 text-sm">
                 <h4 class="font-semibold text-slate-800 mb-3">Исполнители</h4>
                 <div id="employer-executors-sections" class="space-y-4 text-slate-800"></div>
@@ -345,6 +347,7 @@ async function loadOffer(page: HTMLElement, offerId: string) {
       await checkAndSetFavoriteStatus(offerId, page);
       // Проверяем наличие заявки; для просроченных офферов кнопка «Участвовать» не показывается
       await checkAndSetApplyStatus(offerId, page, offer);
+      void loadEmployerPublicSummary(offerId, page);
     }
 
   } catch (error) {
@@ -632,6 +635,27 @@ async function checkAndSetFavoriteStatus(offerId: string, page: HTMLElement) {
   }
 }
 
+async function loadEmployerPublicSummary(offerId: string, page: HTMLElement): Promise<void> {
+  const box = page.querySelector('#employer-public-summary') as HTMLElement | null;
+  if (!box) return;
+  try {
+    const s = await apiService.getOfferEmployerSummary(offerId);
+    const site =
+      s.website && String(s.website).trim()
+        ? `<p class="mt-2"><a href="${escapeHtml(String(s.website).trim())}" target="_blank" rel="noopener noreferrer" class="text-primary font-medium break-all hover:underline">${escapeHtml(String(s.website).trim())}</a></p>`
+        : '';
+    const desc =
+      s.description && String(s.description).trim()
+        ? `<p class="text-slate-700 mt-2 whitespace-pre-wrap">${escapeHtml(String(s.description))}</p>`
+        : '';
+    box.innerHTML = `<h3 class="font-semibold text-slate-900 mb-1">О заказчике</h3><p class="font-medium">${escapeHtml(s.company || 'Компания')}</p>${desc}${site}`;
+    box.classList.remove('hidden');
+  } catch {
+    box.classList.add('hidden');
+    box.innerHTML = '';
+  }
+}
+
 // Функция проверки и установки статуса заявки
 async function checkAndSetApplyStatus(offerId: string, page: HTMLElement, offer: Offer) {
   try {
@@ -660,7 +684,7 @@ async function checkAndSetApplyStatus(offerId: string, page: HTMLElement, offer:
       const hasReport = Boolean(app.has_report);
       const st = (app.status || '').toLowerCase();
       const taskDoneByReportOrStatus =
-        hasReport || st === 'completed' || st === 'done';
+        hasReport || st === 'completed' || st === 'done' || st === 'rejected';
       if (cancelApplyBtn) cancelApplyBtn.classList.toggle('hidden', taskDoneByReportOrStatus);
       const canReportStatus =
         st === 'approved' ||
@@ -676,9 +700,29 @@ async function checkAndSetApplyStatus(offerId: string, page: HTMLElement, offer:
         reportSentNote.classList.toggle('hidden', !hasReport);
       }
       const status = (application as Application).status?.toLowerCase?.() ?? (application as any).status ?? '';
-      const hintHidden = status === 'approved' || status === 'accepted';
       const applyHint = page.querySelector('#apply-hint') as HTMLElement;
-      if (applyHint) applyHint.classList.toggle('hidden', hintHidden);
+      if (applyHint) {
+        if (status === 'pending') {
+          applyHint.textContent = 'Заявка ожидает решения заказчика.';
+          applyHint.classList.remove('hidden');
+        } else if (status === 'rejected') {
+          const dec = (application as Application).employer_decision_comment?.trim();
+          applyHint.innerHTML = dec
+            ? `<span class="font-medium text-amber-900">Заявка отклонена.</span><span class="mt-2 block text-slate-700 whitespace-pre-wrap">${escapeHtml(dec)}</span>`
+            : '<span class="font-medium text-amber-900">Заявка отклонена заказчиком.</span>';
+          applyHint.classList.remove('hidden');
+        } else {
+          applyHint.textContent =
+            'Заказчик может рассматривать вашу заявку в течение некоторого времени';
+          const hintHidden =
+            status === 'approved' ||
+            status === 'accepted' ||
+            status === 'in_progress' ||
+            status === 'completed' ||
+            status === 'done';
+          applyHint.classList.toggle('hidden', hintHidden);
+        }
+      }
       if (addToFavoritesBtn) addToFavoritesBtn.classList.add('hidden');
     } else {
       devLog.log('Заявка не найдена');

@@ -132,6 +132,9 @@ export interface Offer {
   can_edit?: boolean;
 }
 
+/** Статус отчёта в API (модерация заказчиком). */
+export type ApiReportStatus = 'pending_review' | 'approved' | 'rejected' | 'accepted_auto';
+
 /** Строка списка отчётов для заказчика (GET /api/offers/:id/reports) и детали; у исполнителя GET /my-report — без executor_label */
 export interface EmployerReportListItem {
   id: string;
@@ -147,8 +150,30 @@ export interface EmployerReportListItem {
   executor_label?: string;
   /** id исполнителя (заказчик) — для ссылки на профиль */
   executor_user_id?: string;
-  /** accepted_auto — текущая логика «принят автоматически» */
-  report_status?: string;
+  /** Устаревшее значение фронта; API: pending_review | approved | rejected */
+  report_status?: ApiReportStatus | string;
+  payment_status?: string;
+  is_approved?: boolean;
+  employer_review_comment?: string | null;
+  reviewed_at?: string | null;
+}
+
+/** Заявка по задаче (список для заказчика GET /api/offers/:id/applications) */
+export interface OfferApplicationRow {
+  application_id: string;
+  offer_id: string;
+  user_id: string;
+  applied_at: string;
+  approved_at?: string;
+  status?: string;
+  employer_decision_comment?: string;
+}
+
+/** Публичные данные заказчика для исполнителя (GET /api/offers/:offerId/employer-summary) */
+export interface EmployerPublicSummary {
+  company: string;
+  description: string | null;
+  website: string | null;
 }
 
 /** Профиль исполнителя в кабинете заказчика (GET /api/offers/:offerId/executors/:id/profile) */
@@ -297,6 +322,7 @@ export interface Application {
   applied_at: string;
   approved_at?: string;
   has_report?: boolean;
+  employer_decision_comment?: string;
 }
 
 export interface ApplicationsResponse {

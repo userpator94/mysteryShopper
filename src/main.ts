@@ -6,6 +6,7 @@ import { createOffersListPage } from './pages/OffersListPage.js'
 import { createOfferDetailPage } from './pages/OfferDetailPage.js'
 import { createFavoritesPage } from './pages/FavoritesPage.js'
 import { createProfilePage } from './pages/ProfilePage.js'
+import { createChangePasswordPage } from './pages/ChangePasswordPage.js'
 import { createOrderHistoryPage } from './pages/OrderHistoryPage.js'
 import { createReportPage } from './pages/ReportPage.js'
 import { createExecutorReportViewPage } from './pages/ExecutorReportViewPage.js'
@@ -91,6 +92,13 @@ router.addRoute({
   path: '/profile',
   component: createProfilePage,
   title: 'Профиль',
+  requiresAuth: true
+})
+
+router.addRoute({
+  path: '/profile/password',
+  component: createChangePasswordPage,
+  title: 'Смена пароля',
   requiresAuth: true
 })
 
