@@ -5,6 +5,7 @@ import { MAX_PARTICIPANTS_UNLIMITED } from '../config/offerLimits.js';
 import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
 import { checklistSectionHtml, initChecklistBuilder, collectOfferChecklistFromPage } from '../utils/checklistOfferUi.js';
+import { initOfferMapCreateSection } from '../utils/offerMapUi.js';
 
 export async function createCreateOfferPage(): Promise<HTMLElement> {
   const page = document.createElement('div');
@@ -35,6 +36,20 @@ export async function createCreateOfferPage(): Promise<HTMLElement> {
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">Местоположение *</label>
             <input id="offer-location" name="location" required class="w-full h-12 px-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary" placeholder="Адрес или город" />
+            <button type="button" id="offer-map-toggle" class="mt-2 text-sm font-semibold text-primary hover:text-primary/80">
+              Добавить карту
+            </button>
+            <div id="offer-map-panel" class="hidden mt-3 space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <p id="offer-map-unavailable" class="hidden text-sm text-amber-800"></p>
+              <div class="flex gap-2">
+                <input id="offer-map-search" type="text" class="flex-1 h-10 px-3 rounded-lg border border-slate-300 text-sm" placeholder="Поиск адреса" autocomplete="off" />
+                <button type="button" id="offer-map-search-btn" class="shrink-0 h-10 px-3 rounded-lg bg-slate-800 text-white text-sm font-medium hover:bg-slate-900">Найти</button>
+              </div>
+              <div id="offer-map-error" class="hidden text-sm text-red-600"></div>
+              <div id="offer-map-container" class="w-full h-64 rounded-lg border border-slate-300 overflow-hidden bg-slate-200"></div>
+              <ul id="offer-map-points-list" class="text-sm"></ul>
+              <p class="text-xs text-slate-500">Клик по карте — новая метка. Не более 10 меток.</p>
+            </div>
           </div>
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">Требования *</label>
@@ -76,6 +91,7 @@ export async function createCreateOfferPage(): Promise<HTMLElement> {
   `;
 
   initChecklistBuilder(page, null);
+  const mapSection = initOfferMapCreateSection(page);
 
   const unlimitedCb = page.querySelector('#offer-unlimited-participants') as HTMLInputElement;
   const maxInput = page.querySelector('#offer-max-participants') as HTMLInputElement;
@@ -123,11 +139,14 @@ export async function createCreateOfferPage(): Promise<HTMLElement> {
       return;
     }
 
+    const location_points = mapSection.getLocationPointsForSubmit();
+
     const payload: CreateOfferPayload = {
       title,
       description,
       price,
       location,
+      ...(location_points != null ? { location_points } : {}),
       requirements,
       tags: tags || '',
       start_date,
@@ -151,7 +170,7 @@ export async function createCreateOfferPage(): Promise<HTMLElement> {
     }
   });
 
-  page.querySelector('#back-btn')?.addEventListener('click', () => router.navigate('/my-offers'));
+  page.querySelector('#back-btn')?.addEventListener('click', () => router.back('/my-offers'));
 
   const priceInput = page.querySelector('#offer-price') as HTMLInputElement;
   priceInput?.addEventListener('input', () => {

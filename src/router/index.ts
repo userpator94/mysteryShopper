@@ -18,15 +18,30 @@ class Router {
   private container: HTMLElement | null = null;
   private isInitialized = false;
   private isHandlingRoute = false; // Флаг для предотвращения рекурсии
+  /** Предыдущие пути при программной навигации (для кнопки «Назад») */
+  private navigationStack: string[] = [];
+  private skipHistoryPush = false;
 
   constructor() {
     this.init();
   }
 
   private init() {
-    window.addEventListener('popstate', () => this.handleRoute());
+    window.addEventListener('popstate', () => {
+      this.skipHistoryPush = true;
+      if (this.navigationStack.length > 0) {
+        this.navigationStack.pop();
+      }
+      this.lastRenderedCleanPath = null;
+      void this.handleRoute();
+    });
     window.addEventListener('hashchange', () => this.handleRoute());
     // Не вызываем handleRoute() сразу - это будет сделано в main.ts
+  }
+
+  private getCleanPath(path?: string): string {
+    const raw = path ?? this.getCurrentPath();
+    return raw.split('?')[0] || '/';
   }
 
   addRoute(route: Route) {
@@ -37,13 +52,43 @@ class Router {
     this.container = container;
   }
 
-  navigate(path: string) {
+  navigate(path: string, options?: { replace?: boolean }) {
     // Используем History API для чистых URL, но также поддерживаем hash
     if (path.startsWith('/')) {
+      const next = this.getCleanPath(path);
+      const current = this.getCleanPath();
+      if (!this.skipHistoryPush && !options?.replace && current !== next) {
+        this.navigationStack.push(current);
+        if (this.navigationStack.length > 40) {
+          this.navigationStack.shift();
+        }
+      }
+      this.skipHistoryPush = false;
       window.history.pushState(null, '', path);
-      this.handleRoute();
+      void this.handleRoute();
     } else {
       window.location.hash = path;
+    }
+  }
+
+  /** Вернуться на предыдущий экран внутри приложения; иначе fallback или history.back(). */
+  back(fallback?: string): void {
+    const prev = this.navigationStack.pop();
+    if (prev != null) {
+      this.skipHistoryPush = true;
+      this.lastRenderedCleanPath = null;
+      window.history.pushState(null, '', prev);
+      void this.handleRoute();
+      return;
+    }
+    if (fallback) {
+      this.navigate(fallback, { replace: true });
+      return;
+    }
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      this.navigate('/', { replace: true });
     }
   }
 
@@ -126,6 +171,9 @@ class Router {
           
           this.updateFooterVisibility(cleanPath);
           import('../components/Layout.js').then(({ updateNavByRole }) => updateNavByRole()).catch(() => {});
+          import('../utils/employerInboxBadge.js')
+            .then(({ refreshEmployerInboxBadge }) => refreshEmployerInboxBadge())
+            .catch(() => {});
           
           try {
             const component = await route.component();

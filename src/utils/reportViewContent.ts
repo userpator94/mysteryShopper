@@ -32,9 +32,16 @@ export function parseReportPhotoIds(photos: unknown): string[] {
   return [];
 }
 
-export function reportStatusLabel(status: string | undefined): string {
+export type ReportStatusAudience = 'employer' | 'executor';
+
+export function reportStatusLabel(
+  status: string | undefined,
+  audience: ReportStatusAudience = 'executor'
+): string {
   if (status === 'accepted_auto') return 'Принят автоматически';
-  if (status === 'pending_review') return 'На проверке у заказчика';
+  if (status === 'pending_review') {
+    return audience === 'employer' ? '' : 'На проверке у заказчика';
+  }
   if (status === 'approved') return 'Принят, вознаграждение начислено';
   if (status === 'rejected') return 'Отказ в вознаграждении';
   return status ? status : '—';
@@ -105,8 +112,15 @@ export function buildReportReadOnlyBodyHtml(
   return parts.join('');
 }
 
-export function buildReportStatusAndDisclaimerHtml(r: EmployerReportListItem): string {
-  const statusLine = `<p class="text-sm text-slate-700 mt-3"><span class="font-medium">Статус:</span> ${escapeHtml(reportStatusLabel(r.report_status))}</p>`;
+export function buildReportStatusAndDisclaimerHtml(
+  r: EmployerReportListItem,
+  options?: { audience?: ReportStatusAudience }
+): string {
+  const audience = options?.audience ?? 'executor';
+  const label = reportStatusLabel(r.report_status, audience);
+  const statusLine = label
+    ? `<p class="text-sm text-slate-700 mt-3"><span class="font-medium">Статус:</span> ${escapeHtml(label)}</p>`
+    : '';
   const rejectComment =
     String(r.report_status || '') === 'rejected' &&
     r.employer_review_comment != null &&

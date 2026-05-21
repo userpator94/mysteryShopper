@@ -56,9 +56,16 @@ export function createLayout(): HTMLElement {
             <p class="text-xs font-medium">Создать</p>
           </a>
           <a class="flex flex-col items-center justify-center gap-1 text-slate-500 w-1/4 nav-link" href="#" data-route="/profile">
-            <svg fill="currentColor" height="24" viewBox="0 0 256 256" width="24" xmlns="http://www.w3.org/2000/svg">
-              <path d="M230.92,212c-15.23-26.33-38.7-45.21-66.09-54.16a72,72,0,1,0-73.66,0C63.78,166.78,40.31,185.66,25.08,212a8,8,0,1,0,13.85,8c18.84-32.56,52.14-52,89.07-52s70.23,19.44,89.07,52a8,8,0,1,0,13.85-8ZM72,96a56,56,0,1,1,56,56A56.06,56.06,0,0,1,72,96Z"></path>
-            </svg>
+            <span class="relative inline-flex">
+              <svg fill="currentColor" height="24" viewBox="0 0 256 256" width="24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M230.92,212c-15.23-26.33-38.7-45.21-66.09-54.16a72,72,0,1,0-73.66,0C63.78,166.78,40.31,185.66,25.08,212a8,8,0,1,0,13.85,8c18.84-32.56,52.14-52,89.07-52s70.23,19.44,89.07,52a8,8,0,1,0,13.85-8ZM72,96a56,56,0,1,1,56,56A56.06,56.06,0,0,1,72,96Z"></path>
+              </svg>
+              <span
+                id="employer-nav-inbox-badge"
+                class="hidden absolute -top-1 -right-2 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold leading-none ring-2 ring-white"
+                aria-label="Требуют внимания"
+              ></span>
+            </span>
             <p class="text-xs font-medium">Профиль</p>
           </a>
         </div>
@@ -79,6 +86,7 @@ export function createLayout(): HTMLElement {
   });
 
   updateNavByRole();
+  void import('../utils/employerInboxBadge.js').then(({ refreshEmployerInboxBadge }) => refreshEmployerInboxBadge());
 
   return layout;
 }

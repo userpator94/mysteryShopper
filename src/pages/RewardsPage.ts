@@ -65,7 +65,7 @@ export async function createRewardsPage(): Promise<HTMLElement> {
     </div>
   `;
 
-  page.querySelector('#back-btn')?.addEventListener('click', () => router.navigate('/profile'));
+  page.querySelector('#back-btn')?.addEventListener('click', () => router.back('/profile'));
 
   const loading = page.querySelector('#loading') as HTMLElement;
   const err = page.querySelector('#err') as HTMLElement;

@@ -18,12 +18,15 @@ import { createEditOfferPage } from './pages/EditOfferPage.js'
 import { createOfferReportsListPage } from './pages/OfferReportsListPage.js'
 import { createOfferReportDetailPage } from './pages/OfferReportDetailPage.js'
 import { createEmployerExecutorProfilePage } from './pages/EmployerExecutorProfilePage.js'
+import { createEmployerPendingApplicationsInboxPage } from './pages/EmployerPendingApplicationsInboxPage.js'
+import { createEmployerPendingReportsInboxPage } from './pages/EmployerPendingReportsInboxPage.js'
 import { createRewardsPage } from './pages/RewardsPage.js'
 import { showWebDeviceModal } from './components/WebDeviceMessage.js'
 import { detectDevice } from './utils/deviceDetection.js'
 import { apiService } from './services/api.js'
 import { isAuthenticated, getRole } from './utils/auth.js'
 import { updateNavByRole } from './components/Layout.js'
+import { refreshEmployerInboxBadge } from './utils/employerInboxBadge.js'
 
 // Проверяем тип устройства
 const app = document.querySelector<HTMLDivElement>('#app')!
@@ -156,6 +159,22 @@ router.addRoute({
 })
 
 router.addRoute({
+  path: '/my-inbox/pending-applications',
+  component: createEmployerPendingApplicationsInboxPage,
+  title: 'Заявки на согласование',
+  requiresAuth: true,
+  requiresRole: 'employer'
+})
+
+router.addRoute({
+  path: '/my-inbox/pending-reports',
+  component: createEmployerPendingReportsInboxPage,
+  title: 'Отчёты на проверку',
+  requiresAuth: true,
+  requiresRole: 'employer'
+})
+
+router.addRoute({
   path: '/my-offers',
   component: createMyOffersPage,
   title: 'Мои задачи',
@@ -237,5 +256,6 @@ router.addRoute({
       await apiService.getMe()
     } catch (_) { /* 401 — роль не обновится */ }
     updateNavByRole()
+    void refreshEmployerInboxBadge()
   }
 })()

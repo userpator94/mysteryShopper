@@ -2106,6 +2106,17 @@ label.checklist-bool-switch-label:focus-within .android-switch-track {
   color: var(--primary-color) !important;
 }
 
+/* Карточки метрик в профиле: числа всегда видны внутри button */
+.profile-metric-card {
+  color: inherit;
+}
+
+.profile-metric-card [data-metric-count],
+.profile-metric-card > .text-2xl {
+  display: block;
+  line-height: 1.2;
+}
+
 .nav-link svg {
   transition: color 0.2s ease;
 }
@@ -2334,4 +2345,34 @@ label.checklist-bool-switch-label:focus-within .android-switch-track {
   .date-range {
     font-size: 0.6875rem;
   }
+}
+
+.offer-map-pin {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+}
+
+.offer-map-pin__dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  background: #ef4444;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+}
+
+.offer-map-pin__n {
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #1e293b;
+  background: #fff;
+  border-radius: 4px;
+  padding: 0 4px;
+  line-height: 1.2;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.15);
 }

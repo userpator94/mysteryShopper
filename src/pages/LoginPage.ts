@@ -2,7 +2,8 @@
 
 import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
-import { isAuthenticated, getRedirectByRole } from '../utils/auth.js';
+import { isAuthenticated, getRedirectByRole, getRole } from '../utils/auth.js';
+import { refreshEmployerInboxBadge } from '../utils/employerInboxBadge.js';
 import { devLog } from '../utils/logger.js';
 
 export async function createLoginPage(): Promise<HTMLElement> {
@@ -77,6 +78,13 @@ export async function createLoginPage(): Promise<HTMLElement> {
               Забыли пароль?
             </p>
           </div>
+
+          <div
+            id="login-error"
+            class="hidden w-full rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+            role="alert"
+            aria-live="polite"
+          ></div>
           
           <button 
             id="login-button" 
@@ -123,7 +131,7 @@ function setupEventHandlers(page: HTMLElement) {
   };
 
   /** Оверлей под полем: не меняет поток вёрстки (position: fixed). */
-  const showLoginFieldTooltip = (input: HTMLInputElement, message: string): void => {
+  const showLoginFieldTooltip = (input: HTMLInputElement, message: string, options?: { persistent?: boolean }): void => {
     document.querySelectorAll('.login-field-tooltip').forEach((n) => n.remove());
 
     const tooltip = document.createElement('div');
@@ -202,18 +210,20 @@ function setupEventHandlers(page: HTMLElement) {
       tooltip.remove();
     };
 
-    setTimeout(() => {
-      tooltip.style.animation = 'tooltipFadeIn 0.2s ease-out reverse';
-      setTimeout(cleanup, 200);
-    }, 3000);
+    if (!options?.persistent) {
+      setTimeout(() => {
+        tooltip.style.animation = 'tooltipFadeIn 0.2s ease-out reverse';
+        setTimeout(cleanup, 200);
+      }, 3000);
+    }
   };
 
-  const showPasswordTooltip = (input: HTMLInputElement, message: string): void => {
-    showLoginFieldTooltip(input, message);
+  const showPasswordTooltip = (input: HTMLInputElement, message: string, persistent = false): void => {
+    showLoginFieldTooltip(input, message, { persistent });
   };
 
-  const showEmailTooltip = (input: HTMLInputElement, message: string): void => {
-    showLoginFieldTooltip(input, message);
+  const showEmailTooltip = (input: HTMLInputElement, message: string, persistent = false): void => {
+    showLoginFieldTooltip(input, message, { persistent });
   };
 
   // Функция валидации пароля (только латиница и безопасные специальные символы)
@@ -348,6 +358,27 @@ function setupEventHandlers(page: HTMLElement) {
   const loginButton = page.querySelector('#login-button') as HTMLButtonElement;
   const emailInput = page.querySelector('#login-email') as HTMLInputElement;
   const passwordInputHandler = page.querySelector('#login-password') as HTMLInputElement;
+  const loginErrorEl = page.querySelector('#login-error') as HTMLElement;
+
+  const hideLoginError = (): void => {
+    if (!loginErrorEl) return;
+    loginErrorEl.textContent = '';
+    loginErrorEl.classList.add('hidden');
+  };
+
+  const showLoginError = (message: string): void => {
+    if (!loginErrorEl) return;
+    loginErrorEl.textContent = message;
+    loginErrorEl.classList.remove('hidden');
+    loginErrorEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
+
+  const clearLoginErrorOnInput = (): void => {
+    hideLoginError();
+    document.querySelectorAll('.login-field-tooltip').forEach((n) => n.remove());
+  };
+  emailInput?.addEventListener('input', clearLoginErrorOnInput);
+  passwordInputHandler?.addEventListener('input', clearLoginErrorOnInput);
 
   // Настраиваем валидацию для поля email
   if (emailInput) setupEmailValidation(emailInput);
@@ -379,6 +410,7 @@ function setupEventHandlers(page: HTMLElement) {
 
   const handleLogin = async () => {
     let isValid = true;
+    hideLoginError();
     
     // Сбрасываем предыдущие ошибки
     if (emailInput) resetFieldValidation(emailInput);
@@ -408,6 +440,7 @@ function setupEventHandlers(page: HTMLElement) {
 
     // Если есть ошибки, не продолжаем
     if (!isValid) {
+      showLoginError('Проверьте логин и пароль.');
       // Фокусируемся на первом невалидном поле
       if (!email && emailInput) {
         emailInput.focus();
@@ -429,22 +462,50 @@ function setupEventHandlers(page: HTMLElement) {
       
       if (response.success) {
         devLog.log('Успешная авторизация:', response.data.user);
+        if (getRole() === 'employer') void refreshEmployerInboxBadge();
         router.navigate(getRedirectByRole());
+      } else {
+        showLoginError('Не удалось войти. Попробуйте ещё раз.');
       }
     } catch (error: any) {
-      // Обработка ошибок
       console.error('Ошибка авторизации:', error);
-      
-      const errorMessage = error.message || 'Произошла ошибка при авторизации';
-      
-      // Показываем ошибку пользователю
-      alert(errorMessage);
-      
-      // Если ошибка связана с конкретным полем, выделяем его
-      if (error.field === 'email' || errorMessage.toLowerCase().includes('email')) {
-        if (emailInput) markFieldAsInvalid(emailInput);
+
+      const errorMessage =
+        (Array.isArray(error.errors) && error.errors[0]?.message) ||
+        error.message ||
+        'Произошла ошибка при авторизации';
+
+      showLoginError(errorMessage);
+
+      const code = String(error.code || '').toUpperCase();
+      const authFailure =
+        code === 'INVALID_CREDENTIALS' ||
+        code === 'USER_NOT_FOUND' ||
+        code === 'USER_NOT_ACTIVE';
+
+      if (authFailure) {
+        const authMsg =
+          code === 'USER_NOT_FOUND' || code === 'INVALID_CREDENTIALS'
+            ? 'Неверный логин или пароль'
+            : errorMessage;
+        if (emailInput) {
+          markFieldAsInvalid(emailInput);
+          showEmailTooltip(emailInput, authMsg, true);
+        }
+        if (passwordInputHandler) {
+          markFieldAsInvalid(passwordInputHandler);
+          showPasswordTooltip(passwordInputHandler, authMsg, true);
+        }
+      } else if (error.field === 'email' || errorMessage.toLowerCase().includes('email')) {
+        if (emailInput) {
+          markFieldAsInvalid(emailInput);
+          showEmailTooltip(emailInput, errorMessage, true);
+        }
       } else if (error.field === 'password' || errorMessage.toLowerCase().includes('парол')) {
-        if (passwordInputHandler) markFieldAsInvalid(passwordInputHandler);
+        if (passwordInputHandler) {
+          markFieldAsInvalid(passwordInputHandler);
+          showPasswordTooltip(passwordInputHandler, errorMessage, true);
+        }
       }
     } finally {
       // Восстанавливаем кнопку

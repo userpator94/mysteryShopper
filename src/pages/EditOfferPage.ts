@@ -6,6 +6,10 @@ import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
 import { formatTagsForDisplay } from '../utils/formatTags.js';
 import { checklistSectionHtml, initChecklistBuilder, collectOfferChecklistFromPage } from '../utils/checklistOfferUi.js';
+import { normalizeLocationPoints } from '../utils/locationPoints.js';
+import { mountReadonlyOfferMapBlock } from '../utils/offerMapUi.js';
+
+const editMapHandles = new WeakMap<HTMLElement, { destroy: () => void }>();
 
 export async function createEditOfferPage(offerId: string): Promise<HTMLElement> {
   const page = document.createElement('div');
@@ -49,6 +53,11 @@ export async function createEditOfferPage(offerId: string): Promise<HTMLElement>
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">Местоположение *</label>
             <input id="offer-location" name="location" required class="w-full h-12 px-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary" />
+            <div id="offer-edit-map-wrap" class="hidden mt-3 space-y-2">
+              <p class="text-xs text-slate-500">Метки на карте задаются только при создании и не редактируются.</p>
+              <div id="offer-edit-map-container" class="w-full h-56 rounded-lg border border-slate-200 overflow-hidden bg-slate-100"></div>
+              <p id="offer-edit-map-error" class="hidden text-sm text-red-600"></p>
+            </div>
           </div>
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">Требования *</label>
@@ -174,7 +183,7 @@ export async function createEditOfferPage(offerId: string): Promise<HTMLElement>
     }
   });
 
-  page.querySelector('#back-btn')?.addEventListener('click', () => router.navigate('/my-offers'));
+  page.querySelector('#back-btn')?.addEventListener('click', () => router.back('/my-offers'));
 
   const priceInput = page.querySelector('#offer-price') as HTMLInputElement;
   priceInput?.addEventListener('input', () => {
@@ -207,5 +216,20 @@ function fillForm(page: HTMLElement, offer: Offer) {
   if (offer.end_date) {
     const d = new Date(offer.end_date);
     (page.querySelector('#offer-end-date') as HTMLInputElement).value = d.toISOString().slice(0, 10);
+  }
+
+  const points = normalizeLocationPoints(offer.location_points);
+  const mapWrap = page.querySelector('#offer-edit-map-wrap') as HTMLElement | null;
+  const mapContainer = page.querySelector('#offer-edit-map-container') as HTMLElement | null;
+  const mapError = page.querySelector('#offer-edit-map-error') as HTMLElement | null;
+  editMapHandles.get(page)?.destroy();
+  if (points && mapWrap && mapContainer) {
+    mapWrap.classList.remove('hidden');
+    void mountReadonlyOfferMapBlock(mapContainer, points, mapError).then((handle) => {
+      editMapHandles.set(page, handle);
+    });
+  } else {
+    mapWrap?.classList.add('hidden');
+    if (mapContainer) mapContainer.innerHTML = '';
   }
 }

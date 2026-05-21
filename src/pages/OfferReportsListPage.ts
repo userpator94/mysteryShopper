@@ -16,7 +16,7 @@ export async function createOfferReportsListPage(offerId: string): Promise<HTMLE
       <div class="relative w-full">
         <header class="sticky top-0 bg-white/80 backdrop-blur-sm z-10 px-4 pt-4 border-b border-slate-100">
           <div class="flex items-center gap-3 mb-3">
-            <button type="button" id="back-btn" class="text-slate-500 p-1">←</button>
+            <button type="button" id="offer-reports-list-back-btn" class="text-slate-500 p-1">←</button>
             <h1 class="text-xl font-bold">Отчёты по заданию</h1>
           </div>
           <div class="flex gap-2 pb-3">
@@ -45,8 +45,8 @@ export async function createOfferReportsListPage(offerId: string): Promise<HTMLE
       void load();
     });
 
-    page.querySelector('#back-btn')?.addEventListener('click', () => {
-      router.navigate(`/offers/${offerId}`);
+    page.querySelector('#offer-reports-list-back-btn')?.addEventListener('click', () => {
+      router.back(`/offers/${offerId}`);
     });
 
     const load = async () => {
@@ -72,7 +72,7 @@ export async function createOfferReportsListPage(offerId: string): Promise<HTMLE
             const exec = r.executor_label || 'Исполнитель';
             const execId = r.executor_user_id;
             const stRaw = r.report_status || '';
-            const st = reportStatusLabel(stRaw);
+            const st = reportStatusLabel(stRaw, 'employer');
             const stClass =
               stRaw === 'rejected'
                 ? 'text-amber-900 bg-amber-50 border border-amber-200'
@@ -81,7 +81,7 @@ export async function createOfferReportsListPage(offerId: string): Promise<HTMLE
                   : 'text-emerald-800 bg-emerald-50 border border-emerald-200';
             const profileBtn =
               execId != null && execId !== ''
-                ? `<button type="button" class="report-exec-profile text-xs font-semibold text-primary px-2 py-0.5 rounded hover:bg-primary/5" data-uid="${escapeHtml(execId)}">Профиль</button>`
+                ? `<button type="button" id="offer-reports-exec-profile-${escapeHtml(r.id)}" class="report-exec-profile text-xs font-semibold text-primary px-2 py-0.5 rounded hover:bg-primary/5" data-uid="${escapeHtml(execId)}">Профиль исполнителя</button>`
                 : '';
             return `
             <div class="relative w-full text-left bg-white border border-slate-200 rounded-lg p-3 hover:bg-slate-50 report-row cursor-pointer" data-rid="${r.id}" role="button" tabindex="0">

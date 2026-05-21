@@ -146,6 +146,11 @@ function renderOfferCard(offer: Offer, isExpired: boolean): string {
     ? ''
     : `${editLink}
         <button type="button" class="delete-offer-btn px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-sm font-medium hover:bg-red-100" data-offer-id="${offer.id}">Удалить</button>`;
+  const pendingCount = Number(offer.pending_applications_count ?? 0);
+  const pendingBadge =
+    pendingCount > 0
+      ? `<p class="text-xs font-semibold text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 mb-2">${pendingCount} ${pendingCount === 1 ? 'заявка ожидает' : 'заявок ожидают'} одобрения — откройте задачу</p>`
+      : '';
   const actionsSection = actionsHtml ? `<div class="flex gap-2">${actionsHtml}</div>` : '';
   return `
     <div class="bg-white rounded-lg p-4 border border-slate-200" data-offer-id="${offer.id}">
@@ -153,6 +158,7 @@ function renderOfferCard(offer: Offer, isExpired: boolean): string {
         <h3 class="font-semibold">${offer.title || 'Без названия'}</h3>
         <span class="${statusClass}">${status}</span>
       </div>
+      ${pendingBadge}
       <p class="text-slate-600 text-sm mb-2 line-clamp-2">${offer.description || ''}</p>
       <div class="flex justify-between items-center text-sm text-slate-500 mb-2">
         <span>${start} — ${end}</span>

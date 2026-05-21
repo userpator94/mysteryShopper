@@ -16,6 +16,8 @@ import type {
   UserRole,
   EmployerReportListItem,
   EmployerExecutorProfile,
+  InboxApplicationRow,
+  InboxReportRow,
   OfferApplicationRow,
   EmployerPublicSummary
 } from '../types/index.js';
@@ -371,7 +373,14 @@ export class ApiService {
   }
 
   public async getApplies(): Promise<ApplicationsResponse> {
-    return this.request<ApplicationsResponse>('/applies');
+    const response = await this.request<ApplicationsResponse & { meta?: { cancelled_count?: number } }>(
+      '/applies'
+    );
+    return {
+      success: true,
+      data: response.data ?? [],
+      meta: response.meta,
+    };
   }
 
   // Вознаграждения (исполнитель)
@@ -488,9 +497,13 @@ export class ApiService {
     const data = await this.parseResponse(response);
 
     if (!response.ok || !data.success) {
-      const error: any = new Error(data.error?.message || `Login failed: ${response.status} ${response.statusText}`);
-      error.code = data.error?.code;
-      error.field = data.error?.field;
+      const errPayload = data.error ?? {};
+      const error: any = new Error(
+        errPayload.message || `Login failed: ${response.status} ${response.statusText}`
+      );
+      error.code = errPayload.code;
+      error.field = errPayload.field;
+      error.errors = errPayload.errors;
       throw error;
     }
 
@@ -739,6 +752,37 @@ export class ApiService {
       { method: 'PATCH', body: JSON.stringify(body) }
     );
     return response.data;
+  }
+
+  /** Счётчики входящих (заказчик) */
+  public async getEmployerInboxCounts(): Promise<{
+    pending_applications: number;
+    pending_reports: number;
+  }> {
+    const response = await this.request<{
+      success: boolean;
+      data: { pending_applications: number; pending_reports: number };
+    }>('/my/inbox/counts');
+    return {
+      pending_applications: Number(response.data?.pending_applications ?? 0),
+      pending_reports: Number(response.data?.pending_reports ?? 0)
+    };
+  }
+
+  /** Входящие: заявки на согласование (заказчик) */
+  public async getEmployerPendingApplicationsInbox(): Promise<InboxApplicationRow[]> {
+    const response = await this.request<{ success: boolean; data: InboxApplicationRow[] }>(
+      '/my/inbox/pending-applications'
+    );
+    return response.data ?? [];
+  }
+
+  /** Входящие: отчёты на проверку (заказчик) */
+  public async getEmployerPendingReportsInbox(): Promise<InboxReportRow[]> {
+    const response = await this.request<{ success: boolean; data: InboxReportRow[] }>(
+      '/my/inbox/pending-reports'
+    );
+    return response.data ?? [];
   }
 
   /** Заявки по задаче (заказчик) */

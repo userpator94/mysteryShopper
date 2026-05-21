@@ -7,6 +7,7 @@ import {
   buildReportReadOnlyBodyHtml,
   buildReportStatusAndDisclaimerHtml
 } from '../utils/reportViewContent.js';
+import { refreshEmployerInboxBadge } from '../utils/employerInboxBadge.js';
 
 function countWords(text: string): number {
   return text.trim().split(/\s+/).filter((w) => w.length > 0).length;
@@ -22,7 +23,7 @@ async function renderReportInto(
 ): Promise<void> {
   reportRef.current = r;
   const body = buildReportReadOnlyBodyHtml(r, { showExecutorLabel: true });
-  const meta = buildReportStatusAndDisclaimerHtml(r);
+  const meta = buildReportStatusAndDisclaimerHtml(r, { audience: 'employer' });
   const profileBtn =
     r.executor_user_id != null && String(r.executor_user_id).length > 0
       ? `<p class="pt-2"><button type="button" id="exec-profile-link" class="text-sm font-semibold text-primary hover:underline">Профиль исполнителя</button></p>`
@@ -70,6 +71,7 @@ async function renderReportInto(
     busy(btn2, true);
     try {
       const next = await apiService.reviewEmployerOfferReport(offerId, reportId, { decision: 'approve' });
+      void refreshEmployerInboxBadge(true);
       await renderReportInto(container, offerId, reportId, next, pdfBtn, reportRef);
     } catch (e: unknown) {
       showReviewErr(e instanceof Error ? e.message : 'Не удалось сохранить решение');
@@ -96,6 +98,7 @@ async function renderReportInto(
         decision: 'reject',
         comment
       });
+      void refreshEmployerInboxBadge(true);
       await renderReportInto(container, offerId, reportId, next, pdfBtn, reportRef);
     } catch (e: unknown) {
       showReviewErr(e instanceof Error ? e.message : 'Не удалось сохранить решение');
@@ -114,7 +117,7 @@ export async function createOfferReportDetailPage(offerId: string, reportId: str
     <div class="relative w-full">
       <header class="sticky top-0 bg-white/80 backdrop-blur-sm z-10 px-4 pt-4 border-b border-slate-100">
         <div class="flex items-center gap-3 flex-wrap">
-          <button type="button" id="back-btn" class="text-slate-500 p-1">←</button>
+          <button type="button" id="employer-report-detail-back-btn" class="text-slate-500 p-1">←</button>
           <h1 class="text-xl font-bold flex-1 min-w-0">Отчёт</h1>
           <button type="button" id="pdf-btn" class="text-sm font-semibold text-primary px-3 py-1.5 rounded-lg border border-primary/40 hover:bg-primary/5">
             Скачать PDF
@@ -129,8 +132,8 @@ export async function createOfferReportDetailPage(offerId: string, reportId: str
     </div>
   `;
 
-  page.querySelector('#back-btn')?.addEventListener('click', () => {
-    router.navigate(`/my-offers/${offerId}/reports`);
+  page.querySelector('#employer-report-detail-back-btn')?.addEventListener('click', () => {
+    router.back(`/my-offers/${offerId}/reports`);
   });
 
   const loading = page.querySelector('#loading') as HTMLElement;

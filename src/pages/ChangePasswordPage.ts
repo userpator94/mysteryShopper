@@ -92,7 +92,7 @@ export async function createChangePasswordPage(): Promise<HTMLElement> {
   `;
 
   page.querySelector('#back-btn')?.addEventListener('click', () => {
-    router.navigate('/profile');
+    router.back('/profile');
   });
 
   const cur = page.querySelector('#pwd-current') as HTMLInputElement;

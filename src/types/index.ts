@@ -37,6 +37,13 @@ export interface ChecklistSchema {
   items: ChecklistItem[];
 }
 
+/** Метка на карте (lng/lat — WGS84, как в Yandex Maps API) */
+export interface LocationPoint {
+  lng: number;
+  lat: number;
+  label?: string;
+}
+
 /** Тело запроса создания оффера (POST /api/offers). `price` — вознаграждение в бонусах (целое число). */
 export interface CreateOfferPayload {
   title: string;
@@ -44,6 +51,8 @@ export interface CreateOfferPayload {
   /** Вознаграждение в бонусах (целое). Поле в API называется `price`. */
   price: number;
   location: string;
+  /** Метки на карте; только при создании, опционально */
+  location_points?: LocationPoint[] | null;
   requirements: string;
   tags: string;
   start_date: string;
@@ -109,6 +118,7 @@ export interface Offer {
   description: string;
   requirements: string;
   location: string;
+  location_points?: LocationPoint[] | null;
   created_at: string;
   updated_at: string;
   employer_name: string;
@@ -130,6 +140,10 @@ export interface Offer {
   schema_version?: number;
   /** false — заказчик не может менять задачу (есть отчёт или заявка в работе). См. API */
   can_edit?: boolean;
+  /** Только владелец (GET /api/my/offers): заявок в статусе pending */
+  pending_applications_count?: number;
+  /** Только владелец (GET /api/my/offers): отчётов на проверке (pending_review) */
+  pending_reports_count?: number;
 }
 
 /** Статус отчёта в API (модерация заказчиком). */
@@ -167,6 +181,20 @@ export interface OfferApplicationRow {
   approved_at?: string;
   status?: string;
   employer_decision_comment?: string;
+}
+
+/** Заявка во входящих заказчика (GET /api/my/inbox/pending-applications) */
+export interface InboxApplicationRow extends OfferApplicationRow {
+  offer_title: string;
+  offer_start_date?: string;
+  offer_end_date?: string;
+  executor_label?: string;
+}
+
+/** Отчёт во входящих заказчика (GET /api/my/inbox/pending-reports) */
+export interface InboxReportRow extends EmployerReportListItem {
+  offer_id: string;
+  offer_title: string;
 }
 
 /** Публичные данные заказчика для исполнителя (GET /api/offers/:offerId/employer-summary) */
@@ -328,4 +356,5 @@ export interface Application {
 export interface ApplicationsResponse {
   success: true;
   data: Application[];
+  meta?: { cancelled_count?: number };
 }

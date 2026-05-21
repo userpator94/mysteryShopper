@@ -29,7 +29,7 @@ export async function createExecutorReportViewPage(offerId: string): Promise<HTM
   `;
 
   page.querySelector('#back-btn')?.addEventListener('click', () => {
-    router.navigate(`/offers/${offerId}`);
+    router.back(`/offers/${offerId}`);
   });
 
   const loading = page.querySelector('#loading') as HTMLElement;

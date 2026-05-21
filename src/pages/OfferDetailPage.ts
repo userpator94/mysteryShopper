@@ -14,6 +14,10 @@ import {
   formatCompensationLines
 } from '../utils/offerDisplay.js';
 import { MAX_PARTICIPANTS_UNLIMITED } from '../config/offerLimits.js';
+import { normalizeLocationPoints } from '../utils/locationPoints.js';
+import { mountReadonlyOfferMapBlock } from '../utils/offerMapUi.js';
+
+const detailMapHandles = new WeakMap<HTMLElement, { destroy: () => void }>();
 
 const REPORT_IRREVERSIBLE_MSG =
   'Отправка отчёта — необратимое действие. После отправки вы не сможете изменить отчёт. Продолжить?';
@@ -139,6 +143,12 @@ export async function createOfferDetailPage(offerId: string): Promise<HTMLElemen
             <div id="inactive-before-end-banner" class="hidden mx-4 mt-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800">
               <p class="font-medium">Задача не принимает новые отклики (снята с публикации до даты окончания).</p>
             </div>
+            <div id="employer-pending-banner" class="hidden mx-4 mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+              <p id="employer-pending-banner-text" class="font-medium"></p>
+              <button type="button" id="employer-pending-scroll-btn" class="mt-2 text-sm font-semibold text-primary hover:underline">
+                Перейти к заявкам на одобрение
+              </button>
+            </div>
             <!-- Изображение предложения -->
             <!-- <div id="offer-image-container" class="hidden w-full h-64 bg-slate-200 relative overflow-hidden">
               <div id="offer-image-placeholder" class="w-full h-full flex items-center justify-center text-slate-400">
@@ -194,6 +204,10 @@ export async function createOfferDetailPage(offerId: string): Promise<HTMLElemen
                   Местоположение
                 </h3>
                 <p id="offer-location" class="text-slate-600"></p>
+                <div id="offer-location-map-wrap" class="hidden mt-3">
+                  <div id="offer-location-map-container" class="w-full h-56 rounded-lg border border-slate-200 overflow-hidden bg-slate-100"></div>
+                  <p id="offer-location-map-error" class="hidden text-sm text-red-600 mt-2"></p>
+                </div>
               </div>
               
               <!-- Суть задания (описание) + доп. условия -->
@@ -389,9 +403,24 @@ function renderEmployerExecutorsBlock(offer: Offer, page: HTMLElement) {
 
   block.classList.remove('hidden');
 
+  const pendingBanner = page.querySelector('#employer-pending-banner') as HTMLElement | null;
+  const pendingBannerText = page.querySelector('#employer-pending-banner-text') as HTMLElement | null;
+  if (pendingBanner && pendingBannerText) {
+    const n = pending.length;
+    if (n > 0) {
+      pendingBannerText.textContent =
+        n === 1
+          ? '1 заявка ожидает вашего решения. Откройте профиль исполнителя в блоке ниже.'
+          : `${n} заявок ожидают вашего решения. Откройте профиль исполнителя в блоке ниже.`;
+      pendingBanner.classList.remove('hidden');
+    } else {
+      pendingBanner.classList.add('hidden');
+    }
+  }
+
   const rowHtml = (e: { user_id: string; initials: string }) =>
     `<li>
-      <button type="button" class="exec-profile-row w-full flex flex-wrap items-baseline gap-x-2 gap-y-1 text-left rounded-lg px-2 py-2 -mx-2 hover:bg-white/90 border border-transparent hover:border-slate-200 transition-colors"
+      <button type="button" id="offer-exec-profile-${escapeHtml(e.user_id)}" class="exec-profile-row w-full flex flex-wrap items-baseline gap-x-2 gap-y-1 text-left rounded-lg px-2 py-2 -mx-2 hover:bg-white/90 border border-transparent hover:border-slate-200 transition-colors"
         data-offer="${escapeHtml(offer.id)}" data-uid="${escapeHtml(e.user_id)}">
         <span class="font-mono text-xs text-slate-500 break-all">${escapeHtml(e.user_id)}</span>
         <span class="text-slate-400">·</span>
@@ -417,6 +446,7 @@ function renderEmployerExecutorsBlock(offer: Offer, page: HTMLElement) {
       if (uid && oid) router.navigate(`/my-offers/${oid}/executor/${uid}`);
     });
   });
+
 }
 
 // Функция отображения данных предложения
@@ -465,7 +495,22 @@ function renderOffer(offer: Offer, page: HTMLElement) {
   if (ratingEl) ratingEl.textContent = offer.numeric_info ? offer.numeric_info.toString() : '0';
   if (companyEl) companyEl.textContent = offer.employer_company || 'Компания не указана';
   if (locationEl) locationEl.textContent = offer.location || 'Местоположение не указано';
-  
+
+  const mapWrap = page.querySelector('#offer-location-map-wrap') as HTMLElement | null;
+  const mapContainer = page.querySelector('#offer-location-map-container') as HTMLElement | null;
+  const mapError = page.querySelector('#offer-location-map-error') as HTMLElement | null;
+  detailMapHandles.get(page)?.destroy();
+  const locationPoints = normalizeLocationPoints(offer.location_points);
+  if (locationPoints && mapWrap && mapContainer) {
+    mapWrap.classList.remove('hidden');
+    void mountReadonlyOfferMapBlock(mapContainer, locationPoints, mapError).then((handle) => {
+      detailMapHandles.set(page, handle);
+    });
+  } else {
+    mapWrap?.classList.add('hidden');
+    if (mapContainer) mapContainer.innerHTML = '';
+  }
+
   // Изображение
   // if (offer.image_id === null) {
   //   // Скрываем весь контейнер изображения если image_id = null
@@ -560,7 +605,7 @@ function setupEventHandlers(page: HTMLElement, offerId: string) {
   // Кнопка "Назад"
   const backBtn = page.querySelector('#back-btn');
   backBtn?.addEventListener('click', () => {
-    window.history.back();
+    router.back('/offers');
   });
 
   // Обработчик кнопки повтора
@@ -595,6 +640,10 @@ function setupEventHandlers(page: HTMLElement, offerId: string) {
   deleteOfferBtn?.addEventListener('click', () => {
     if (!confirm('Удалить эту задачу?')) return;
     apiService.deleteOffer(offerId).then(() => router.navigate('/my-offers')).catch((err) => alert(err?.message || 'Ошибка удаления'));
+  });
+
+  page.querySelector('#employer-pending-scroll-btn')?.addEventListener('click', () => {
+    page.querySelector('#employer-executors-block')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
   page.querySelector('#close-offer-early-btn')?.addEventListener('click', async () => {
@@ -656,6 +705,12 @@ async function loadEmployerPublicSummary(offerId: string, page: HTMLElement): Pr
   }
 }
 
+function setCancelApplyButtonLabel(btn: HTMLElement | null, status: string | undefined): void {
+  if (!btn) return;
+  const st = (status || '').toLowerCase();
+  btn.textContent = st === 'pending' ? 'Отозвать заявку' : 'Отказаться';
+}
+
 // Функция проверки и установки статуса заявки
 async function checkAndSetApplyStatus(offerId: string, page: HTMLElement, offer: Offer) {
   try {
@@ -685,7 +740,10 @@ async function checkAndSetApplyStatus(offerId: string, page: HTMLElement, offer:
       const st = (app.status || '').toLowerCase();
       const taskDoneByReportOrStatus =
         hasReport || st === 'completed' || st === 'done' || st === 'rejected';
-      if (cancelApplyBtn) cancelApplyBtn.classList.toggle('hidden', taskDoneByReportOrStatus);
+      if (cancelApplyBtn) {
+        cancelApplyBtn.classList.toggle('hidden', taskDoneByReportOrStatus);
+        setCancelApplyButtonLabel(cancelApplyBtn, st);
+      }
       const canReportStatus =
         st === 'approved' ||
         st === 'in_progress' ||
@@ -870,7 +928,10 @@ async function applyForOffer(offerId: string, button: HTMLButtonElement, page: H
     const cancelApplyBtn = page.querySelector('#cancel-apply-btn') as HTMLElement;
     const addToFavoritesBtn = page.querySelector('#add-to-favorites-btn') as HTMLElement;
     if (applyBlock) applyBlock.classList.add('hidden');
-    if (cancelApplyBtn) cancelApplyBtn.classList.remove('hidden');
+    if (cancelApplyBtn) {
+      cancelApplyBtn.classList.remove('hidden');
+      setCancelApplyButtonLabel(cancelApplyBtn, 'pending');
+    }
     if (addToFavoritesBtn) addToFavoritesBtn.classList.add('hidden');
   } catch (error: any) {
     console.error('Ошибка подачи заявки:', error);

@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@yandex/ymaps3-types": "^1.0.19487230",
     "typescript": "~5.8.3",
     "vite": "^7.1.7"
   },
