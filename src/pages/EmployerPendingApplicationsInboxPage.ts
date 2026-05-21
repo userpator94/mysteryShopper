@@ -10,6 +10,7 @@ import {
   formatLocalDate
 } from '../utils/employerExecutorProfileUi.js';
 import type { InboxApplicationRow } from '../types/index.js';
+import { listRowCardClasses, bindListRowCardHover } from '../utils/listRowUi.js';
 
 function formatAppliedAt(iso: string | undefined): string {
   if (!iso) return '—';
@@ -38,7 +39,7 @@ export async function createEmployerPendingApplicationsInboxPage(): Promise<HTML
       <main class="pb-28 px-4">
         <div id="list-view">
           <div id="loading" class="py-8 text-center text-slate-500">Загрузка…</div>
-          <div id="list" class="hidden space-y-2"></div>
+          <div id="list" class="hidden flex flex-col gap-2 py-1"></div>
           <div id="empty" class="hidden text-center py-8 text-slate-500">Нет заявок, ожидающих согласования</div>
           <div id="err" class="hidden text-center py-8 text-red-600"></div>
         </div>
@@ -93,9 +94,9 @@ export async function createEmployerPendingApplicationsInboxPage(): Promise<HTML
         const aid = escapeHtml(row.application_id);
         const exec = row.executor_label || 'Исполнитель';
         return `
-          <article
+          <div
             id="pending-app-row-${aid}"
-            class="inbox-app-row bg-white border border-slate-200 rounded-lg p-4 hover:bg-slate-50 cursor-pointer transition-colors"
+            class="inbox-app-row ${listRowCardClasses('p-4')}"
             role="button"
             tabindex="0"
             data-app-id="${aid}"
@@ -105,11 +106,12 @@ export async function createEmployerPendingApplicationsInboxPage(): Promise<HTML
             <p class="font-semibold text-slate-900">${escapeHtml(row.offer_title || 'Задача')}</p>
             <p class="text-sm text-slate-700 mt-1">${escapeHtml(exec)}</p>
             <p class="text-xs text-slate-500 mt-1">Отклик: ${escapeHtml(formatAppliedAt(row.applied_at))}</p>
-          </article>
+          </div>
         `;
       })
       .join('');
     list.classList.remove('hidden');
+    bindListRowCardHover(list);
 
     list.querySelectorAll('.inbox-app-row').forEach((el) => {
       const article = el as HTMLElement;

@@ -420,7 +420,7 @@ function renderEmployerExecutorsBlock(offer: Offer, page: HTMLElement) {
 
   const rowHtml = (e: { user_id: string; initials: string }) =>
     `<li>
-      <button type="button" id="offer-exec-profile-${escapeHtml(e.user_id)}" class="exec-profile-row w-full flex flex-wrap items-baseline gap-x-2 gap-y-1 text-left rounded-lg px-2 py-2 -mx-2 hover:bg-white/90 border border-transparent hover:border-slate-200 transition-colors"
+      <button type="button" id="offer-exec-profile-${escapeHtml(e.user_id)}" class="exec-profile-row"
         data-offer="${escapeHtml(offer.id)}" data-uid="${escapeHtml(e.user_id)}">
         <span class="font-mono text-xs text-slate-500 break-all">${escapeHtml(e.user_id)}</span>
         <span class="text-slate-400">·</span>

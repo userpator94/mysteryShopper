@@ -5,6 +5,7 @@ import { formatExecutorMoneyRewardShort } from '../utils/offerDisplay.js';
 import { MAX_PARTICIPANTS_UNLIMITED } from '../config/offerLimits.js';
 import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
+import { listRowCardClasses, bindListRowCardHover } from '../utils/listRowUi.js';
 
 export async function createMyOffersPage(): Promise<HTMLElement> {
   const page = document.createElement('div');
@@ -106,6 +107,7 @@ async function loadOffers(page: HTMLElement) {
     if (expiredIcon) expiredIcon.style.transform = 'rotate(0deg)';
 
     container.classList.remove('hidden');
+    bindListRowCardHover(container);
   } catch (e) {
     console.error(e);
     loading.classList.add('hidden');
@@ -153,7 +155,7 @@ function renderOfferCard(offer: Offer, isExpired: boolean): string {
       : '';
   const actionsSection = actionsHtml ? `<div class="flex gap-2">${actionsHtml}</div>` : '';
   return `
-    <div class="bg-white rounded-lg p-4 border border-slate-200" data-offer-id="${offer.id}">
+    <div class="${listRowCardClasses('p-4')}" data-offer-id="${offer.id}">
       <div class="flex justify-between items-start mb-2">
         <h3 class="font-semibold">${offer.title || 'Без названия'}</h3>
         <span class="${statusClass}">${status}</span>

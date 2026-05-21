@@ -12,6 +12,7 @@ import {
   escapeHtml,
   formatExecutorMoneyRewardShort
 } from '../utils/offerDisplay.js';
+import { listRowCardClasses, bindListRowCardHover } from '../utils/listRowUi.js';
 
 const REWARD_LABELS: Record<string, string> = {
   bonus: 'Бонусы',
@@ -263,7 +264,7 @@ function renderOfferCard(offer: Offer, variant: 'default' | 'completed'): string
       ? '<span class="text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-2 py-0.5">Отчёт отправлен</span>'
       : '';
   return `
-    <div class="bg-white rounded-lg p-4 border border-slate-200 cursor-pointer hover:shadow-md transition-shadow" data-offer-id="${offer.id}">
+    <div class="${listRowCardClasses('p-4')}" data-offer-id="${offer.id}">
       <div class="flex justify-between items-start gap-2 mb-2">
         <h3 class="font-semibold">${escapeHtml(offer.title || 'Без названия')}</h3>
         ${doneBadge}
@@ -401,6 +402,7 @@ async function loadOffers(page: HTMLElement) {
 
     emptyState.classList.add('hidden');
     showState(offersContainer, [errorState, emptyState]);
+    bindListRowCardHover(offersContainer);
 
     syncFiltersFromUrl(page);
   } catch (error) {

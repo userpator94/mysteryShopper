@@ -4,6 +4,7 @@ import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
 import type { EmployerReportListItem } from '../types/index.js';
 import { reportStatusLabel } from '../utils/reportViewContent.js';
+import { listRowCardClasses, bindListRowCardHover } from '../utils/listRowUi.js';
 
 export async function createOfferReportsListPage(offerId: string): Promise<HTMLElement> {
   const page = document.createElement('div');
@@ -84,7 +85,7 @@ export async function createOfferReportsListPage(offerId: string): Promise<HTMLE
                 ? `<button type="button" id="offer-reports-exec-profile-${escapeHtml(r.id)}" class="report-exec-profile text-xs font-semibold text-primary px-2 py-0.5 rounded hover:bg-primary/5" data-uid="${escapeHtml(execId)}">Профиль исполнителя</button>`
                 : '';
             return `
-            <div class="relative w-full text-left bg-white border border-slate-200 rounded-lg p-3 hover:bg-slate-50 report-row cursor-pointer" data-rid="${r.id}" role="button" tabindex="0">
+            <div class="relative w-full text-left report-row ${listRowCardClasses('p-3')}" data-rid="${r.id}" role="button" tabindex="0">
               <div class="flex justify-between gap-2 items-start">
                 <span class="font-medium text-slate-800 min-w-0 pr-2">${escapeHtml(exec)}</span>
                 <span class="flex items-center gap-1 shrink-0">
@@ -98,6 +99,7 @@ export async function createOfferReportsListPage(offerId: string): Promise<HTMLE
           })
           .join('');
         list.classList.remove('hidden');
+        bindListRowCardHover(list);
         list.querySelectorAll('.report-row').forEach((row) => {
           const goReport = () => {
             const id = (row as HTMLElement).dataset.rid;

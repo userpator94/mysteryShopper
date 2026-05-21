@@ -2,6 +2,7 @@
 
 import type { FavoriteOfferSummary } from '../types/index.js';
 import { formatExecutorMoneyRewardShort } from '../utils/offerDisplay.js';
+import { listRowCardClasses, bindListRowCardHover } from '../utils/listRowUi.js';
 import { apiService } from '../services/api.js';
 import { devLog } from '../utils/logger.js';
 
@@ -152,7 +153,7 @@ async function loadFavorites(page: HTMLElement) {
 // Функция отображения избранных предложений
 function renderFavorites(container: HTMLElement, favorites: FavoriteOfferSummary[]) {
   container.innerHTML = favorites.map(favorite => `
-    <div class="bg-white rounded-lg p-4 border border-slate-200 cursor-pointer hover:shadow-md transition-shadow" data-offer-id="${favorite.id}">
+    <div class="${listRowCardClasses('p-4')}" data-offer-id="${favorite.id}">
       <h3 class="font-semibold mb-2">${favorite.title}</h3>
       <p class="text-slate-600 text-sm mb-2">${favorite.description}</p>
       <div class="flex justify-between items-center">
@@ -165,6 +166,7 @@ function renderFavorites(container: HTMLElement, favorites: FavoriteOfferSummary
       </div>
     </div>
   `).join('');
+  bindListRowCardHover(container);
 }
 
 // Функции управления состояниями

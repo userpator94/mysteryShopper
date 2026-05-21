@@ -357,6 +357,76 @@ body {
   transition: all 0.2s ease;
 }
 
+/* Кликабельные карточки списков — единый hover (shadow-md) */
+.list-row-card {
+  background-color: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition:
+    box-shadow 0.15s ease-in-out,
+    transform 0.15s ease-in-out,
+    border-color 0.15s ease-in-out;
+}
+
+.list-row-card--p3 {
+  padding: 0.75rem;
+}
+
+.list-row-card--p4 {
+  padding: 1rem;
+}
+
+.list-row-card--hovered,
+.list-row-card:hover,
+.list-row-card:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--border-hover);
+}
+
+.list-row-card:active {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+/* Кнопки профиля исполнителя в карточке задачи (заказчик) */
+button.exec-profile-row,
+.exec-profile-row {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.5rem;
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background-color: #ffffff;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition:
+    box-shadow 0.15s ease-in-out,
+    transform 0.15s ease-in-out,
+    border-color 0.15s ease-in-out,
+    background-color 0.15s ease-in-out;
+}
+
+button.exec-profile-row:hover,
+.exec-profile-row:hover,
+button.exec-profile-row:focus-visible,
+.exec-profile-row:focus-visible {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-1px);
+}
+
+button.exec-profile-row:active,
+.exec-profile-row:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow);
+  background-color: var(--surface-hover);
+}
+
 .offer-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);

@@ -2,6 +2,7 @@
 
 import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
+import { listRowCardClasses, bindListRowCardHover } from '../utils/listRowUi.js';
 
 function escapeHtml(s: string): string {
   const d = document.createElement('div');
@@ -24,7 +25,7 @@ export async function createEmployerPendingReportsInboxPage(): Promise<HTMLEleme
       </header>
       <main class="pb-28 px-4">
         <div id="loading" class="py-8 text-center text-slate-500">Загрузка…</div>
-        <div id="list" class="hidden space-y-2"></div>
+        <div id="list" class="hidden flex flex-col gap-2 py-1"></div>
         <div id="empty" class="hidden text-center py-8 text-slate-500">Нет отчётов на проверке</div>
         <div id="err" class="hidden text-center py-8 text-red-600"></div>
       </main>
@@ -52,7 +53,7 @@ export async function createEmployerPendingReportsInboxPage(): Promise<HTMLEleme
         const oid = escapeHtml(r.offer_id);
         const rid = escapeHtml(r.id);
         return `
-          <div class="report-row bg-white border border-slate-200 rounded-lg p-3 hover:bg-slate-50 cursor-pointer" data-offer-id="${oid}" data-report-id="${rid}" role="button" tabindex="0">
+          <div class="report-row ${listRowCardClasses('p-3')}" data-offer-id="${oid}" data-report-id="${rid}" role="button" tabindex="0">
             <button type="button" id="pending-report-offer-link-${rid}" class="offer-link block text-left font-semibold text-primary hover:underline mb-1" data-offer-id="${oid}">
               ${escapeHtml(r.offer_title || 'Задача')}
             </button>
@@ -65,6 +66,7 @@ export async function createEmployerPendingReportsInboxPage(): Promise<HTMLEleme
       })
       .join('');
     list.classList.remove('hidden');
+    bindListRowCardHover(list);
 
     list.querySelectorAll('.report-row').forEach((row) => {
       const el = row as HTMLElement;
