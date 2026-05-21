@@ -44,8 +44,8 @@ export async function copyToClipboard(text: string): Promise<boolean> {
 
 export function buildEmployerExecutorProfileHtml(p: EmployerExecutorProfile): string {
   const avatarBlock = p.avatar_url
-    ? `<img src="${escapeHtml(p.avatar_url)}" alt="" class="w-20 h-20 rounded-full object-cover border border-slate-200" />`
-    : `<div class="w-20 h-20 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-2xl font-semibold border border-slate-200" aria-hidden="true">?</div>`;
+    ? `<img src="${escapeHtml(p.avatar_url)}" alt="" class="w-16 h-16 rounded-full object-cover border border-slate-200" />`
+    : `<div class="w-16 h-16 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-2xl font-semibold border border-slate-200" aria-hidden="true">?</div>`;
 
   const badge = p.worked_with_this_employer
     ? `<span class="inline-flex items-center rounded-full bg-emerald-50 text-emerald-900 text-xs font-semibold px-2.5 py-1 border border-emerald-200">Уже работал с вами</span>`
@@ -58,7 +58,7 @@ export function buildEmployerExecutorProfileHtml(p: EmployerExecutorProfile): st
 
   return `
     <div class="flex items-start gap-3 text-left">
-      <div class="shrink-0 w-20">${avatarBlock}</div>
+      <div class="shrink-0 w-16">${avatarBlock}</div>
       <div class="min-w-0 flex-1 flex flex-col items-start gap-1.5">
         <p class="text-lg font-semibold text-slate-900 leading-tight tracking-wide">${escapeHtml(p.masked_name)}</p>
         <button type="button" id="employer-executor-profile-copy-user-id" class="inline-flex items-center gap-1 text-xs text-primary hover:underline px-0 py-0 bg-transparent max-w-full" data-copy-text="${escapeHtml(p.user_id)}" aria-label="Скопировать ID">
@@ -72,18 +72,18 @@ export function buildEmployerExecutorProfileHtml(p: EmployerExecutorProfile): st
         ${tzLine}
       </div>
     </div>
-    <div class="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+    <div class="rounded-xl border border-slate-200 bg-white p-3 space-y-2">
       <h2 class="text-sm font-semibold text-slate-800">По платформе</h2>
-      <dl class="grid gap-2 text-sm">
-        <div class="flex justify-between gap-4 border-b border-slate-100 pb-2">
+      <dl class="grid gap-1.5 text-sm">
+        <div class="flex justify-between gap-4 border-b border-slate-100 pb-1.5">
           <dt class="text-slate-600">Регистрация</dt>
           <dd class="text-slate-900 font-medium text-right">${escapeHtml(formatLocalDate(p.registered_at))}</dd>
         </div>
-        <div class="flex justify-between gap-4 border-b border-slate-100 pb-2">
+        <div class="flex justify-between gap-4 border-b border-slate-100 pb-1.5">
           <dt class="text-slate-600">В работе без отчёта</dt>
           <dd class="text-slate-900 font-medium">${p.stats.active_tasks_without_report}</dd>
         </div>
-        <div class="flex justify-between gap-4 border-b border-slate-100 pb-2">
+        <div class="flex justify-between gap-4 border-b border-slate-100 pb-1.5">
           <dt class="text-slate-600">Задач с отчётом</dt>
           <dd class="text-slate-900 font-medium">${p.stats.completed_tasks_with_report}</dd>
         </div>

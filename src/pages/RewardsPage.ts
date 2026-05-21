@@ -52,15 +52,15 @@ export async function createRewardsPage(): Promise<HTMLElement> {
   page.innerHTML = `
     <div class="relative w-full">
       <header class="sticky top-0 bg-white/80 backdrop-blur-sm z-10 px-4 pt-4 border-b border-slate-100">
-        <div class="flex items-center gap-3 mb-3">
+        <div class="flex items-center gap-3 mb-2">
           <button type="button" id="back-btn" class="text-slate-500 p-1" aria-label="Назад">←</button>
           <h1 class="text-xl font-bold flex-1 min-w-0">Вознаграждения</h1>
         </div>
       </header>
-      <main class="pb-28 px-4 py-4 space-y-4">
-        <div id="loading" class="py-8 text-center text-slate-500">Загрузка…</div>
+      <main class="pb-28 px-4 py-3 space-y-3">
+        <div id="loading" class="py-6 text-center text-slate-500">Загрузка…</div>
         <div id="err" class="hidden py-8 text-center text-red-600"></div>
-        <div id="content" class="hidden space-y-4"></div>
+        <div id="content" class="hidden space-y-3"></div>
       </main>
     </div>
   `;
@@ -98,13 +98,13 @@ export async function createRewardsPage(): Promise<HTMLElement> {
     loading.classList.add('hidden');
     content.classList.remove('hidden');
     content.innerHTML = `
-      <div class="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 class="text-sm font-semibold text-slate-800 mb-2">Баланс</h2>
-        <p class="text-3xl font-bold text-slate-900">${Number(summary.balance).toLocaleString()} бонусов</p>
-        <p class="text-xs text-slate-500 mt-2">Мы показываем начисленные вознаграждения. Как вы тратите бонусы у партнёров — вы решаете самостоятельно.</p>
+      <div class="rounded-lg border border-slate-200 bg-white p-3">
+        <h2 class="text-sm font-semibold text-slate-800 mb-1.5">Баланс</h2>
+        <p class="text-2xl font-bold text-slate-900">${Number(summary.balance).toLocaleString()} бонусов</p>
+        <p class="text-xs text-slate-500 mt-1">Мы показываем начисленные вознаграждения. Как вы тратите бонусы у партнёров — вы решаете самостоятельно.</p>
       </div>
 
-      <div class="rounded-lg border border-slate-200 bg-white p-4">
+      <div class="rounded-lg border border-slate-200 bg-white p-3">
         <div class="flex items-stretch gap-3">
           <div class="min-w-0 flex-1">
             <h2 class="text-sm font-semibold text-slate-800">Потратить бонусы</h2>
@@ -121,8 +121,8 @@ export async function createRewardsPage(): Promise<HTMLElement> {
         </div>
       </div>
 
-      <div class="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 class="text-sm font-semibold text-slate-800 mb-3">История</h2>
+      <div class="rounded-lg border border-slate-200 bg-white p-3">
+        <h2 class="text-sm font-semibold text-slate-800 mb-2">История</h2>
         <div class="space-y-2">
           ${history}
         </div>

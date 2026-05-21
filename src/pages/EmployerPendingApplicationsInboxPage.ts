@@ -148,7 +148,7 @@ export async function createEmployerPendingApplicationsInboxPage(): Promise<HTML
       detailContent.classList.remove('hidden');
 
       detailContent.innerHTML = `
-        <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2">
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-1.5">
           <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Задача</p>
           <button type="button" id="inbox-detail-offer-link" class="text-left font-semibold text-primary hover:underline text-base">
             ${escapeHtml(row.offer_title || 'Задача')}

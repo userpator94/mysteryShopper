@@ -146,8 +146,7 @@ function renderOfferCard(offer: Offer, isExpired: boolean): string {
       : '';
   const actionsHtml = isExpired
     ? ''
-    : `${editLink}
-        <button type="button" class="delete-offer-btn px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-sm font-medium hover:bg-red-100" data-offer-id="${offer.id}">Удалить</button>`;
+    : editLink;
   const pendingCount = Number(offer.pending_applications_count ?? 0);
   const pendingBadge =
     pendingCount > 0

@@ -224,15 +224,15 @@ export async function createProfilePage(): Promise<HTMLElement> {
   page.innerHTML = `
     <div class="relative w-full">
       <div>
-        <header class="sticky top-0 bg-white/80 backdrop-blur-sm z-10 px-4 pt-4">
-          <h1 class="text-2xl font-bold">Профиль</h1>
+        <header class="sticky top-0 bg-white/80 backdrop-blur-sm z-10 px-4 pt-3">
+          <h1 class="text-xl font-bold">Профиль</h1>
         </header>
         
         <main class="pb-28">
-          <div class="px-4 py-4">
-            <div id="user-info-block" class="bg-white rounded-lg p-6 border border-slate-200 mb-4">
-              <div class="flex items-center gap-4 mb-4">
-                <div id="user-avatar" class="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center text-6xl leading-none"></div>
+          <div class="px-4 py-2">
+            <div id="user-info-block" class="bg-white rounded-lg p-4 border border-slate-200 mb-3">
+              <div class="flex items-center gap-3 mb-3">
+                <div id="user-avatar" class="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center text-4xl leading-none"></div>
                 <div class="min-w-0 text-left">
                   <h2 id="user-name" class="text-xl font-semibold">${escapeHtml(displayName)}</h2>
                   ${
@@ -248,13 +248,12 @@ export async function createProfilePage(): Promise<HTMLElement> {
                   }
                   <p id="user-email" class="text-slate-600">${escapeHtml(displayEmail)}</p>
                   <p id="user-phone" class="text-slate-600">${escapeHtml(displayPhone)}</p>
-                  ${isEmployer && meUser?.company ? `<p id="user-company" class="text-slate-600 font-medium">${escapeHtml(meUser.company)}</p>` : ''}
                   ${!isEmployer ? `<p class="text-xs text-slate-500 mt-1">Email и телефон не показываются заказчику</p>` : ''}
                 </div>
               </div>
               
               ${isEmployer ? `
-              <div id="employer-info" class="mb-4 p-3 bg-slate-50 rounded-lg">
+              <div id="employer-info" class="mb-3 p-2.5 bg-slate-50 rounded-lg">
                 <div class="flex items-start gap-3">
                   <div class="min-w-0 flex-1">
                     ${meUser?.company ? `<p class="text-sm text-slate-700"><span class="font-medium">Компания:</span> ${escapeHtml(meUser.company)}</p>` : ''}
@@ -267,22 +266,22 @@ export async function createProfilePage(): Promise<HTMLElement> {
               ` : ''}
               
               ${isEmployer && ed ? `
-                <div class="grid grid-cols-2 gap-4">
-                  <button type="button" id="profile-metric-pending-reports" data-navigate="/my-inbox/pending-reports" class="profile-metric-card relative flex flex-col items-center justify-center w-full min-h-[5.5rem] rounded-lg border border-slate-200 p-3 hover:bg-slate-50 transition-colors text-slate-900">
+                <div class="grid grid-cols-2 gap-2.5">
+                  <button type="button" id="profile-metric-pending-reports" data-navigate="/my-inbox/pending-reports" class="profile-metric-card relative flex flex-col items-center justify-center w-full rounded-lg border border-slate-200 p-2.5 hover:bg-slate-50 transition-colors text-slate-900">
                     <span data-metric-badge="reports" class="${ed.pendingReports > 0 ? '' : 'hidden '}absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white pointer-events-none" aria-hidden="true"></span>
                     <span data-metric-count="pending-reports" class="text-2xl font-bold text-primary leading-none">${ed.pendingReports}</span>
                     <span class="text-sm text-slate-600 mt-1 text-center">ожидают одобрения отчёта</span>
                   </button>
-                  <button type="button" id="profile-metric-pending-applications" data-navigate="/my-inbox/pending-applications" class="profile-metric-card relative flex flex-col items-center justify-center w-full min-h-[5.5rem] rounded-lg border border-slate-200 p-3 hover:bg-slate-50 transition-colors text-slate-900">
+                  <button type="button" id="profile-metric-pending-applications" data-navigate="/my-inbox/pending-applications" class="profile-metric-card relative flex flex-col items-center justify-center w-full rounded-lg border border-slate-200 p-2.5 hover:bg-slate-50 transition-colors text-slate-900">
                     <span data-metric-badge="applications" class="${ed.pendingApplications > 0 ? '' : 'hidden '}absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white pointer-events-none" aria-hidden="true"></span>
                     <span data-metric-count="pending-applications" class="text-2xl font-bold text-primary leading-none">${ed.pendingApplications}</span>
                     <span class="text-sm text-slate-600 mt-1 text-center">ожидают согласования заявки</span>
                   </button>
-                  <div class="profile-metric-card flex flex-col items-center justify-center w-full min-h-[5.5rem] rounded-lg border border-slate-200 p-3 text-center">
+                  <div class="profile-metric-card flex flex-col items-center justify-center w-full rounded-lg border border-slate-200 p-2.5 text-center">
                     <span class="text-2xl font-bold text-primary leading-none">${ed.createdTotal}</span>
                     <span class="text-sm text-slate-600 mt-1">всего создано задач</span>
                   </div>
-                  <div class="profile-metric-card flex flex-col items-center justify-center w-full min-h-[5.5rem] rounded-lg border border-slate-200 p-3 text-center">
+                  <div class="profile-metric-card flex flex-col items-center justify-center w-full rounded-lg border border-slate-200 p-2.5 text-center">
                     <span class="text-2xl font-bold text-primary leading-none">${ed.activeOffersNow}</span>
                     <span class="text-sm text-slate-600 mt-1">активных сейчас задач</span>
                   </div>
@@ -297,20 +296,20 @@ export async function createProfilePage(): Promise<HTMLElement> {
                   </div>
                 ` : ''}
               ` : `
-                <div class="grid grid-cols-2 gap-3">
-                  <div class="profile-metric-card flex flex-col items-center justify-center min-h-[5rem] rounded-lg border border-slate-200 p-3 text-center">
+                <div class="grid grid-cols-2 gap-2.5">
+                  <div class="profile-metric-card flex flex-col items-center justify-center rounded-lg border border-slate-200 p-2.5 text-center">
                     <span class="text-2xl font-bold text-primary leading-none">${executorPendingApplications ?? 0}</span>
                     <span class="text-xs text-slate-600 mt-1">активные заявки</span>
                   </div>
-                  <div class="profile-metric-card flex flex-col items-center justify-center min-h-[5rem] rounded-lg border border-slate-200 p-3 text-center">
+                  <div class="profile-metric-card flex flex-col items-center justify-center rounded-lg border border-slate-200 p-2.5 text-center">
                     <span class="text-2xl font-bold text-primary leading-none">${executorActiveTasks ?? 0}</span>
                     <span class="text-xs text-slate-600 mt-1">задачи в работе</span>
                   </div>
-                  <div class="profile-metric-card flex flex-col items-center justify-center min-h-[5rem] rounded-lg border border-slate-200 p-3 text-center">
+                  <div class="profile-metric-card flex flex-col items-center justify-center rounded-lg border border-slate-200 p-2.5 text-center">
                     <span class="text-2xl font-bold text-primary leading-none">${executorCompleted ?? 0}</span>
                     <span class="text-xs text-slate-600 mt-1">задач выполнено (с отчётом)</span>
                   </div>
-                  <button type="button" id="profile-metric-rewards" class="profile-metric-card flex flex-col items-center justify-center w-full min-h-[5rem] rounded-lg border border-slate-200 p-3 hover:bg-slate-50 transition-colors text-center" data-action="payouts">
+                  <button type="button" id="profile-metric-rewards" class="profile-metric-card flex flex-col items-center justify-center w-full rounded-lg border border-slate-200 p-2.5 hover:bg-slate-50 transition-colors text-center" data-action="payouts">
                     <span class="text-2xl font-bold text-primary leading-none">${executorRewardsTotal ?? 0}</span>
                     <span class="text-xs text-slate-600 mt-1">бонусов начислено</span>
                   </button>
@@ -318,10 +317,10 @@ export async function createProfilePage(): Promise<HTMLElement> {
               `}
             </div>
             
-            <div class="space-y-4">
+            <div class="space-y-3">
               ${isEmployer ? `
-                <div class="bg-white rounded-lg p-4 border border-slate-200">
-                  <h3 class="font-semibold mb-2">Активность</h3>
+                <div class="bg-white rounded-lg p-3 border border-slate-200">
+                  <h3 class="font-semibold mb-1.5">Активность</h3>
                   <div class="space-y-2">
                     ${ed && ed.activity.length > 0
                       ? ed.activity
@@ -331,8 +330,8 @@ export async function createProfilePage(): Promise<HTMLElement> {
                   </div>
                 </div>
               ` : `
-                <div class="bg-white rounded-lg p-4 border border-slate-200">
-                  <h3 class="font-semibold mb-2">Активность</h3>
+                <div class="bg-white rounded-lg p-3 border border-slate-200">
+                  <h3 class="font-semibold mb-1.5">Активность</h3>
                   <div class="space-y-2">
                     ${historyTop10.length > 0
                       ? historyTop10
@@ -343,26 +342,26 @@ export async function createProfilePage(): Promise<HTMLElement> {
                 </div>
               `}
 
-              <div class="bg-white rounded-lg p-4 border border-slate-200">
-                <div class="space-y-4">
+              <div class="bg-white rounded-lg p-3 border border-slate-200">
+                <div class="space-y-3">
                   <div class="space-y-2">
                     <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Настройки</p>
-                    <button type="button" id="profile-settings-notifications" class="w-full text-left px-2 py-2 cursor-pointer hover:bg-slate-50 rounded transition-colors border border-transparent hover:border-slate-100" data-action="notifications">
+                    <button type="button" id="profile-settings-notifications" class="w-full text-left px-2 py-1.5 cursor-pointer hover:bg-slate-50 rounded transition-colors border border-transparent hover:border-slate-100" data-action="notifications">
                       Настройки уведомлений <span class="text-slate-500 text-sm">(скоро)</span>
                     </button>
                     ${isEmployer ? `
-                      <button type="button" id="profile-settings-billing" class="w-full text-left px-2 py-2 cursor-pointer hover:bg-slate-50 rounded transition-colors border border-transparent hover:border-slate-100" data-action="billing">
+                      <button type="button" id="profile-settings-billing" class="w-full text-left px-2 py-1.5 cursor-pointer hover:bg-slate-50 rounded transition-colors border border-transparent hover:border-slate-100" data-action="billing">
                         Биллинг <span class="text-slate-500 text-sm">(скоро)</span>
                       </button>
                     ` : `
-                      <button type="button" id="profile-settings-rewards" class="w-full text-left px-2 py-2 cursor-pointer hover:bg-slate-50 rounded transition-colors border border-transparent hover:border-slate-100" data-action="payouts">
+                      <button type="button" id="profile-settings-rewards" class="w-full text-left px-2 py-1.5 cursor-pointer hover:bg-slate-50 rounded transition-colors border border-transparent hover:border-slate-100" data-action="payouts">
                         Вознаграждения
                       </button>
                     `}
                     ${
                       meUser
                         ? `
-                    <button type="button" id="go-change-password" class="w-full text-left px-2 py-2 cursor-pointer hover:bg-slate-50 rounded transition-colors border border-transparent hover:border-slate-100">
+                    <button type="button" id="go-change-password" class="w-full text-left px-2 py-1.5 cursor-pointer hover:bg-slate-50 rounded transition-colors border border-transparent hover:border-slate-100">
                       Сменить пароль
                     </button>`
                         : ''
@@ -371,14 +370,14 @@ export async function createProfilePage(): Promise<HTMLElement> {
 
                   <div class="space-y-2">
                     <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Поддержка</p>
-                    <button type="button" id="profile-support-help" class="w-full text-left px-2 py-2 cursor-not-allowed opacity-50 rounded transition-colors border border-transparent" data-action="help" disabled>Помощь</button>
-                    <button type="button" id="profile-support-contact" class="w-full text-left px-2 py-2 cursor-pointer hover:bg-slate-50 rounded transition-colors border border-transparent hover:border-slate-100" data-action="contact">Связаться с нами</button>
-                    <button type="button" id="profile-support-feedback" class="w-full text-left px-2 py-2 cursor-not-allowed opacity-50 rounded transition-colors border border-transparent" data-action="feedback" disabled>Оставить отзыв</button>
+                    <button type="button" id="profile-support-help" class="w-full text-left px-2 py-1.5 cursor-not-allowed opacity-50 rounded transition-colors border border-transparent" data-action="help" disabled>Помощь</button>
+                    <button type="button" id="profile-support-contact" class="w-full text-left px-2 py-1.5 cursor-pointer hover:bg-slate-50 rounded transition-colors border border-transparent hover:border-slate-100" data-action="contact">Связаться с нами</button>
+                    <button type="button" id="profile-support-feedback" class="w-full text-left px-2 py-1.5 cursor-not-allowed opacity-50 rounded transition-colors border border-transparent" data-action="feedback" disabled>Оставить отзыв</button>
                   </div>
                 </div>
               </div>
               
-              <button id="logout-button" class="w-full bg-red-500 text-white py-3 rounded-lg font-semibold">
+              <button id="logout-button" class="w-full bg-red-500 text-white py-2.5 rounded-lg font-semibold">
                 Выйти из аккаунта
               </button>
             </div>

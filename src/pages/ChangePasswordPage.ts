@@ -61,8 +61,8 @@ export async function createChangePasswordPage(): Promise<HTMLElement> {
           <h1 class="text-xl font-bold">Смена пароля</h1>
         </div>
       </header>
-      <main class="pb-28 px-4 py-4 max-w-md mx-auto">
-        <form id="pwd-form" class="space-y-4 bg-white rounded-lg border border-slate-200 p-4">
+      <main class="pb-28 px-4 py-3 max-w-md mx-auto">
+        <form id="pwd-form" class="space-y-3 bg-white rounded-lg border border-slate-200 p-3">
           <div>
             <label for="pwd-current" class="block text-sm font-medium text-slate-700 mb-1">Текущий пароль</label>
             <input id="pwd-current" type="password" autocomplete="current-password" spellcheck="false" autocapitalize="off"
@@ -83,7 +83,7 @@ export async function createChangePasswordPage(): Promise<HTMLElement> {
             Показать пароль
           </label>
           <p id="pwd-err" class="hidden text-sm text-red-600"></p>
-          <button type="submit" id="pwd-submit" class="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90">
+          <button type="submit" id="pwd-submit" class="w-full bg-primary text-white py-2.5 rounded-lg font-semibold hover:bg-primary/90">
             Сохранить
           </button>
         </form>

@@ -16,14 +16,14 @@ export async function createEmployerExecutorProfilePage(offerId: string, executo
   page.innerHTML = `
     <div class="relative w-full">
       <header class="sticky top-0 bg-white/80 backdrop-blur-sm z-10 px-4 pt-4 border-b border-slate-100">
-        <div class="flex items-center gap-3 mb-3">
+        <div class="flex items-center gap-3 mb-2">
           <button type="button" id="employer-executor-profile-back-btn" class="text-slate-500 p-1" aria-label="Назад">←</button>
           <h1 class="text-xl font-bold flex-1 min-w-0">Исполнитель</h1>
         </div>
       </header>
-      <main class="pb-28 px-4 py-4">
-        <div id="loading" class="py-12 text-center text-slate-500">Загрузка…</div>
-        <div id="content" class="hidden space-y-4"></div>
+      <main class="pb-28 px-4 py-3">
+        <div id="loading" class="py-8 text-center text-slate-500">Загрузка…</div>
+        <div id="content" class="hidden space-y-3"></div>
         <div id="err" class="hidden text-red-600 text-center py-8"></div>
       </main>
     </div>
