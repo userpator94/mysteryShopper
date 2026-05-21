@@ -16,6 +16,7 @@ import {
 import { MAX_PARTICIPANTS_UNLIMITED } from '../config/offerLimits.js';
 import { normalizeLocationPoints } from '../utils/locationPoints.js';
 import { mountReadonlyOfferMapBlock } from '../utils/offerMapUi.js';
+import { buildExecutorAvatarHtml } from '../utils/executorAvatar.js';
 
 const detailMapHandles = new WeakMap<HTMLElement, { destroy: () => void }>();
 
@@ -389,7 +390,10 @@ function renderEmployerExecutorsBlock(offer: Offer, page: HTMLElement) {
     return;
   }
 
-  const subsections: { title: string; rows: Array<{ user_id: string; initials: string }> }[] = [
+  const subsections: {
+    title: string;
+    rows: Array<{ user_id: string; initials: string; avatar_emoji?: string | null }>;
+  }[] = [
     { title: 'Ожидают одобрения заявки', rows: pending },
     { title: 'В работе', rows: inWork },
     { title: 'Отчитались', rows: reported }
@@ -418,15 +422,23 @@ function renderEmployerExecutorsBlock(offer: Offer, page: HTMLElement) {
     }
   }
 
-  const rowHtml = (e: { user_id: string; initials: string }) =>
-    `<li>
-      <button type="button" id="offer-exec-profile-${escapeHtml(e.user_id)}" class="exec-profile-row"
+  const rowHtml = (e: { user_id: string; initials: string; avatar_emoji?: string | null }) => {
+    const avatar = buildExecutorAvatarHtml({
+      avatar_emoji: e.avatar_emoji,
+      sizeClass: 'w-9 h-9',
+      emojiTextClass: 'text-xl'
+    });
+    return `<li>
+      <button type="button" id="offer-exec-profile-${escapeHtml(e.user_id)}" class="exec-profile-row flex items-center gap-2 w-full text-left"
         data-offer="${escapeHtml(offer.id)}" data-uid="${escapeHtml(e.user_id)}">
-        <span class="font-mono text-xs text-slate-500 break-all">${escapeHtml(e.user_id)}</span>
-        <span class="text-slate-400">·</span>
-        <span class="font-semibold tracking-wide text-slate-900">${escapeHtml(e.initials)}</span>
+        ${avatar}
+        <span class="min-w-0 flex-1">
+          <span class="font-mono text-xs text-slate-500 break-all block">${escapeHtml(e.user_id)}</span>
+          <span class="font-semibold tracking-wide text-slate-900">${escapeHtml(e.initials)}</span>
+        </span>
       </button>
     </li>`;
+  };
 
   sectionsEl.innerHTML = subsections
     .filter((s) => s.rows.length > 0)

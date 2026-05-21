@@ -4,6 +4,7 @@ import { apiService } from '../services/api.js';
 import { router } from '../router/index.js';
 import { getRole } from '../utils/auth.js';
 import type { UserStatistics, MeUser, Offer, Application } from '../types/index.js';
+import { applyExecutorAvatarToElement } from '../utils/executorAvatar.js';
 import { devLog } from '../utils/logger.js';
 import { getRecentOffers } from '../utils/recentOffers.js';
 
@@ -389,42 +390,16 @@ export async function createProfilePage(): Promise<HTMLElement> {
 
   // Настраиваем обработчики событий
   setupEventHandlers(page);
-  
-  // Устанавливаем случайный эмодзи животного в аватар
-  setRandomAnimalEmoji(page);
+
+  if (!isEmployer) {
+    applyExecutorAvatarToElement(page.querySelector('#user-avatar') as HTMLElement, meUser?.avatar_emoji);
+  }
 
   if (isEmployer) {
     void import('../utils/employerInboxBadge.js').then(({ refreshEmployerInboxBadge }) => refreshEmployerInboxBadge());
   }
 
   return page;
-}
-
-// Функция установки случайного эмодзи животного
-function setRandomAnimalEmoji(page: HTMLElement) {
-  const animalEmojis = [
-    '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯',
-    '🦁', '🐮', '🐷', '🐽', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒',
-    '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇',
-    '🐺', '🐗', '🐴', '🦄', '🐝', '🐛', '🦋', '🐌', '🐞', '🐜',
-    '🐢', '🐍', '🦎', '🦖', '🦕', '🐙', '🦑', '🦐', '🦀', '🐡',
-    '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆', '🦓',
-    '🦍', '🦧', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒', '🦘', '🦡',
-    '🦔', '🐾', '🦃', '🦤', '🦚', '🦜', '🦢', '🦩', '🕊️', '🐇',
-    '🐿️', '🦨', '🦦', '🦥', '🦫', '🐀', '🐁', '🐂', '🐃', '🐄',
-    '🐖', '🐏', '🐑', '🐐', '🦌', '🐕', '🐩', '🐈', '🐈‍⬛', '🪶'
-  ];
-  
-  // Выбираем случайный эмодзи
-  const randomEmoji = animalEmojis[Math.floor(Math.random() * animalEmojis.length)];
-  
-  // Находим элемент аватара и устанавливаем эмодзи
-  const avatarElement = page.querySelector('#user-avatar') as HTMLElement;
-  if (avatarElement) {
-    avatarElement.textContent = randomEmoji;
-    // Убираем серый фон, так как теперь есть эмодзи
-    avatarElement.classList.remove('bg-slate-200');
-  }
 }
 
 function setupEventHandlers(page: HTMLElement) {

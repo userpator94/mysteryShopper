@@ -5,6 +5,7 @@ import { apiService } from '../services/api.js';
 import type { EmployerReportListItem } from '../types/index.js';
 import { reportStatusLabel } from '../utils/reportViewContent.js';
 import { listRowCardClasses, bindListRowCardHover } from '../utils/listRowUi.js';
+import { buildExecutorAvatarHtml } from '../utils/executorAvatar.js';
 
 export async function createOfferReportsListPage(offerId: string): Promise<HTMLElement> {
   const page = document.createElement('div');
@@ -71,6 +72,11 @@ export async function createOfferReportsListPage(offerId: string): Promise<HTMLE
             const d1 = r.submitted_at ? new Date(r.submitted_at).toLocaleString('ru-RU') : '—';
             const d2 = r.task_completed_at ? new Date(r.task_completed_at).toLocaleString('ru-RU') : '—';
             const exec = r.executor_label || 'Исполнитель';
+            const avatar = buildExecutorAvatarHtml({
+              avatar_emoji: r.executor_avatar_emoji,
+              sizeClass: 'w-9 h-9',
+              emojiTextClass: 'text-xl'
+            });
             const execId = r.executor_user_id;
             const stRaw = r.report_status || '';
             const st = reportStatusLabel(stRaw, 'employer');
@@ -87,7 +93,10 @@ export async function createOfferReportsListPage(offerId: string): Promise<HTMLE
             return `
             <div class="relative w-full text-left report-row ${listRowCardClasses('p-3')}" data-rid="${r.id}" role="button" tabindex="0">
               <div class="flex justify-between gap-2 items-start">
-                <span class="font-medium text-slate-800 min-w-0 pr-2">${escapeHtml(exec)}</span>
+                <span class="flex items-center gap-2 font-medium text-slate-800 min-w-0 pr-2">
+                  ${avatar}
+                  <span class="min-w-0">${escapeHtml(exec)}</span>
+                </span>
                 <span class="flex items-center gap-1 shrink-0">
                   ${profileBtn}
                   <span class="text-xs text-slate-500 whitespace-nowrap">${escapeHtml(d1)}</span>

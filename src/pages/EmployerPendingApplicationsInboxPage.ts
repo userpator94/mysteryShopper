@@ -11,6 +11,7 @@ import {
 } from '../utils/employerExecutorProfileUi.js';
 import type { InboxApplicationRow } from '../types/index.js';
 import { listRowCardClasses, bindListRowCardHover } from '../utils/listRowUi.js';
+import { buildExecutorAvatarHtml } from '../utils/executorAvatar.js';
 
 function formatAppliedAt(iso: string | undefined): string {
   if (!iso) return '—';
@@ -93,6 +94,11 @@ export async function createEmployerPendingApplicationsInboxPage(): Promise<HTML
       .map((row) => {
         const aid = escapeHtml(row.application_id);
         const exec = row.executor_label || 'Исполнитель';
+        const avatar = buildExecutorAvatarHtml({
+          avatar_emoji: row.executor_avatar_emoji,
+          sizeClass: 'w-10 h-10',
+          emojiTextClass: 'text-xl'
+        });
         return `
           <div
             id="pending-app-row-${aid}"
@@ -104,7 +110,10 @@ export async function createEmployerPendingApplicationsInboxPage(): Promise<HTML
             data-user-id="${escapeHtml(row.user_id)}"
           >
             <p class="font-semibold text-slate-900">${escapeHtml(row.offer_title || 'Задача')}</p>
-            <p class="text-sm text-slate-700 mt-1">${escapeHtml(exec)}</p>
+            <div class="flex items-center gap-2 mt-1">
+              ${avatar}
+              <p class="text-sm text-slate-700 min-w-0">${escapeHtml(exec)}</p>
+            </div>
             <p class="text-xs text-slate-500 mt-1">Отклик: ${escapeHtml(formatAppliedAt(row.applied_at))}</p>
           </div>
         `;

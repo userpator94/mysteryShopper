@@ -3,6 +3,7 @@
 import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
 import { listRowCardClasses, bindListRowCardHover } from '../utils/listRowUi.js';
+import { buildExecutorAvatarHtml } from '../utils/executorAvatar.js';
 
 function escapeHtml(s: string): string {
   const d = document.createElement('div');
@@ -50,6 +51,11 @@ export async function createEmployerPendingReportsInboxPage(): Promise<HTMLEleme
       .map((r) => {
         const d1 = r.submitted_at ? new Date(r.submitted_at).toLocaleString('ru-RU') : '—';
         const exec = r.executor_label || 'Исполнитель';
+        const avatar = buildExecutorAvatarHtml({
+          avatar_emoji: r.executor_avatar_emoji,
+          sizeClass: 'w-9 h-9',
+          emojiTextClass: 'text-xl'
+        });
         const oid = escapeHtml(r.offer_id);
         const rid = escapeHtml(r.id);
         return `
@@ -58,7 +64,10 @@ export async function createEmployerPendingReportsInboxPage(): Promise<HTMLEleme
               ${escapeHtml(r.offer_title || 'Задача')}
             </button>
             <div class="flex justify-between gap-2 items-start">
-              <span class="text-sm text-slate-800">${escapeHtml(exec)}</span>
+              <span class="flex items-center gap-2 text-sm text-slate-800 min-w-0">
+                ${avatar}
+                <span class="min-w-0">${escapeHtml(exec)}</span>
+              </span>
               <span class="text-xs text-slate-500 shrink-0">${escapeHtml(d1)}</span>
             </div>
           </div>

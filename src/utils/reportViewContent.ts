@@ -1,4 +1,5 @@
 import type { ChecklistItem, EmployerReportListItem } from '../types/index.js';
+import { buildExecutorAvatarHtml } from './executorAvatar.js';
 
 export function escapeHtml(s: string): string {
   const d = document.createElement('div');
@@ -78,7 +79,14 @@ export function buildReportReadOnlyBodyHtml(
   const showExec = options?.showExecutorLabel !== false && r.executor_label;
   const parts: string[] = [];
   if (showExec) {
-    parts.push(`<p class="text-sm text-slate-600">${escapeHtml(r.executor_label!)}</p>`);
+    const avatar = buildExecutorAvatarHtml({
+      avatar_emoji: r.executor_avatar_emoji,
+      sizeClass: 'w-10 h-10',
+      emojiTextClass: 'text-xl'
+    });
+    parts.push(
+      `<div class="flex items-center gap-2 text-sm text-slate-600">${avatar}<span>${escapeHtml(r.executor_label!)}</span></div>`
+    );
   }
   parts.push(
     `<p class="text-xs text-slate-500">Отчёт от ${escapeHtml(fmtReportSubmittedAt(r.submitted_at))}</p>`

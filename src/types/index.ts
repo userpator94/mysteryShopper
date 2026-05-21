@@ -11,6 +11,8 @@ export interface MeUser {
   email: string;
   phone: string;
   role: UserRole;
+  /** Эмодзи-аватар исполнителя (закреплён при регистрации) */
+  avatar_emoji?: string | null;
   company?: string;
   description?: string;
   website?: string;
@@ -129,11 +131,11 @@ export interface Offer {
   /** null — без лимита мест; иначе свободные места */
   available_slots: number | null;
   /** Только для владельца: заявки в статусе pending */
-  executors_pending?: Array<{ user_id: string; initials: string }>;
+  executors_pending?: Array<{ user_id: string; initials: string; avatar_emoji?: string | null }>;
   /** Только для владельца: приняты, отчёта ещё нет */
-  executors_in_work?: Array<{ user_id: string; initials: string }>;
+  executors_in_work?: Array<{ user_id: string; initials: string; avatar_emoji?: string | null }>;
   /** Только для владельца: есть отправленный отчёт по задаче */
-  executors_reported?: Array<{ user_id: string; initials: string }>;
+  executors_reported?: Array<{ user_id: string; initials: string; avatar_emoji?: string | null }>;
   /** API может вернуть string или string[] (например ["[задача", "сложная", "деньги]"]) */
   tags?: string | string[];
   checklist_schema?: ChecklistSchema | null;
@@ -162,6 +164,7 @@ export interface EmployerReportListItem {
   checklist_schema_snapshot: ChecklistSchema | null;
   photos: unknown;
   executor_label?: string;
+  executor_avatar_emoji?: string | null;
   /** id исполнителя (заказчик) — для ссылки на профиль */
   executor_user_id?: string;
   /** Устаревшее значение фронта; API: pending_review | approved | rejected */
@@ -189,6 +192,7 @@ export interface InboxApplicationRow extends OfferApplicationRow {
   offer_start_date?: string;
   offer_end_date?: string;
   executor_label?: string;
+  executor_avatar_emoji?: string | null;
 }
 
 /** Отчёт во входящих заказчика (GET /api/my/inbox/pending-reports) */
@@ -210,6 +214,7 @@ export interface EmployerExecutorProfile {
   masked_name: string;
   executor_label: string;
   avatar_url: string | null;
+  avatar_emoji: string | null;
   registered_at: string;
   /** IANA или null, если в БД нет поля */
   executor_timezone: string | null;

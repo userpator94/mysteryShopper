@@ -1,4 +1,5 @@
 import type { EmployerExecutorProfile } from '../types/index.js';
+import { buildExecutorAvatarHtml } from './executorAvatar.js';
 
 export function escapeHtml(s: string): string {
   const el = document.createElement('div');
@@ -43,9 +44,10 @@ export async function copyToClipboard(text: string): Promise<boolean> {
 }
 
 export function buildEmployerExecutorProfileHtml(p: EmployerExecutorProfile): string {
-  const avatarBlock = p.avatar_url
-    ? `<img src="${escapeHtml(p.avatar_url)}" alt="" class="w-16 h-16 rounded-full object-cover border border-slate-200" />`
-    : `<div class="w-16 h-16 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-2xl font-semibold border border-slate-200" aria-hidden="true">?</div>`;
+  const avatarBlock = buildExecutorAvatarHtml({
+    avatar_url: p.avatar_url,
+    avatar_emoji: p.avatar_emoji
+  });
 
   const badge = p.worked_with_this_employer
     ? `<span class="inline-flex items-center rounded-full bg-emerald-50 text-emerald-900 text-xs font-semibold px-2.5 py-1 border border-emerald-200">Уже работал с вами</span>`
