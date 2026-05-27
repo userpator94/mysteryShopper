@@ -250,12 +250,14 @@ router.addRoute({
 
 // Инициализация: загружаем профиль для роли и обновляем навигацию
 ;(async () => {
-  router.initialize()
   if (isAuthenticated()) {
     try {
       await apiService.getMe()
-    } catch (_) { /* 401 — роль не обновится */ }
+    } catch (e) {
+      console.error('Ошибка загрузки профиля при старте:', e)
+    }
     updateNavByRole()
     void refreshEmployerInboxBadge()
   }
+  router.initialize()
 })()

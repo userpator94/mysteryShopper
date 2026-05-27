@@ -56,7 +56,12 @@ function formatLocalDateTime(iso: string | null | undefined): string {
   });
 }
 
+function isAppNeedsRevision(app: Application): boolean {
+  return app.report_status === 'rejected' && Boolean(app.can_resubmit);
+}
+
 function isAppCompleted(app: Application): boolean {
+  if (isAppNeedsRevision(app)) return false;
   if (app.has_report) return true;
   const s = (app.status || '').toLowerCase();
   return s === 'completed' || s === 'done';
@@ -67,12 +72,28 @@ function isAppPendingApproval(app: Application): boolean {
   return (app.status || '').toLowerCase() === 'pending';
 }
 
-/** Задача в работе: одобрена, отчёт ещё не отправлен. */
+/** Задача в работе: одобрена, отчёт ещё не отправлен или требует доработки. */
 function isAppActiveTask(app: Application): boolean {
+  if (isAppNeedsRevision(app)) return true;
   if (app.has_report) return false;
   const s = (app.status || '').toLowerCase();
   if (s === 'rejected' || s === 'cancelled' || s === 'pending') return false;
   return s === 'approved' || s === 'in_progress' || s === 'accepted';
+}
+
+type MeLoadError = '429' | 'network' | 'other' | null;
+
+function classifyMeError(error: unknown): MeLoadError {
+  const e = error as { status?: number; message?: string; name?: string };
+  if (e?.status === 429) return '429';
+  if (
+    e?.name === 'TypeError' ||
+    (typeof e?.message === 'string' &&
+      (e.message.includes('Failed to fetch') || e.message.includes('NetworkError')))
+  ) {
+    return 'network';
+  }
+  return 'other';
 }
 
 type ActivityItem = { at: string; text: string };
@@ -130,10 +151,12 @@ export async function createProfilePage(): Promise<HTMLElement> {
   let myApplies: Application[] | null = null;
   let rewardsSummary: { total_earned?: number; balance?: number; total_count?: number } | null = null;
   let employerInboxCounts: { pending_applications: number; pending_reports: number } | null = null;
+  let meLoadError: MeLoadError = null;
   try {
     meUser = (await apiService.getMe()).data;
-  } catch (_) {
-    /* 401 или сеть */
+  } catch (error) {
+    meLoadError = classifyMeError(error);
+    console.error('Ошибка загрузки профиля getMe:', error);
   }
   const isEmployer = getRole() === 'employer';
   if (isEmployer) {
@@ -168,10 +191,28 @@ export async function createProfilePage(): Promise<HTMLElement> {
 
   const fromMe = meUser ? `${meUser.name || ''} ${meUser.surname || ''}`.trim() : '';
   const fromStats = userStats ? `${userStats.name || ''} ${userStats.surname || ''}`.trim() : '';
-  const displayName = fromMe || fromStats || 'Загрузка...';
-  const displayEmail = meUser?.email ?? userStats?.email ?? 'Загрузка...';
-  const displayPhone = meUser?.phone ?? userStats?.phone ?? 'Загрузка...';
+  const displayName = fromMe || fromStats || '—';
+  const displayEmail = meUser?.email ?? userStats?.email ?? '—';
+  const displayPhone = meUser?.phone ?? userStats?.phone ?? '—';
   const displayUserId = meUser?.id ?? userStats?.user_id ?? '';
+
+  const meErrorBanner =
+    meLoadError && !meUser
+      ? `<div id="profile-me-error" class="mb-3 rounded-lg border px-3 py-2 text-sm ${
+          meLoadError === '429'
+            ? 'border-amber-200 bg-amber-50 text-amber-900'
+            : 'border-red-200 bg-red-50 text-red-800'
+        }">
+          ${
+            meLoadError === '429'
+              ? 'Слишком много запросов. Подождите немного и обновите страницу.'
+              : meLoadError === 'network'
+                ? 'Не удалось загрузить профиль. Проверьте подключение к интернету.'
+                : 'Не удалось загрузить данные профиля.'
+          }
+          <button type="button" id="profile-retry-me" class="mt-2 block text-sm font-semibold text-primary hover:underline">Повторить</button>
+        </div>`
+      : '';
 
   const employerDash = isEmployer
     ? (() => {
@@ -213,7 +254,11 @@ export async function createProfilePage(): Promise<HTMLElement> {
     if (myApplies) {
       for (const a of myApplies) {
         if (a.applied_at) historyItems.push({ at: a.applied_at, label: `Откликнулись на задачу` });
-        if (a.has_report) historyItems.push({ at: a.approved_at || a.applied_at, label: `Отчёт отправлен` });
+        if (isAppNeedsRevision(a)) {
+          historyItems.push({ at: a.approved_at || a.applied_at, label: `Отчёт отклонён — требуется доработка` });
+        } else if (a.has_report) {
+          historyItems.push({ at: a.approved_at || a.applied_at, label: `Отчёт отправлен` });
+        }
       }
     }
   }
@@ -232,6 +277,7 @@ export async function createProfilePage(): Promise<HTMLElement> {
         <main class="pb-28">
           <div class="px-4 py-2">
             <div id="user-info-block" class="bg-white rounded-lg p-4 border border-slate-200 mb-3">
+              ${meErrorBanner}
               <div class="flex items-center gap-3 mb-3">
                 <div id="user-avatar" class="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center text-4xl leading-none"></div>
                 <div class="min-w-0 text-left">
@@ -431,6 +477,10 @@ function setupEventHandlers(page: HTMLElement) {
   // Обработчик кнопки выхода из аккаунта
   const logoutButton = page.querySelector('#logout-button') as HTMLButtonElement;
   logoutButton?.addEventListener('click', handleLogout);
+
+  page.querySelector('#profile-retry-me')?.addEventListener('click', () => {
+    void apiService.getMe({ force: true }).then(() => router.navigate('/profile'));
+  });
 
   // Copy-to-clipboard (ID и т.п.)
   page.querySelectorAll<HTMLElement>('[data-copy-text]').forEach((el) => {

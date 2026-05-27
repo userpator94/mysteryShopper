@@ -356,6 +356,9 @@ export interface Application {
   approved_at?: string;
   has_report?: boolean;
   employer_decision_comment?: string;
+  report_status?: ApiReportStatus | string;
+  employer_review_comment?: string;
+  can_resubmit?: boolean;
 }
 
 export interface ApplicationsResponse {

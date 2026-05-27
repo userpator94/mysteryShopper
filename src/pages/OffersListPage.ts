@@ -40,13 +40,19 @@ function latestAppByOffer(apps: Application[]): Map<string, Application> {
   return m;
 }
 
+function isApplicationNeedsRevision(app: Application): boolean {
+  return app.report_status === 'rejected' && Boolean(app.can_resubmit);
+}
+
 function isApplicationCompleted(app: Application): boolean {
+  if (isApplicationNeedsRevision(app)) return false;
   if (app.has_report) return true;
   const s = (app.status || '').toLowerCase();
   return s === 'completed' || s === 'done';
 }
 
 function isApplicationInProgress(app: Application): boolean {
+  if (isApplicationNeedsRevision(app)) return true;
   if (isApplicationCompleted(app)) return false;
   const s = (app.status || '').toLowerCase();
   return s === 'pending' || s === 'approved' || s === 'in_progress' || s === 'accepted';
@@ -255,14 +261,17 @@ export async function createOffersListPage(): Promise<HTMLElement> {
   return page;
 }
 
-function renderOfferCard(offer: Offer, variant: 'default' | 'completed'): string {
+function renderOfferCard(offer: Offer, variant: 'default' | 'completed', app?: Application): string {
   const priceStr = formatExecutorMoneyRewardShort(offer);
   const rk = inferRewardKind(offer);
   const badge = REWARD_LABELS[rk] || rk;
+  const needsRevision = app ? isApplicationNeedsRevision(app) : false;
   const doneBadge =
-    variant === 'completed'
-      ? '<span class="text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-2 py-0.5">Отчёт отправлен</span>'
-      : '';
+    needsRevision
+      ? '<span class="text-xs font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-0.5">Требует доработки</span>'
+      : variant === 'completed'
+        ? '<span class="text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-2 py-0.5">Отчёт отправлен</span>'
+        : '';
   return `
     <div class="${listRowCardClasses('p-4')}" data-offer-id="${offer.id}">
       <div class="flex justify-between items-start gap-2 mb-2">
@@ -376,10 +385,12 @@ async function loadOffers(page: HTMLElement) {
       acceptedSection.classList.toggle('bg-white', acc.length === 0);
     }
 
+    const byOffer = latestAppByOffer(applications);
+
     if (acceptedContainer) {
       acceptedContainer.innerHTML =
         acc.length > 0
-          ? acc.map((o) => renderOfferCard(o, 'default')).join('')
+          ? acc.map((o) => renderOfferCard(o, 'default', byOffer.get(o.id))).join('')
           : '<p class="text-slate-500 text-center py-4">Нет принятых заданий</p>';
     }
     if (availableContainer) {

@@ -24,6 +24,30 @@ async function renderReportInto(
   reportRef.current = r;
   const body = buildReportReadOnlyBodyHtml(r, { showExecutorLabel: true });
   const meta = buildReportStatusAndDisclaimerHtml(r, { audience: 'employer' });
+
+  let resubmitHint = '';
+  if (r.report_status === 'rejected') {
+    try {
+      const offer = await apiService.getOfferById(offerId);
+      const endLabel = offer.end_date
+        ? new Date(offer.end_date).toLocaleDateString('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+          })
+        : 'окончания срока задачи';
+      resubmitHint = `<div class="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-slate-800">
+        <p class="font-medium text-blue-900 mb-1">Что дальше?</p>
+        <p>Исполнитель может отправить исправленный отчёт до ${endLabel}. После этого отчёт снова появится у вас на проверке.</p>
+      </div>`;
+    } catch {
+      resubmitHint = `<div class="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-slate-800">
+        <p class="font-medium text-blue-900 mb-1">Что дальше?</p>
+        <p>Исполнитель может отправить исправленный отчёт в рамках срока задачи. После этого отчёт снова появится у вас на проверке.</p>
+      </div>`;
+    }
+  }
+
   const profileBtn =
     r.executor_user_id != null && String(r.executor_user_id).length > 0
       ? `<p class="pt-2"><button type="button" id="exec-profile-link" class="text-sm font-semibold text-primary hover:underline">Профиль исполнителя</button></p>`
@@ -44,7 +68,7 @@ async function renderReportInto(
         </div>`
       : '';
 
-  container.innerHTML = `<div class="read-only-report space-y-3">${profileBtn}${body}${reviewPanel}${meta}</div>`;
+  container.innerHTML = `<div class="read-only-report space-y-3">${profileBtn}${body}${reviewPanel}${resubmitHint}${meta}</div>`;
 
   container.querySelector('#exec-profile-link')?.addEventListener('click', () => {
     router.navigate(`/my-offers/${offerId}/executor/${r.executor_user_id}`);

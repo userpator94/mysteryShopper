@@ -23,6 +23,9 @@ const detailMapHandles = new WeakMap<HTMLElement, { destroy: () => void }>();
 const REPORT_IRREVERSIBLE_MSG =
   'Отправка отчёта — необратимое действие. После отправки вы не сможете изменить отчёт. Продолжить?';
 
+const REPORT_RESUBMIT_MSG =
+  'Отправить исправленный отчёт? После отправки заказчик снова получит его на проверку.';
+
 /** Попап подтверждения досрочного завершения задачи (необратимо). */
 function showCloseEarlyConfirmModal(): Promise<boolean> {
   return new Promise((resolve) => {
@@ -634,7 +637,9 @@ function setupEventHandlers(page: HTMLElement, offerId: string) {
 
   const reportBtn = page.querySelector('#report-btn');
   reportBtn?.addEventListener('click', () => {
-    if (!confirm(REPORT_IRREVERSIBLE_MSG)) return;
+    const isResubmit = reportBtn.getAttribute('data-resubmit') === '1';
+    const msg = isResubmit ? REPORT_RESUBMIT_MSG : REPORT_IRREVERSIBLE_MSG;
+    if (!confirm(msg)) return;
     router.navigate(`/report/${offerId}`);
   });
 
@@ -749,9 +754,12 @@ async function checkAndSetApplyStatus(offerId: string, page: HTMLElement, offer:
       if (applyBlock) applyBlock.classList.add('hidden');
       const app = application as Application;
       const hasReport = Boolean(app.has_report);
+      const reportStatus = String(app.report_status || '').toLowerCase();
+      const canResubmit = Boolean(app.can_resubmit);
+      const reportRejected = reportStatus === 'rejected';
       const st = (app.status || '').toLowerCase();
       const taskDoneByReportOrStatus =
-        hasReport || st === 'completed' || st === 'done' || st === 'rejected';
+        (hasReport && !canResubmit) || st === 'completed' || st === 'done' || st === 'rejected';
       if (cancelApplyBtn) {
         cancelApplyBtn.classList.toggle('hidden', taskDoneByReportOrStatus);
         setCancelApplyButtonLabel(cancelApplyBtn, st);
@@ -763,11 +771,46 @@ async function checkAndSetApplyStatus(offerId: string, page: HTMLElement, offer:
         st === 'done' ||
         st === 'completed';
       const taskInPeriod = isOfferInPeriod(offer);
-      const canReport = canReportStatus && taskInPeriod && !hasReport;
-      if (reportBtn) reportBtn.classList.toggle('hidden', !canReport);
+      const canReport = canReportStatus && taskInPeriod && (!hasReport || canResubmit);
+      if (reportBtn) {
+        reportBtn.classList.toggle('hidden', !canReport);
+        reportBtn.textContent = canResubmit ? 'Исправить отчёт' : 'Отчитаться';
+        if (canResubmit) {
+          reportBtn.setAttribute('data-resubmit', '1');
+        } else {
+          reportBtn.removeAttribute('data-resubmit');
+        }
+      }
       if (viewReportBtn) viewReportBtn.classList.toggle('hidden', !hasReport);
       if (reportSentNote) {
-        reportSentNote.classList.toggle('hidden', !hasReport);
+        if (hasReport && reportRejected) {
+          const comment = app.employer_review_comment?.trim();
+          reportSentNote.className =
+            'text-center text-sm rounded-lg py-2 px-3 border ' +
+            (canResubmit
+              ? 'text-amber-900 bg-amber-50 border-amber-200'
+              : 'text-slate-700 bg-slate-50 border-slate-200');
+          reportSentNote.innerHTML = canResubmit
+            ? `<span class="font-medium">Отчёт отклонён заказчиком.</span>${
+                comment
+                  ? `<span class="mt-2 block text-slate-700 whitespace-pre-wrap">${escapeHtml(comment)}</span>`
+                  : ''
+              }<span class="mt-2 block">Исправьте отчёт и отправьте снова до окончания срока задачи.</span>`
+            : `<span class="font-medium">Отчёт отклонён.</span>${
+                comment
+                  ? `<span class="mt-2 block text-slate-700 whitespace-pre-wrap">${escapeHtml(comment)}</span>`
+                  : ''
+              }<span class="mt-2 block">Срок задачи истёк — доработка недоступна.</span>`;
+          reportSentNote.classList.remove('hidden');
+        } else if (hasReport) {
+          reportSentNote.className =
+            'text-center text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg py-2 px-3';
+          reportSentNote.textContent =
+            'Отчёт по этой задаче уже отправлен. Повторная отправка недоступна.';
+          reportSentNote.classList.remove('hidden');
+        } else {
+          reportSentNote.classList.add('hidden');
+        }
       }
       const status = (application as Application).status?.toLowerCase?.() ?? (application as any).status ?? '';
       const applyHint = page.querySelector('#apply-hint') as HTMLElement;

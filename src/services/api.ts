@@ -30,6 +30,8 @@ export class ApiService {
   private static instance: ApiService;
   private cache = new Map<string, { data: any; timestamp: number }>();
   private readonly CACHE_DURATION = 30000; // 30 секунд
+  private meCache: { data: MeUser; timestamp: number } | null = null;
+  private readonly ME_CACHE_DURATION = 60000; // 60 секунд
   
   private constructor() {}
   
@@ -95,6 +97,12 @@ export class ApiService {
       // Очищаем весь кэш
       this.cache.clear();
     }
+    this.meCache = null;
+  }
+
+  public invalidateMeCache(): void {
+    this.meCache = null;
+    this.clearCache('/me');
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}, requireAuth: boolean = true): Promise<T> {
@@ -184,6 +192,7 @@ export class ApiService {
         }
         const err = new Error(errorMessage);
         (err as any).code = errorData.error?.code;
+        (err as any).status = response.status;
         throw err;
       } catch (error: any) {
         if (error.message && error.message.includes('технические работы')) {
@@ -193,7 +202,9 @@ export class ApiService {
         if (error.message && !error.message.startsWith('API request failed')) {
           throw error;
         }
-        throw new Error(`Ошибка запроса: ${response.status} ${response.statusText}`);
+        const err = new Error(`Ошибка запроса: ${response.status} ${response.statusText}`);
+        (err as any).status = response.status;
+        throw err;
       }
     }
     
@@ -560,10 +571,21 @@ export class ApiService {
   }
 
   /** GET /api/me — профиль текущего пользователя (роль, для employer — company и т.д.) */
-  public async getMe(): Promise<{ success: boolean; data: MeUser }> {
+  public async getMe(options?: { force?: boolean }): Promise<{ success: boolean; data: MeUser }> {
+    if (
+      !options?.force &&
+      this.meCache &&
+      Date.now() - this.meCache.timestamp < this.ME_CACHE_DURATION
+    ) {
+      devLog.log('Используем кэшированный профиль me');
+      return { success: true, data: this.meCache.data };
+    }
     const data = await this.request<{ success: boolean; data: MeUser }>('/me');
     if (data.data?.role === 'user' || data.data?.role === 'employer') {
       setRole(data.data.role);
+    }
+    if (data.data) {
+      this.meCache = { data: data.data, timestamp: Date.now() };
     }
     return data;
   }
@@ -625,7 +647,7 @@ export class ApiService {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('user_id');
       clearRole();
-      this.clearCache();
+      this.invalidateMeCache();
     }
   }
 
@@ -702,6 +724,7 @@ export class ApiService {
     }
 
     const data = await this.parseResponse(response);
+    this.clearCache('/applies');
     return data;
   }
 

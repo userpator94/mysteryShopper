@@ -15,6 +15,9 @@ const REPORT_FORM_URL = 'https://forms.yandex.ru/cloud/692847d4d046889383c04c34'
 const SUBMIT_REPORT_CONFIRM =
   'Отправить отчёт? Это необратимо: после отправки изменить отчёт будет нельзя.';
 
+const RESUBMIT_REPORT_CONFIRM =
+  'Отправить исправленный отчёт? После отправки заказчик снова получит его на проверку.';
+
 export async function createReportPage(offerId: string): Promise<HTMLElement> {
   const page = document.createElement('div');
   page.className = 'report-page';
@@ -155,14 +158,27 @@ async function loadOfferInfo(page: HTMLElement, offerId: string) {
       showState(blockedState, [errorState, reportContent]);
       return;
     }
-    if (application.has_report) {
+    if (application.has_report && !application.can_resubmit) {
       hideState(loadingState);
       const msg = page.querySelector('#blocked-message') as HTMLElement;
-      if (msg) msg.textContent = 'Отчёт по этому заданию уже отправлен. Повторная отправка недоступна.';
+      const reportStatus = String(application.report_status || '').toLowerCase();
+      if (reportStatus === 'rejected') {
+        const dec = application.employer_review_comment?.trim();
+        if (msg) {
+          msg.innerHTML = dec
+            ? `<span class="font-medium">Отчёт отклонён.</span><br/><span class="mt-2 block whitespace-pre-wrap text-slate-700">${escapeHtml(dec)}</span><br/><span class="mt-2 block">Срок задачи истёк — доработка недоступна.</span>`
+            : 'Отчёт отклонён. Срок задачи истёк — доработка недоступна.';
+        }
+      } else if (msg) {
+        msg.textContent = 'Отчёт по этому заданию уже отправлен. Повторная отправка недоступна.';
+      }
       page.querySelector('#blocked-view-report-btn')?.classList.remove('hidden');
       showState(blockedState, [errorState, reportContent]);
       return;
     }
+
+    const isResubmit = Boolean(application.has_report && application.can_resubmit);
+    page.dataset.resubmitMode = isResubmit ? '1' : '0';
 
     const appStatus = String(application.status || '').toLowerCase();
     if (appStatus === 'pending') {
@@ -196,6 +212,19 @@ async function loadOfferInfo(page: HTMLElement, offerId: string) {
     renderOfferInfo(offer, page);
     renderReportForm(offer, page);
 
+    if (isResubmit) {
+      const submitBtn = page.querySelector('#submit-report-btn') as HTMLButtonElement | null;
+      if (submitBtn) submitBtn.textContent = 'Отправить исправленный отчёт';
+      const instr = page.querySelector('#report-content .bg-blue-50 .text-blue-800') as HTMLElement | null;
+      if (instr) {
+        const dec = application.employer_review_comment?.trim();
+        instr.innerHTML = dec
+          ? `<span class="font-medium">Доработка отчёта.</span> Заказчик отклонил предыдущую версию:<br/><span class="mt-2 block whitespace-pre-wrap">${escapeHtml(dec)}</span><br/><span class="mt-2 block">Исправьте ответы и отправьте снова. Для пунктов с фото нужно заново прикрепить изображения.</span>`
+          : 'Исправьте отчёт по комментарию заказчика и отправьте снова. Для пунктов с фото нужно заново прикрепить изображения.';
+      }
+      await prefillReportForm(page, offerId, offer);
+    }
+
     // Показываем контент
     showState(reportContent, [errorState, blockedState]);
 
@@ -224,6 +253,54 @@ function renderOfferInfo(offer: Offer, page: HTMLElement) {
     compensationEl.innerHTML = lines.map((p) => `<p>${escapeHtml(p)}</p>`).join('');
   }
   if (companyEl) companyEl.textContent = offer.employer_company || 'Компания не указана';
+}
+
+async function prefillReportForm(page: HTMLElement, offerId: string, offer: Offer): Promise<void> {
+  try {
+    const r = await apiService.getMyOfferReport(offerId);
+    const schema = offer.checklist_schema as ChecklistSchema | null | undefined;
+    const hasChecklist = Boolean(schema?.items && schema.items.length > 0);
+    if (!hasChecklist) {
+      const ratingEl = page.querySelector('#report-rating') as HTMLSelectElement | null;
+      if (ratingEl && r.rating != null) ratingEl.value = String(r.rating);
+      const descEl = page.querySelector('#report-description') as HTMLTextAreaElement | null;
+      const fb = r.feedback as { comment?: string } | null;
+      const comment = r.comments?.trim() || fb?.comment?.trim() || '';
+      if (descEl && comment) descEl.value = comment;
+      return;
+    }
+    const answers = r.checklist_answers;
+    if (!answers || !schema?.items) return;
+    for (const item of schema.items) {
+      const val = answers[item.id];
+      if (val === undefined || val === null) continue;
+      const ty = normalizeChecklistItemType(item.type);
+      if (ty === 'boolean') {
+        const el = page.querySelector(`input.checklist-bool[data-item-id="${CSS.escape(item.id)}"]`) as HTMLInputElement | null;
+        if (el) el.checked = Boolean(val);
+      } else if (ty === 'scale_1_5') {
+        const n = typeof val === 'number' ? val : parseInt(String(val), 10);
+        const el = page.querySelector(
+          `input.checklist-scale[data-item-id="${CSS.escape(item.id)}"][value="${n}"]`
+        ) as HTMLInputElement | null;
+        if (el) el.checked = true;
+      } else if (ty === 'text') {
+        const el = page.querySelector(`textarea.checklist-text[data-item-id="${CSS.escape(item.id)}"]`) as HTMLTextAreaElement | null;
+        if (el) el.value = String(val);
+      } else if (ty === 'single_choice') {
+        const el = page.querySelector(
+          `input.checklist-choice[data-item-id="${CSS.escape(item.id)}"][value="${CSS.escape(String(val))}"]`
+        ) as HTMLInputElement | null;
+        if (el) el.checked = true;
+      } else if (ty === 'photo_text') {
+        const obj = typeof val === 'object' && val !== null ? (val as { explanation?: string }) : null;
+        const el = page.querySelector(`textarea.checklist-photo-text[data-item-id="${CSS.escape(item.id)}"]`) as HTMLTextAreaElement | null;
+        if (el && obj?.explanation) el.value = obj.explanation;
+      }
+    }
+  } catch (e) {
+    console.warn('Не удалось предзаполнить форму отчёта:', e);
+  }
 }
 
 function renderReportForm(offer: Offer, page: HTMLElement) {
@@ -434,7 +511,8 @@ function setupEventHandlers(page: HTMLElement, offerId: string) {
 
   const submitBtn = page.querySelector('#submit-report-btn');
   submitBtn?.addEventListener('click', async () => {
-    if (!confirm(SUBMIT_REPORT_CONFIRM)) return;
+    const isResubmit = page.dataset.resubmitMode === '1';
+    if (!confirm(isResubmit ? RESUBMIT_REPORT_CONFIRM : SUBMIT_REPORT_CONFIRM)) return;
 
     const userId = getUserId();
     if (!userId) {
@@ -501,7 +579,7 @@ function setupEventHandlers(page: HTMLElement, offerId: string) {
           checklistPhotoItemIds: checklistPhotoItemIds.length ? checklistPhotoItemIds : undefined
         });
         if (response.success) {
-          alert('Отчёт отправлен.');
+          alert(isResubmit ? 'Исправленный отчёт отправлен на повторную проверку.' : 'Отчёт отправлен.');
           window.history.back();
         }
       } else {
@@ -533,7 +611,7 @@ function setupEventHandlers(page: HTMLElement, offerId: string) {
           photos: stdFiles
         });
         if (response.success) {
-          alert('Отчёт отправлен.');
+          alert(isResubmit ? 'Исправленный отчёт отправлен на повторную проверку.' : 'Отчёт отправлен.');
           window.history.back();
         }
       }
