@@ -124,7 +124,7 @@ export async function createOffersListPage(): Promise<HTMLElement> {
   };
 
   const pageTitle =
-    category && categoryNames[category] ? `${categoryNames[category]} — предложения` : 'Предложения';
+    category && categoryNames[category] ? `${categoryNames[category]} — задания` : 'Задания';
 
   page.innerHTML = `
     <div class="relative w-full">
@@ -197,12 +197,12 @@ export async function createOffersListPage(): Promise<HTMLElement> {
           <div class="px-4 py-4">
             <div id="loading-state" class="flex justify-center items-center py-8">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              <span class="ml-2 text-slate-600">Загрузка предложений...</span>
+              <span class="ml-2 text-slate-600">Загрузка заданий...</span>
             </div>
             
             <div id="error-state" class="hidden text-center py-8">
               <div class="text-red-500 mb-2">⚠️</div>
-              <p class="text-slate-600 mb-4">Не удалось загрузить предложения</p>
+              <p class="text-slate-600 mb-4">Не удалось загрузить задания</p>
               <button id="retry-btn" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
                 Попробовать снова
               </button>
@@ -210,7 +210,7 @@ export async function createOffersListPage(): Promise<HTMLElement> {
             
             <div id="empty-state" class="hidden text-center py-8">
               <div class="text-slate-400 mb-2">📭</div>
-              <p class="text-slate-600">Нет предложений по выбранным условиям</p>
+              <p class="text-slate-600">Нет заданий по выбранным условиям</p>
             </div>
             
             <div id="offers-container" class="space-y-4 hidden">
@@ -397,7 +397,7 @@ async function loadOffers(page: HTMLElement) {
       availableContainer.innerHTML =
         av.length > 0
           ? av.map((o) => renderOfferCard(o, 'default')).join('')
-          : '<p class="text-slate-500 text-center py-4">Нет доступных предложений</p>';
+          : '<p class="text-slate-500 text-center py-4">Нет доступных заданий</p>';
     }
     if (completedContainer) {
       completedContainer.innerHTML =

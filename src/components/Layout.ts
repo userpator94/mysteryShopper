@@ -26,7 +26,7 @@ export function createLayout(): HTMLElement {
             <svg fill="currentColor" height="24" viewBox="0 0 256 256" width="24" xmlns="http://www.w3.org/2000/svg">
               <path d="M208,40H48A16,16,0,0,0,32,56V200a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40ZM160,168H96a8,8,0,0,1,0-16h64a8,8,0,0,1,0,16Zm0-32H96a8,8,0,0,1,0-16h64a8,8,0,0,1,0,16Zm32-32H64a8,8,0,0,1,0-16H192a8,8,0,0,1,0,16Z"></path>
             </svg>
-            <p class="text-xs font-medium">Предложения</p>
+            <p class="text-xs font-medium">Задания</p>
           </a>
           <a class="flex flex-col items-center justify-center gap-1 text-slate-500 w-1/4 nav-link" href="#" data-route="/favorites">
             <svg fill="currentColor" height="24" viewBox="0 0 256 256" width="24" xmlns="http://www.w3.org/2000/svg">
@@ -116,7 +116,7 @@ function updateActiveNavLink(activeRoute: string) {
   });
 }
 
-/** Показать навигацию по роли (user — Главная/Предложения/Избранное/Профиль, employer — Мои задачи/Создать/Профиль) */
+/** Показать навигацию по роли (user — Главная/Задания/Избранное/Профиль, employer — Мои задачи/Создать/Профиль) */
 export function updateNavByRole(): void {
   const navUser = document.getElementById('nav-user');
   const navEmployer = document.getElementById('nav-employer');

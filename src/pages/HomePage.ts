@@ -259,7 +259,7 @@ export async function createHomePage(): Promise<HTMLElement> {
                 </div>
               `}
             </div>
-            <button class="w-full h-12 bg-primary text-white rounded-lg font-semibold" data-action="all-offers">Все предложения</button>
+            <button class="w-full h-12 bg-primary text-white rounded-lg font-semibold" data-action="all-offers">Все задания</button>
           </div>
         </main>
       </div>

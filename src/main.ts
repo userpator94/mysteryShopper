@@ -68,7 +68,7 @@ router.addRoute({
 router.addRoute({
   path: '/offers',
   component: createOffersListPage,
-  title: 'Предложения'
+  title: 'Задания'
 })
 
 router.addRoute({
