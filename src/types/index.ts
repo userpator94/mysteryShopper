@@ -359,6 +359,8 @@ export interface Application {
   report_status?: ApiReportStatus | string;
   employer_review_comment?: string;
   can_resubmit?: boolean;
+  /** Исполнитель уже отправил единственную доработку отчёта */
+  resubmit_used?: boolean;
 }
 
 export interface ApplicationsResponse {

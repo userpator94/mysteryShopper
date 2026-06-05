@@ -256,6 +256,8 @@ export async function createProfilePage(): Promise<HTMLElement> {
         if (a.applied_at) historyItems.push({ at: a.applied_at, label: `Откликнулись на задачу` });
         if (isAppNeedsRevision(a)) {
           historyItems.push({ at: a.approved_at || a.applied_at, label: `Отчёт отклонён — требуется доработка` });
+        } else if (a.has_report && a.report_status === 'rejected' && a.resubmit_used) {
+          historyItems.push({ at: a.approved_at || a.applied_at, label: `Отчёт отклонён окончательно` });
         } else if (a.has_report) {
           historyItems.push({ at: a.approved_at || a.applied_at, label: `Отчёт отправлен` });
         }

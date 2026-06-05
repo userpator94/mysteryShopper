@@ -38,12 +38,12 @@ async function renderReportInto(
         : 'окончания срока задачи';
       resubmitHint = `<div class="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-slate-800">
         <p class="font-medium text-blue-900 mb-1">Что дальше?</p>
-        <p>Исполнитель может отправить исправленный отчёт до ${endLabel}. После этого отчёт снова появится у вас на проверке.</p>
+        <p>Исполнитель может исправить отчёт один раз до ${endLabel}. После этого отчёт снова появится у вас на проверке.</p>
       </div>`;
     } catch {
       resubmitHint = `<div class="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-slate-800">
         <p class="font-medium text-blue-900 mb-1">Что дальше?</p>
-        <p>Исполнитель может отправить исправленный отчёт в рамках срока задачи. После этого отчёт снова появится у вас на проверке.</p>
+        <p>Исполнитель может исправить отчёт один раз в рамках срока задачи. После этого отчёт снова появится у вас на проверке.</p>
       </div>`;
     }
   }

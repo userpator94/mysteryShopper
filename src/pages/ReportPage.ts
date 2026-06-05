@@ -3,7 +3,7 @@
 import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
 import { getUserId } from '../utils/auth.js';
-import type { ChecklistItem, ChecklistSchema, Offer } from '../types/index.js';
+import type { ChecklistItem, ChecklistSchema, Offer, Application } from '../types/index.js';
 import {
   escapeHtml,
   descriptionToParagraphsHtml,
@@ -16,7 +16,22 @@ const SUBMIT_REPORT_CONFIRM =
   'Отправить отчёт? Это необратимо: после отправки изменить отчёт будет нельзя.';
 
 const RESUBMIT_REPORT_CONFIRM =
-  'Отправить исправленный отчёт? После отправки заказчик снова получит его на проверку.';
+  'Вы можете исправить отчёт только один раз. Отправить исправленный отчёт? После отправки заказчик снова получит его на проверку.';
+
+const EXECUTOR_RESUBMIT_ONCE_HINT = 'Вы можете исправить отчёт только один раз';
+
+function isOfferExpired(offer: Offer): boolean {
+  if (!offer.end_date) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return new Date(offer.end_date).setHours(0, 0, 0, 0) < today.getTime();
+}
+
+function getRejectedReportBlockReason(app: Application, offerExpired: boolean): string {
+  if (app.resubmit_used) return 'Доработка отчёта уже была использована.';
+  if (offerExpired) return 'Срок задачи истёк — доработка недоступна.';
+  return 'Доработка недоступна.';
+}
 
 export async function createReportPage(offerId: string): Promise<HTMLElement> {
   const page = document.createElement('div');
@@ -164,10 +179,11 @@ async function loadOfferInfo(page: HTMLElement, offerId: string) {
       const reportStatus = String(application.report_status || '').toLowerCase();
       if (reportStatus === 'rejected') {
         const dec = application.employer_review_comment?.trim();
+        const blockReason = getRejectedReportBlockReason(application, isOfferExpired(offer));
         if (msg) {
           msg.innerHTML = dec
-            ? `<span class="font-medium">Отчёт отклонён.</span><br/><span class="mt-2 block whitespace-pre-wrap text-slate-700">${escapeHtml(dec)}</span><br/><span class="mt-2 block">Срок задачи истёк — доработка недоступна.</span>`
-            : 'Отчёт отклонён. Срок задачи истёк — доработка недоступна.';
+            ? `<span class="font-medium">Отчёт отклонён.</span><br/><span class="mt-2 block whitespace-pre-wrap text-slate-700">${escapeHtml(dec)}</span><br/><span class="mt-2 block">${escapeHtml(blockReason)}</span>`
+            : `Отчёт отклонён. ${blockReason}`;
         }
       } else if (msg) {
         msg.textContent = 'Отчёт по этому заданию уже отправлен. Повторная отправка недоступна.';
@@ -219,8 +235,8 @@ async function loadOfferInfo(page: HTMLElement, offerId: string) {
       if (instr) {
         const dec = application.employer_review_comment?.trim();
         instr.innerHTML = dec
-          ? `<span class="font-medium">Доработка отчёта.</span> Заказчик отклонил предыдущую версию:<br/><span class="mt-2 block whitespace-pre-wrap">${escapeHtml(dec)}</span><br/><span class="mt-2 block">Исправьте ответы и отправьте снова. Для пунктов с фото нужно заново прикрепить изображения.</span>`
-          : 'Исправьте отчёт по комментарию заказчика и отправьте снова. Для пунктов с фото нужно заново прикрепить изображения.';
+          ? `<span class="font-medium">Доработка отчёта.</span> Заказчик отклонил предыдущую версию:<br/><span class="mt-2 block whitespace-pre-wrap">${escapeHtml(dec)}</span><br/><span class="mt-2 block">${EXECUTOR_RESUBMIT_ONCE_HINT}. Для пунктов с фото нужно заново прикрепить изображения.</span>`
+          : `${EXECUTOR_RESUBMIT_ONCE_HINT}. Для пунктов с фото нужно заново прикрепить изображения.`;
       }
       await prefillReportForm(page, offerId, offer);
     }

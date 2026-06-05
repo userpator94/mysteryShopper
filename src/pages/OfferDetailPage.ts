@@ -24,7 +24,15 @@ const REPORT_IRREVERSIBLE_MSG =
   'Отправка отчёта — необратимое действие. После отправки вы не сможете изменить отчёт. Продолжить?';
 
 const REPORT_RESUBMIT_MSG =
-  'Отправить исправленный отчёт? После отправки заказчик снова получит его на проверку.';
+  'Вы можете исправить отчёт только один раз. Отправить исправленный отчёт? После отправки заказчик снова получит его на проверку.';
+
+const EXECUTOR_RESUBMIT_ONCE_HINT = 'Вы можете исправить отчёт только один раз';
+
+function getRejectedReportBlockReason(app: Application, offerExpired: boolean): string {
+  if (app.resubmit_used) return 'Доработка отчёта уже была использована.';
+  if (offerExpired) return 'Срок задачи истёк — доработка недоступна.';
+  return 'Доработка недоступна.';
+}
 
 /** Попап подтверждения досрочного завершения задачи (необратимо). */
 function showCloseEarlyConfirmModal(): Promise<boolean> {
@@ -795,12 +803,12 @@ async function checkAndSetApplyStatus(offerId: string, page: HTMLElement, offer:
                 comment
                   ? `<span class="mt-2 block text-slate-700 whitespace-pre-wrap">${escapeHtml(comment)}</span>`
                   : ''
-              }<span class="mt-2 block">Исправьте отчёт и отправьте снова до окончания срока задачи.</span>`
+              }<span class="mt-2 block">${EXECUTOR_RESUBMIT_ONCE_HINT}</span>`
             : `<span class="font-medium">Отчёт отклонён.</span>${
                 comment
                   ? `<span class="mt-2 block text-slate-700 whitespace-pre-wrap">${escapeHtml(comment)}</span>`
                   : ''
-              }<span class="mt-2 block">Срок задачи истёк — доработка недоступна.</span>`;
+              }<span class="mt-2 block">${escapeHtml(getRejectedReportBlockReason(app, offerExpired))}</span>`;
           reportSentNote.classList.remove('hidden');
         } else if (hasReport) {
           reportSentNote.className =
