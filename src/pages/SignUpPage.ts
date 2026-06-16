@@ -2,7 +2,6 @@
 
 import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
-import { getRedirectByRole } from '../utils/auth.js';
 import { devLog } from '../utils/logger.js';
 
 export async function createSignUpPage(): Promise<HTMLElement> {
@@ -697,8 +696,8 @@ function setupEventHandlers(page: HTMLElement) {
       const response = await apiService.signup(name, lastname, email, phone, password, options);
 
       if (response.success) {
-        devLog.log('Успешная регистрация:', response.data.user);
-        router.navigate(getRedirectByRole());
+        devLog.log('Регистрация — ожидание подтверждения email:', response.data.email);
+        router.navigate(`/verify-email-pending?email=${encodeURIComponent(response.data.email)}`);
       }
     } catch (error: any) {
       // Обработка ошибок

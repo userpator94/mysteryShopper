@@ -273,7 +273,7 @@ function renderOfferCard(offer: Offer, variant: 'default' | 'completed', app?: A
         ? '<span class="text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-2 py-0.5">Отчёт отправлен</span>'
         : '';
   return `
-    <div class="${listRowCardClasses('p-4')}" data-offer-id="${offer.id}">
+    <div class="${listRowCardClasses('p-4')}${offer.is_promo ? ' list-row-card--promo' : ''}" data-offer-id="${offer.id}">
       <div class="flex justify-between items-start gap-2 mb-2">
         <h3 class="font-semibold">${escapeHtml(offer.title || 'Без названия')}</h3>
         ${doneBadge}

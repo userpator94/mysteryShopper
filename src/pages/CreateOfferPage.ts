@@ -52,12 +52,8 @@ export async function createCreateOfferPage(): Promise<HTMLElement> {
             </div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Требования *</label>
-            <textarea id="offer-requirements" name="requirements" required rows="3" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary resize-none" placeholder="Условия участия"></textarea>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Теги (через запятую)</label>
-            <input id="offer-tags" name="tags" class="w-full h-12 px-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary" placeholder="тег1, тег2" />
+            <label class="block text-sm font-medium text-slate-700 mb-1">Требования</label>
+            <textarea id="offer-requirements" name="requirements" rows="3" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary resize-none" placeholder="Условия участия (необязательно)"></textarea>
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
@@ -113,7 +109,6 @@ export async function createCreateOfferPage(): Promise<HTMLElement> {
     const priceRaw = (page.querySelector('#offer-price') as HTMLInputElement)?.value;
     const location = (page.querySelector('#offer-location') as HTMLInputElement)?.value.trim();
     const requirements = (page.querySelector('#offer-requirements') as HTMLTextAreaElement)?.value.trim();
-    const tags = (page.querySelector('#offer-tags') as HTMLInputElement)?.value.trim();
     const start_date = (page.querySelector('#offer-start-date') as HTMLInputElement)?.value;
     const end_date = (page.querySelector('#offer-end-date') as HTMLInputElement)?.value;
     const unlimited = (page.querySelector('#offer-unlimited-participants') as HTMLInputElement)?.checked ?? false;
@@ -123,7 +118,7 @@ export async function createCreateOfferPage(): Promise<HTMLElement> {
     const is_promo = (page.querySelector('#offer-is-promo') as HTMLInputElement)?.checked ?? false;
 
     const price = priceRaw !== undefined && priceRaw !== '' ? Math.floor(Number(priceRaw)) : NaN;
-    if (!title || !description || Number.isNaN(price) || price < 0 || !location || !requirements || !start_date || !end_date) {
+    if (!title || !description || Number.isNaN(price) || price < 0 || !location || !start_date || !end_date) {
       const errEl = page.querySelector('#form-error') as HTMLElement;
       if (errEl) { errEl.textContent = 'Заполните обязательные поля. Вознаграждение — целое число.'; errEl.classList.remove('hidden'); }
       return;
@@ -147,8 +142,7 @@ export async function createCreateOfferPage(): Promise<HTMLElement> {
       price,
       location,
       ...(location_points != null ? { location_points } : {}),
-      requirements,
-      tags: tags || '',
+      ...(requirements ? { requirements } : {}),
       start_date,
       end_date,
       max_participants,

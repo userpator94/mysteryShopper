@@ -141,6 +141,6 @@ export function toggleFooter(show: boolean) {
 
 // Функция для проверки, нужно ли скрывать footer для данного маршрута
 export function shouldHideFooter(path: string): boolean {
-  const hiddenRoutes = ['/login', '/signup'];
+  const hiddenRoutes = ['/login', '/signup', '/forgot-password', '/reset-password', '/verify-email', '/verify-email-pending'];
   return hiddenRoutes.includes(path);
 }

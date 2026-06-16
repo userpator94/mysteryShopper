@@ -72,15 +72,15 @@ export async function createFavoritesPage(): Promise<HTMLElement> {
               </div>
               <p class="text-slate-600 mb-4">У вас пока нет избранных</p>
               <button id="explore-empty-btn" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
-                Найти предложения
+                Найти задания
               </button>
             </div>
             
             <div id="empty-state" class="hidden text-center py-8">
               <div class="text-slate-400 mb-2">📭</div>
-              <p class="text-slate-600 mb-4">У вас нет избранных предложений</p>
+              <p class="text-slate-600 mb-4">У вас нет избранных заданий</p>
               <button id="explore-btn" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
-                Найти предложения
+                Найти задания
               </button>
             </div>
             
@@ -269,7 +269,7 @@ async function removeFromFavorites(page: HTMLElement, offerId: string) {
     }
     
     // Показываем состояние ошибки пользователю (можно добавить toast-уведомление)
-    alert('Не удалось удалить предложение из избранного. Попробуйте еще раз.');
+    alert('Не удалось удалить задание из избранного. Попробуйте еще раз.');
   }
 }
 

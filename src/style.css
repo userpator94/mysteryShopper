@@ -390,6 +390,17 @@ body {
   box-shadow: var(--shadow);
 }
 
+.list-row-card--promo {
+  background-color: #fffbeb;
+  border-color: #fcd34d;
+}
+
+.list-row-card--promo.list-row-card--hovered,
+.list-row-card--promo:hover,
+.list-row-card--promo:focus-visible {
+  border-color: #f59e0b;
+}
+
 /* Кнопки профиля исполнителя в карточке задачи (заказчик) */
 button.exec-profile-row,
 .exec-profile-row {

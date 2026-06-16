@@ -3,7 +3,6 @@
 import type { Offer, Application } from '../types/index.js';
 import { apiService } from '../services/api.js';
 import { getRole } from '../utils/auth.js';
-import { formatTagsForDisplay } from '../utils/formatTags.js';
 import { devLog } from '../utils/logger.js';
 import { router } from '../router/index.js';
 import { addRecentOffer } from '../utils/recentOffers.js';
@@ -140,12 +139,12 @@ export async function createOfferDetailPage(offerId: string): Promise<HTMLElemen
         <main class="pb-28">
           <div id="loading-state" class="flex justify-center items-center py-8">
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <span class="ml-2 text-slate-600">Загрузка предложения...</span>
+            <span class="ml-2 text-slate-600">Загрузка задания...</span>
           </div>
           
           <div id="error-state" class="hidden text-center py-8">
             <div class="text-red-500 mb-2">⚠️</div>
-            <p class="text-slate-600 mb-4">Не удалось загрузить предложение</p>
+            <p class="text-slate-600 mb-4">Не удалось загрузить задание</p>
             <button id="retry-btn" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
               Попробовать снова
             </button>
@@ -237,17 +236,6 @@ export async function createOfferDetailPage(offerId: string): Promise<HTMLElemen
                 </div>
               </div>
               
-              <!-- Теги -->
-              <div class="bg-white rounded-lg p-4 border border-slate-200 mb-4">
-                <h3 class="font-semibold mb-2 flex items-center gap-2">
-                  <svg fill="currentColor" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M5.5,7A1.5,1.5 0 0,1 4,5.5A1.5,1.5 0 0,1 5.5,4A1.5,1.5 0 0,1 7,5.5A1.5,1.5 0 0,1 5.5,7M21.41,11.58L12.41,2.58C12.05,2.22 11.55,2 11,2H4C2.89,2 2,2.89 2,4V11C2,11.55 2.22,12.05 2.59,12.41L11.58,21.41C11.95,21.77 12.45,22 13,22C13.55,22 14.05,21.77 14.41,21.41L21.41,14.41C21.77,14.05 22,13.55 22,13C22,12.45 21.77,11.95 21.41,11.58Z"/>
-                  </svg>
-                  Теги
-                </h3>
-                <div id="offer-tags" class="flex flex-wrap gap-2"></div>
-              </div>
-              
               <div id="employer-public-summary" class="hidden rounded-lg border border-slate-200 bg-slate-50 p-4 mb-4 text-sm text-slate-800"></div>
               
               <div id="employer-executors-block" class="hidden rounded-lg border border-slate-200 bg-slate-50 p-4 mb-4 text-sm">
@@ -330,7 +318,7 @@ async function loadOffer(page: HTMLElement, offerId: string) {
     const offer = await apiService.getOfferById(offerId);
 
     if (!offer) {
-      throw new Error('Предложение не найдено');
+      throw new Error('Задание не найдено');
     }
 
     // Скрываем состояние загрузки
@@ -484,7 +472,6 @@ function renderOffer(offer: Offer, page: HTMLElement) {
   const locationEl = page.querySelector('#offer-location') as HTMLElement;
   const requirementsExtraEl = page.querySelector('#offer-requirements-extra') as HTMLElement;
   const requirementsExtraWrap = page.querySelector('#offer-requirements-extra-wrap') as HTMLElement;
-  const tagsEl = page.querySelector('#offer-tags') as HTMLElement;
   
   // Изображение
   // const imageContainer = page.querySelector('#offer-image-container') as HTMLElement;
@@ -594,21 +581,6 @@ function renderOffer(offer: Offer, page: HTMLElement) {
     } else {
       requirementsExtraEl.innerHTML = '';
       requirementsExtraWrap.classList.add('hidden');
-    }
-  }
-  
-  // Теги (API может вернуть string или string[]; отображаем как слова через запятую без [])
-  if (tagsEl) {
-    const tagsStr = formatTagsForDisplay(offer.tags);
-    if (tagsStr) {
-      tagsEl.innerHTML = tagsStr
-        .split(',')
-        .map((t) => t.trim())
-        .filter(Boolean)
-        .map((tag) => `<span class="bg-primary/10 text-primary text-sm px-3 py-1 rounded-full font-medium">${escapeHtml(tag)}</span>`)
-        .join('');
-    } else {
-      tagsEl.innerHTML = '<p class="text-slate-500 italic">Теги не указаны</p>';
     }
   }
   

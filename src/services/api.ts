@@ -493,32 +493,36 @@ export class ApiService {
   }
 
   // Аутентификация
-  public async login(email: string, password: string): Promise<{ success: boolean; data: { token: string; user: any; expiresIn: number } }> {
-    const url = `${API_BASE_URL}/login`;
-    
+  private async authPost<T>(
+    endpoint: string,
+    body: Record<string, unknown>
+  ): Promise<T> {
+    const url = `${API_BASE_URL}${endpoint}`;
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
     });
-
-    // Используем безопасный парсинг ответа
     const data = await this.parseResponse(response);
-
     if (!response.ok || !data.success) {
       const errPayload = data.error ?? {};
       const error: any = new Error(
-        errPayload.message || `Login failed: ${response.status} ${response.statusText}`
+        errPayload.message || `Request failed: ${response.status} ${response.statusText}`
       );
       error.code = errPayload.code;
       error.field = errPayload.field;
       error.errors = errPayload.errors;
       throw error;
     }
+    return data as T;
+  }
 
-    // Сохраняем токен и роль в localStorage
+  public async login(email: string, password: string): Promise<{ success: boolean; data: { token: string; user: any; expiresIn: number } }> {
+    const data = await this.authPost<{ success: boolean; data: { token: string; user: any; expiresIn: number } }>(
+      '/login',
+      { email, password }
+    );
+
     if (data.success && data.data?.token) {
       localStorage.setItem('auth_token', data.data.token);
       localStorage.setItem('user_id', data.data.user?.id?.toString() || '');
@@ -536,38 +540,49 @@ export class ApiService {
     phone: string,
     password: string,
     options?: { role?: UserRole; company?: string; description?: string; website?: string }
-  ): Promise<{ success: boolean; data: { token: string; user: any; expiresIn: number } }> {
-    const url = `${API_BASE_URL}/signup`;
+  ): Promise<{ success: boolean; data: { message: string; email: string } }> {
     const body: Record<string, unknown> = { name, lastname, email, phone, password };
     if (options?.role) body.role = options.role;
     if (options?.company !== undefined) body.company = options.company;
     if (options?.description !== undefined) body.description = options.description;
     if (options?.website !== undefined) body.website = options.website;
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
+    return this.authPost<{ success: boolean; data: { message: string; email: string } }>(
+      '/signup',
+      body
+    );
+  }
 
-    const data = await this.parseResponse(response);
+  public async verifyEmail(token: string): Promise<{ message: string }> {
+    const data = await this.authPost<{ success: boolean; data: { message: string } }>(
+      '/verify-email',
+      { token }
+    );
+    return data.data;
+  }
 
-    if (!response.ok || !data.success) {
-      const error: any = new Error(data.error?.message || `Signup failed: ${response.status} ${response.statusText}`);
-      error.code = data.error?.code;
-      error.field = data.error?.field;
-      error.errors = data.error?.errors;
-      throw error;
-    }
+  public async resendVerification(email: string): Promise<{ message: string }> {
+    const data = await this.authPost<{ success: boolean; data: { message: string } }>(
+      '/resend-verification',
+      { email }
+    );
+    return data.data;
+  }
 
-    if (data.success && data.data?.token) {
-      localStorage.setItem('auth_token', data.data.token);
-      localStorage.setItem('user_id', data.data.user?.id?.toString() || '');
-      const role = data.data.user?.role;
-      if (role === 'user' || role === 'employer') setRole(role);
-    }
+  public async forgotPassword(email: string): Promise<{ message: string }> {
+    const data = await this.authPost<{ success: boolean; data: { message: string } }>(
+      '/forgot-password',
+      { email }
+    );
+    return data.data;
+  }
 
-    return data;
+  public async resetPassword(body: { token: string; new_password: string }): Promise<{ message: string }> {
+    const data = await this.authPost<{ success: boolean; data: { message: string } }>(
+      '/reset-password',
+      body
+    );
+    return data.data;
   }
 
   /** GET /api/me — профиль текущего пользователя (роль, для employer — company и т.д.) */

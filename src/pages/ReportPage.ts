@@ -59,7 +59,7 @@ export async function createReportPage(offerId: string): Promise<HTMLElement> {
           
           <div id="error-state" class="hidden text-center py-8 px-4">
             <div class="text-red-500 mb-2">⚠️</div>
-            <p class="text-slate-600 mb-4">Не удалось загрузить информацию о предложении</p>
+            <p class="text-slate-600 mb-4">Не удалось загрузить информацию о задании</p>
             <button id="retry-btn" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
               Попробовать снова
             </button>
@@ -161,7 +161,7 @@ async function loadOfferInfo(page: HTMLElement, offerId: string) {
     const offer = await apiService.getOfferById(offerId);
 
     if (!offer) {
-      throw new Error('Предложение не найдено');
+      throw new Error('Задание не найдено');
     }
 
     const application = await apiService.getApplyByOfferId(offerId);

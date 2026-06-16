@@ -13,6 +13,7 @@ export interface MeUser {
   role: UserRole;
   /** Эмодзи-аватар исполнителя (закреплён при регистрации) */
   avatar_emoji?: string | null;
+  email_verified?: boolean;
   company?: string;
   description?: string;
   website?: string;
@@ -55,8 +56,7 @@ export interface CreateOfferPayload {
   location: string;
   /** Метки на карте; только при создании, опционально */
   location_points?: LocationPoint[] | null;
-  requirements: string;
-  tags: string;
+  requirements?: string;
   start_date: string;
   end_date: string;
   /** 999 — без ограничения числа исполнителей (как на бэкенде) */

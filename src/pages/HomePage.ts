@@ -2,7 +2,6 @@
 
 import type { Offer } from '../types/index.js';
 import { getCurrentLocation, formatCityName } from '../utils/geolocation.js';
-import { formatTagsForDisplay } from '../utils/formatTags.js';
 import { formatExecutorMoneyRewardShort } from '../utils/offerDisplay.js';
 import { devLog } from '../utils/logger.js';
 
@@ -69,19 +68,12 @@ async function fetchPromoOffers(): Promise<Offer[]> {
 function generateOfferCard(offer: any): string {
   const priceLabel = formatExecutorMoneyRewardShort({ price: offer.price });
   const imageUrl = offer.imageId ? `https://via.placeholder.com/300x300?text=${encodeURIComponent(offer.title)}` : '';
-  const tagsStr = formatTagsForDisplay(offer.tags);
   return `
     <div class="space-y-2 cursor-pointer hover:shadow-md transition-shadow" data-offer-id="${offer.id}">
       <div class="w-full aspect-square bg-slate-200 rounded-lg ${imageUrl ? '' : ''}" ${imageUrl ? `style="background-image: url('${imageUrl}'); background-size: cover; background-position: center;"` : ''}></div>
       <div class="flex justify-between items-start">
         <h3 class="text-slate-900 text-sm font-semibold leading-tight">${offer.title}</h3>
         <span class="text-primary text-sm font-bold">${priceLabel}</span>
-      </div>
-      <div class="flex items-center gap-1.5">
-        ${tagsStr && tagsStr.includes('популярно') ? '<span class="bg-slate-200 text-slate-600 text-xs font-medium px-2 py-0.5 rounded">Популярно</span>' : ''}
-        ${tagsStr && tagsStr.includes('новое') ? '<span class="bg-green-100 text-green-600 text-xs font-medium px-2 py-0.5 rounded">Новое</span>' : ''}
-        ${tagsStr && tagsStr.includes('быстро') ? '<span class="bg-blue-100 text-blue-600 text-xs font-medium px-2 py-0.5 rounded">Быстро</span>' : ''}
-        ${tagsStr && tagsStr.includes('экономно') ? '<span class="bg-yellow-100 text-yellow-600 text-xs font-medium px-2 py-0.5 rounded">Экономно</span>' : ''}
       </div>
     </div>
   `;

@@ -4,7 +4,6 @@ import type { Offer, UpdateOfferPayload } from '../types/index.js';
 import { MAX_PARTICIPANTS_UNLIMITED } from '../config/offerLimits.js';
 import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
-import { formatTagsForDisplay } from '../utils/formatTags.js';
 import { checklistSectionHtml, initChecklistBuilder, collectOfferChecklistFromPage } from '../utils/checklistOfferUi.js';
 import { normalizeLocationPoints } from '../utils/locationPoints.js';
 import { mountReadonlyOfferMapBlock } from '../utils/offerMapUi.js';
@@ -60,12 +59,8 @@ export async function createEditOfferPage(offerId: string): Promise<HTMLElement>
             </div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Требования *</label>
-            <textarea id="offer-requirements" name="requirements" required rows="3" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary resize-none"></textarea>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Теги</label>
-            <input id="offer-tags" name="tags" class="w-full h-12 px-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary" />
+            <label class="block text-sm font-medium text-slate-700 mb-1">Требования</label>
+            <textarea id="offer-requirements" name="requirements" rows="3" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary resize-none" placeholder="Условия участия (необязательно)"></textarea>
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
@@ -158,8 +153,7 @@ export async function createEditOfferPage(offerId: string): Promise<HTMLElement>
         return v !== undefined && v !== '' ? Math.floor(Number(v)) : undefined;
       })(),
       location: (page.querySelector('#offer-location') as HTMLInputElement)?.value.trim(),
-      requirements: (page.querySelector('#offer-requirements') as HTMLTextAreaElement)?.value.trim(),
-      tags: (page.querySelector('#offer-tags') as HTMLInputElement)?.value.trim(),
+      requirements: (page.querySelector('#offer-requirements') as HTMLTextAreaElement)?.value.trim() || undefined,
       start_date: (page.querySelector('#offer-start-date') as HTMLInputElement)?.value,
       end_date: (page.querySelector('#offer-end-date') as HTMLInputElement)?.value,
       max_participants: (page.querySelector('#offer-unlimited-participants') as HTMLInputElement)?.checked
@@ -203,7 +197,6 @@ function fillForm(page: HTMLElement, offer: Offer) {
   (page.querySelector('#offer-price') as HTMLInputElement).value = offer.price != null ? String(Math.floor(Number(offer.price))) : '';
   (page.querySelector('#offer-location') as HTMLInputElement).value = offer.location || '';
   (page.querySelector('#offer-requirements') as HTMLTextAreaElement).value = offer.requirements || '';
-  (page.querySelector('#offer-tags') as HTMLInputElement).value = formatTagsForDisplay(offer.tags);
   const unlimited = offer.max_participants === MAX_PARTICIPANTS_UNLIMITED;
   (page.querySelector('#offer-unlimited-participants') as HTMLInputElement).checked = unlimited;
   (page.querySelector('#offer-max-participants') as HTMLInputElement).value = unlimited ? '1' : String(offer.max_participants ?? 1);

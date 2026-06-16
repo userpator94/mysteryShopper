@@ -7,6 +7,10 @@ import { createOfferDetailPage } from './pages/OfferDetailPage.js'
 import { createFavoritesPage } from './pages/FavoritesPage.js'
 import { createProfilePage } from './pages/ProfilePage.js'
 import { createChangePasswordPage } from './pages/ChangePasswordPage.js'
+import { createForgotPasswordPage } from './pages/ForgotPasswordPage.js'
+import { createResetPasswordPage } from './pages/ResetPasswordPage.js'
+import { createVerifyEmailPage } from './pages/VerifyEmailPage.js'
+import { createVerifyEmailPendingPage } from './pages/VerifyEmailPendingPage.js'
 import { createOrderHistoryPage } from './pages/OrderHistoryPage.js'
 import { createReportPage } from './pages/ReportPage.js'
 import { createExecutorReportViewPage } from './pages/ExecutorReportViewPage.js'
@@ -80,7 +84,7 @@ router.addRoute({
     const offerId = pathParts[pathParts.length - 1]
     return createOfferDetailPage(offerId)
   },
-  title: 'Детали предложения',
+  title: 'Детали задания',
   requiresAuth: true // Требует аутентификации (GET /api/offers/:id защищен)
 })
 
@@ -150,6 +154,30 @@ router.addRoute({
   path: '/login',
   component: createLoginPage,
   title: 'Вход в аккаунт'
+})
+
+router.addRoute({
+  path: '/forgot-password',
+  component: createForgotPasswordPage,
+  title: 'Восстановление пароля'
+})
+
+router.addRoute({
+  path: '/reset-password',
+  component: createResetPasswordPage,
+  title: 'Новый пароль'
+})
+
+router.addRoute({
+  path: '/verify-email',
+  component: createVerifyEmailPage,
+  title: 'Подтверждение email'
+})
+
+router.addRoute({
+  path: '/verify-email-pending',
+  component: createVerifyEmailPendingPage,
+  title: 'Подтвердите email'
 })
 
 router.addRoute({

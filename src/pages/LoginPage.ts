@@ -85,6 +85,21 @@ export async function createLoginPage(): Promise<HTMLElement> {
             role="alert"
             aria-live="polite"
           ></div>
+
+          <div
+            id="email-not-verified-box"
+            class="hidden w-full rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 space-y-2"
+          >
+            <p id="email-not-verified-msg"></p>
+            <button
+              type="button"
+              id="resend-verification-btn"
+              class="text-primary font-medium underline hover:text-primary/80"
+            >
+              Отправить письмо повторно
+            </button>
+            <p id="resend-verification-status" class="hidden text-xs"></p>
+          </div>
           
           <button 
             id="login-button" 
@@ -478,6 +493,19 @@ function setupEventHandlers(page: HTMLElement) {
       showLoginError(errorMessage);
 
       const code = String(error.code || '').toUpperCase();
+
+      if (code === 'EMAIL_NOT_VERIFIED') {
+        const box = page.querySelector('#email-not-verified-box') as HTMLElement;
+        const msgEl = page.querySelector('#email-not-verified-msg') as HTMLElement;
+        if (box && msgEl) {
+          msgEl.textContent = errorMessage;
+          box.classList.remove('hidden');
+        }
+        showLoginError(errorMessage);
+        if (emailInput) markFieldAsInvalid(emailInput);
+        return;
+      }
+
       const authFailure =
         code === 'INVALID_CREDENTIALS' ||
         code === 'USER_NOT_FOUND' ||
@@ -534,10 +562,31 @@ function setupEventHandlers(page: HTMLElement) {
   // Обработчик "Забыли пароль?"
   const forgotPasswordLink = page.querySelector('#forgot-password-link') as HTMLElement;
   forgotPasswordLink?.addEventListener('click', () => {
-    devLog.log('Восстановление пароля');
-    // Здесь можно добавить переход на страницу восстановления пароля
-    // window.location.hash = '#/forgot-password';
-    alert('Функция восстановления пароля будет реализована позже');
+    router.navigate('/forgot-password');
+  });
+
+  const resendBtn = page.querySelector('#resend-verification-btn') as HTMLButtonElement;
+  const resendStatus = page.querySelector('#resend-verification-status') as HTMLElement;
+  resendBtn?.addEventListener('click', async () => {
+    const email = (page.querySelector('#login-email') as HTMLInputElement)?.value?.trim();
+    if (!email) {
+      showLoginError('Введите email, чтобы отправить письмо повторно.');
+      return;
+    }
+    resendBtn.disabled = true;
+    resendStatus.classList.add('hidden');
+    try {
+      const data = await apiService.resendVerification(email);
+      resendStatus.textContent = data.message;
+      resendStatus.className = 'text-xs text-green-700';
+      resendStatus.classList.remove('hidden');
+    } catch (ex: unknown) {
+      resendStatus.textContent = ex instanceof Error ? ex.message : 'Не удалось отправить письмо';
+      resendStatus.className = 'text-xs text-red-600';
+      resendStatus.classList.remove('hidden');
+    } finally {
+      resendBtn.disabled = false;
+    }
   });
 
   // Обработчик "Зарегистрироваться" - переход на страницу регистрации

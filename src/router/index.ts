@@ -210,7 +210,7 @@ class Router {
     }).catch(() => {
       // Если импорт не удался, используем прямой доступ к DOM
       const footer = document.getElementById('main-footer');
-      const hiddenRoutes = ['/login', '/signup'];
+      const hiddenRoutes = ['/login', '/signup', '/forgot-password', '/reset-password', '/verify-email', '/verify-email-pending'];
       if (footer) {
         footer.style.display = hiddenRoutes.includes(path) ? 'none' : 'block';
       }

@@ -87,10 +87,10 @@ const REWARD_SORT_ORDER: Record<RewardKindInferred, number> = {
   unknown: 3
 };
 
-/** Категории с главной (Home): совпадение по тексту задания и тегам. */
+/** Категории с главной (Home): совпадение по тексту задания. */
 export function offerMatchesProductCategory(offer: Offer, category: string | null): boolean {
   if (!category) return true;
-  const blob = `${offer.title || ''} ${offer.description || ''} ${String(offer.tags || '')}`.toLowerCase();
+  const blob = `${offer.title || ''} ${offer.description || ''}`.toLowerCase();
   const map: Record<string, RegExp> = {
     clothing: /одежд|бутик|масс-маркет|футболк|джинс|плать|куртк/i,
     shoes: /обув|кроссов|ботин|сапог|шуз/i,
@@ -118,21 +118,30 @@ export function sortOffersForList(
   const created = (o: Offer) => new Date(o.created_at || 0).getTime();
   const rk = (o: Offer) => REWARD_SORT_ORDER[inferRewardKind(o)];
 
+  let sorted: Offer[];
   switch (sortKey) {
     case 'created_asc':
-      return arr.sort((a, b) => created(a) - created(b));
+      sorted = arr.sort((a, b) => created(a) - created(b));
+      break;
     case 'price_desc':
-      return arr.sort((a, b) => num(b) - num(a));
+      sorted = arr.sort((a, b) => num(b) - num(a));
+      break;
     case 'price_asc':
-      return arr.sort((a, b) => num(a) - num(b));
+      sorted = arr.sort((a, b) => num(a) - num(b));
+      break;
     case 'participants_desc':
-      return arr.sort((a, b) => part(b) - part(a));
+      sorted = arr.sort((a, b) => part(b) - part(a));
+      break;
     case 'participants_asc':
-      return arr.sort((a, b) => part(a) - part(b));
+      sorted = arr.sort((a, b) => part(a) - part(b));
+      break;
     case 'reward_kind':
-      return arr.sort((a, b) => rk(a) - rk(b));
+      sorted = arr.sort((a, b) => rk(a) - rk(b));
+      break;
     case 'created_desc':
     default:
-      return arr.sort((a, b) => created(b) - created(a));
+      sorted = arr.sort((a, b) => created(b) - created(a));
   }
+
+  return sorted.sort((a, b) => Number(b.is_promo) - Number(a.is_promo));
 }
