@@ -48,8 +48,16 @@ export function reportStatusLabel(
   return status ? status : '—';
 }
 
+/** Текст для пункта без сохранённого ответа (optional omit на бэке → нет ключа в answers). */
+export function formatMissingChecklistAnswerHtml(it: ChecklistItem): string {
+  if (!it.required) {
+    return '<span class="text-slate-400">Не указано</span>';
+  }
+  return '—';
+}
+
 export function formatChecklistAnswerHtml(it: ChecklistItem, v: unknown): string {
-  if (v === undefined || v === null) return '—';
+  if (v === undefined || v === null) return formatMissingChecklistAnswerHtml(it);
   if (it.type === 'boolean') return v ? 'Да' : 'Нет';
   if (it.type === 'photo_text' && typeof v === 'object' && v !== null) {
     const o = v as Record<string, unknown>;
@@ -65,7 +73,7 @@ export function formatChecklistAnswerHtml(it: ChecklistItem, v: unknown): string
         `<p class="mt-2"><img src="${escapeHtml(safeUrl)}" alt="" class="max-w-full rounded border border-slate-200" loading="lazy" /></p>`
       );
     }
-    if (parts.length === 0) return '—';
+    if (parts.length === 0) return formatMissingChecklistAnswerHtml(it);
     return parts.join('');
   }
   return escapeHtml(String(v));

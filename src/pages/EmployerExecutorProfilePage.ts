@@ -34,7 +34,7 @@ export async function createEmployerExecutorProfilePage(offerId: string, executo
   const err = page.querySelector('#err') as HTMLElement;
 
   page.querySelector('#employer-executor-profile-back-btn')?.addEventListener('click', () => {
-    router.back(`/my-offers/${offerId}`);
+    router.back(`/offers/${offerId}`);
   });
 
   try {
@@ -56,7 +56,7 @@ export async function createEmployerExecutorProfilePage(offerId: string, executo
 
     if (pendingApp) {
       bindAppDecisionHandlers(content, pendingApp.application_id, {
-        onResolved: () => router.navigate(`/my-offers/${offerId}`)
+        onResolved: () => router.navigate(`/offers/${offerId}`)
       });
     }
   } catch (e: unknown) {
