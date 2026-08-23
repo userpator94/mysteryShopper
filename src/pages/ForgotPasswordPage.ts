@@ -19,8 +19,8 @@ export async function createForgotPasswordPage(): Promise<HTMLElement> {
           <form id="forgot-form" class="space-y-3 bg-white rounded-lg border border-slate-200 p-4">
             <div>
               <label for="forgot-email" class="block text-sm font-medium text-slate-700 mb-1">Email</label>
-              <input id="forgot-email" type="email" autocomplete="email" required
-                class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="example@email.com" />
+              <input id="forgot-email" type="text" inputmode="text" autocomplete="email" autocapitalize="none" spellcheck="false" required
+                class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="name+tag@email.com" />
             </div>
             <p id="forgot-err" class="hidden text-sm text-red-600"></p>
             <button type="submit" id="forgot-submit"

@@ -4,11 +4,7 @@ import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
 import { isAuthenticated, getRedirectByRole, getRole } from '../utils/auth.js';
 import { refreshEmployerInboxBadge } from '../utils/employerInboxBadge.js';
-import {
-  EMAIL_ALLOWED_CHARS_REGEX,
-  EMAIL_FORMAT_HINT,
-  isValidEmailFormat
-} from '../utils/email.js';
+import { EMAIL_FORMAT_HINT, isValidEmailFormat } from '../utils/email.js';
 import { devLog } from '../utils/logger.js';
 
 export async function createLoginPage(): Promise<HTMLElement> {
@@ -43,8 +39,12 @@ export async function createLoginPage(): Promise<HTMLElement> {
                 <input 
                   id="login-email" 
                   class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-slate-900 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-300 bg-white h-14 placeholder:text-slate-400 p-[15px] text-base font-normal leading-normal" 
-                  placeholder="example@email.com" 
-                  type="email" 
+                  placeholder="name+tag@email.com" 
+                  type="text"
+                  inputmode="text"
+                  autocomplete="username"
+                  autocapitalize="none"
+                  spellcheck="false"
                   required
                   value=""
                 />
@@ -336,57 +336,23 @@ function setupEventHandlers(page: HTMLElement) {
 
   // Функция валидации email (только допустимые символы для email)
   const setupEmailValidation = (input: HTMLInputElement) => {
-    const allowedCharsRegex = EMAIL_ALLOWED_CHARS_REGEX;
-    const emailMessage = EMAIL_FORMAT_HINT;
-    
-    input.addEventListener('input', (e) => {
-      const value = (e.target as HTMLInputElement).value;
-      
-      // Фильтруем только разрешенные символы
-      const filtered = value.split('').filter(char => allowedCharsRegex.test(char)).join('');
-      
-      if (value !== filtered) {
-        input.value = filtered;
-        showEmailTooltip(input, emailMessage);
-      }
-
-      // Визуальная валидация email формата
-      if (filtered && !isValidEmailFormat(filtered)) {
+    const updateBorder = () => {
+      const value = input.value.trim();
+      if (value && !isValidEmailFormat(value)) {
         input.classList.add('border-red-300');
         input.classList.remove('border-slate-300');
       } else {
         input.classList.remove('border-red-300');
         input.classList.add('border-slate-300');
       }
-    });
+    };
 
-    input.addEventListener('keypress', (e) => {
-      const char = e.key;
-      if (!allowedCharsRegex.test(char) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Enter'].includes(char)) {
-        e.preventDefault();
-        showEmailTooltip(input, emailMessage);
-      }
-    });
+    input.addEventListener('input', updateBorder);
 
     input.addEventListener('blur', () => {
       const value = input.value.trim();
       if (value && !isValidEmailFormat(value)) {
         showEmailTooltip(input, EMAIL_FORMAT_HINT);
-      }
-    });
-
-    input.addEventListener('paste', (e) => {
-      const paste = (e.clipboardData || (window as any).clipboardData).getData('text');
-      const filtered = paste.split('').filter((char: string) => allowedCharsRegex.test(char)).join('');
-      
-      if (paste !== filtered) {
-        e.preventDefault();
-        const start = input.selectionStart || 0;
-        const end = input.selectionEnd || 0;
-        const currentValue = input.value;
-        input.value = currentValue.substring(0, start) + filtered + currentValue.substring(end);
-        input.setSelectionRange(start + filtered.length, start + filtered.length);
-        showEmailTooltip(input, emailMessage);
       }
     });
   };
