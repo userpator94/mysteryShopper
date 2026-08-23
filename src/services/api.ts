@@ -23,6 +23,7 @@ import type {
 } from '../types/index.js';
 import { devLog } from '../utils/logger.js';
 import { setRole, clearRole } from '../utils/auth.js';
+import { clearRecentOffers } from '../utils/recentOffers.js';
 
 const API_BASE_URL = '/api';
 
@@ -659,6 +660,7 @@ export class ApiService {
       // Даже если запрос завершился с ошибкой, очищаем localStorage
       console.error('Ошибка при выходе:', error);
     } finally {
+      clearRecentOffers();
       localStorage.removeItem('auth_token');
       localStorage.removeItem('user_id');
       clearRole();
