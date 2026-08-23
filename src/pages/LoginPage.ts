@@ -4,6 +4,11 @@ import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
 import { isAuthenticated, getRedirectByRole, getRole } from '../utils/auth.js';
 import { refreshEmployerInboxBadge } from '../utils/employerInboxBadge.js';
+import {
+  EMAIL_ALLOWED_CHARS_REGEX,
+  EMAIL_FORMAT_HINT,
+  isValidEmailFormat
+} from '../utils/email.js';
 import { devLog } from '../utils/logger.js';
 
 export async function createLoginPage(): Promise<HTMLElement> {
@@ -145,9 +150,22 @@ function setupEventHandlers(page: HTMLElement) {
     document.head.appendChild(style);
   };
 
-  /** Оверлей под полем: не меняет поток вёрстки (position: fixed). */
-  const showLoginFieldTooltip = (input: HTMLInputElement, message: string, options?: { persistent?: boolean }): void => {
+  let tooltipCleanup: (() => void) | null = null;
+  let tooltipHideTimer: number | null = null;
+
+  const removeLoginFieldTooltips = (): void => {
+    if (tooltipHideTimer != null) {
+      window.clearTimeout(tooltipHideTimer);
+      tooltipHideTimer = null;
+    }
+    tooltipCleanup?.();
+    tooltipCleanup = null;
     document.querySelectorAll('.login-field-tooltip').forEach((n) => n.remove());
+  };
+
+  /** Оверлей под полем: не меняет поток вёрстки (position: fixed). */
+  const showLoginFieldTooltip = (input: HTMLInputElement, message: string): void => {
+    removeLoginFieldTooltips();
 
     const tooltip = document.createElement('div');
     tooltip.className = 'login-field-tooltip';
@@ -185,6 +203,7 @@ function setupEventHandlers(page: HTMLElement) {
     };
 
     const applyPosition = (): void => {
+      if (!tooltip.isConnected) return;
       const r = input.getBoundingClientRect();
       const pad = 12;
       let left = r.left;
@@ -219,26 +238,33 @@ function setupEventHandlers(page: HTMLElement) {
     window.addEventListener('resize', onMove);
     scrollParents.forEach((el) => el.addEventListener('scroll', onMove, { passive: true }));
 
+    let cleaned = false;
     const cleanup = (): void => {
+      if (cleaned) return;
+      cleaned = true;
+      if (tooltipHideTimer != null) {
+        window.clearTimeout(tooltipHideTimer);
+        tooltipHideTimer = null;
+      }
       window.removeEventListener('resize', onMove);
       scrollParents.forEach((el) => el.removeEventListener('scroll', onMove));
       tooltip.remove();
+      if (tooltipCleanup === cleanup) tooltipCleanup = null;
     };
 
-    if (!options?.persistent) {
-      setTimeout(() => {
-        tooltip.style.animation = 'tooltipFadeIn 0.2s ease-out reverse';
-        setTimeout(cleanup, 200);
-      }, 3000);
-    }
+    tooltipCleanup = cleanup;
+    tooltipHideTimer = window.setTimeout(() => {
+      tooltip.style.animation = 'tooltipFadeIn 0.2s ease-out reverse';
+      tooltipHideTimer = window.setTimeout(cleanup, 200);
+    }, 3000);
   };
 
-  const showPasswordTooltip = (input: HTMLInputElement, message: string, persistent = false): void => {
-    showLoginFieldTooltip(input, message, { persistent });
+  const showPasswordTooltip = (input: HTMLInputElement, message: string): void => {
+    showLoginFieldTooltip(input, message);
   };
 
-  const showEmailTooltip = (input: HTMLInputElement, message: string, persistent = false): void => {
-    showLoginFieldTooltip(input, message, { persistent });
+  const showEmailTooltip = (input: HTMLInputElement, message: string): void => {
+    showLoginFieldTooltip(input, message);
   };
 
   // Функция валидации пароля (только латиница и безопасные специальные символы)
@@ -310,11 +336,8 @@ function setupEventHandlers(page: HTMLElement) {
 
   // Функция валидации email (только допустимые символы для email)
   const setupEmailValidation = (input: HTMLInputElement) => {
-    // Разрешенные символы для email: латиница, цифры, точки, дефисы, подчеркивания, @
-    // Email может содержать: буквы латиницы, цифры, точки, дефисы, подчеркивания, знак @
-    const allowedCharsRegex = /^[a-zA-Z0-9._@-]*$/;
-    const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    const emailMessage = 'Email должен содержать только латинские буквы, цифры, точки, дефисы, подчеркивания и знак @. Формат: example@email.com';
+    const allowedCharsRegex = EMAIL_ALLOWED_CHARS_REGEX;
+    const emailMessage = EMAIL_FORMAT_HINT;
     
     input.addEventListener('input', (e) => {
       const value = (e.target as HTMLInputElement).value;
@@ -328,7 +351,7 @@ function setupEventHandlers(page: HTMLElement) {
       }
 
       // Визуальная валидация email формата
-      if (filtered && !emailRegex.test(filtered)) {
+      if (filtered && !isValidEmailFormat(filtered)) {
         input.classList.add('border-red-300');
         input.classList.remove('border-slate-300');
       } else {
@@ -339,7 +362,6 @@ function setupEventHandlers(page: HTMLElement) {
 
     input.addEventListener('keypress', (e) => {
       const char = e.key;
-      // Разрешаем латиницу, цифры, точки, дефисы, подчеркивания, @ и служебные клавиши
       if (!allowedCharsRegex.test(char) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Enter'].includes(char)) {
         e.preventDefault();
         showEmailTooltip(input, emailMessage);
@@ -348,8 +370,8 @@ function setupEventHandlers(page: HTMLElement) {
 
     input.addEventListener('blur', () => {
       const value = input.value.trim();
-      if (value && !emailRegex.test(value)) {
-        showEmailTooltip(input, 'Неверный формат email. Пример: example@email.com');
+      if (value && !isValidEmailFormat(value)) {
+        showEmailTooltip(input, EMAIL_FORMAT_HINT);
       }
     });
 
@@ -375,6 +397,11 @@ function setupEventHandlers(page: HTMLElement) {
   const passwordInputHandler = page.querySelector('#login-password') as HTMLInputElement;
   const loginErrorEl = page.querySelector('#login-error') as HTMLElement;
 
+  const hideEmailNotVerifiedBox = (): void => {
+    const box = page.querySelector('#email-not-verified-box') as HTMLElement | null;
+    box?.classList.add('hidden');
+  };
+
   const hideLoginError = (): void => {
     if (!loginErrorEl) return;
     loginErrorEl.textContent = '';
@@ -388,12 +415,32 @@ function setupEventHandlers(page: HTMLElement) {
     loginErrorEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   };
 
-  const clearLoginErrorOnInput = (): void => {
+  const clearLoginErrors = (): void => {
     hideLoginError();
-    document.querySelectorAll('.login-field-tooltip').forEach((n) => n.remove());
   };
-  emailInput?.addEventListener('input', clearLoginErrorOnInput);
-  passwordInputHandler?.addEventListener('input', clearLoginErrorOnInput);
+  emailInput?.addEventListener('input', clearLoginErrors);
+  emailInput?.addEventListener('change', clearLoginErrors);
+  passwordInputHandler?.addEventListener('input', clearLoginErrors);
+  passwordInputHandler?.addEventListener('change', clearLoginErrors);
+
+  const cleanupOnLeave = (): void => {
+    removeLoginFieldTooltips();
+    window.removeEventListener('hashchange', cleanupOnLeave);
+    window.removeEventListener('popstate', cleanupOnLeave);
+  };
+  window.addEventListener('hashchange', cleanupOnLeave);
+  window.addEventListener('popstate', cleanupOnLeave);
+  requestAnimationFrame(() => {
+    const parent = page.parentElement;
+    if (!parent) return;
+    const mo = new MutationObserver(() => {
+      if (!page.isConnected) {
+        cleanupOnLeave();
+        mo.disconnect();
+      }
+    });
+    mo.observe(parent, { childList: true });
+  });
 
   // Настраиваем валидацию для поля email
   if (emailInput) setupEmailValidation(emailInput);
@@ -426,6 +473,8 @@ function setupEventHandlers(page: HTMLElement) {
   const handleLogin = async () => {
     let isValid = true;
     hideLoginError();
+    hideEmailNotVerifiedBox();
+    removeLoginFieldTooltips();
     
     // Сбрасываем предыдущие ошибки
     if (emailInput) resetFieldValidation(emailInput);
@@ -440,8 +489,7 @@ function setupEventHandlers(page: HTMLElement) {
       isValid = false;
     } else {
       // Валидация формата email
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
+      if (!isValidEmailFormat(email)) {
         if (emailInput) markFieldAsInvalid(emailInput);
         isValid = false;
       }
@@ -490,8 +538,6 @@ function setupEventHandlers(page: HTMLElement) {
         error.message ||
         'Произошла ошибка при авторизации';
 
-      showLoginError(errorMessage);
-
       const code = String(error.code || '').toUpperCase();
 
       if (code === 'EMAIL_NOT_VERIFIED') {
@@ -516,23 +562,15 @@ function setupEventHandlers(page: HTMLElement) {
           code === 'USER_NOT_FOUND' || code === 'INVALID_CREDENTIALS'
             ? 'Неверный логин или пароль'
             : errorMessage;
-        if (emailInput) {
-          markFieldAsInvalid(emailInput);
-          showEmailTooltip(emailInput, authMsg, true);
-        }
-        if (passwordInputHandler) {
-          markFieldAsInvalid(passwordInputHandler);
-          showPasswordTooltip(passwordInputHandler, authMsg, true);
-        }
-      } else if (error.field === 'email' || errorMessage.toLowerCase().includes('email')) {
-        if (emailInput) {
-          markFieldAsInvalid(emailInput);
-          showEmailTooltip(emailInput, errorMessage, true);
-        }
-      } else if (error.field === 'password' || errorMessage.toLowerCase().includes('парол')) {
-        if (passwordInputHandler) {
-          markFieldAsInvalid(passwordInputHandler);
-          showPasswordTooltip(passwordInputHandler, errorMessage, true);
+        showLoginError(authMsg);
+        if (emailInput) markFieldAsInvalid(emailInput);
+        if (passwordInputHandler) markFieldAsInvalid(passwordInputHandler);
+      } else {
+        showLoginError(errorMessage);
+        if (error.field === 'email' || errorMessage.toLowerCase().includes('email')) {
+          if (emailInput) markFieldAsInvalid(emailInput);
+        } else if (error.field === 'password' || errorMessage.toLowerCase().includes('парол')) {
+          if (passwordInputHandler) markFieldAsInvalid(passwordInputHandler);
         }
       }
     } finally {

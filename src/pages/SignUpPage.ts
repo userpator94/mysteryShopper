@@ -2,6 +2,11 @@
 
 import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
+import {
+  EMAIL_ALLOWED_CHARS_REGEX,
+  EMAIL_FORMAT_HINT,
+  isValidEmailFormat
+} from '../utils/email.js';
 import { devLog } from '../utils/logger.js';
 
 export async function createSignUpPage(): Promise<HTMLElement> {
@@ -395,25 +400,20 @@ function setupEventHandlers(page: HTMLElement) {
 
   // Функция валидации email (только допустимые символы для email)
   const setupEmailValidation = (input: HTMLInputElement) => {
-    // Разрешенные символы для email: латиница, цифры, точки, дефисы, подчеркивания, @
-    // Email может содержать: буквы латиницы, цифры, точки, дефисы, подчеркивания, знак @
-    const allowedCharsRegex = /^[a-zA-Z0-9._@-]*$/;
-    const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    const emailMessage = 'Email должен содержать только латинские буквы, цифры, точки, дефисы, подчеркивания и знак @. Формат: example@email.com';
-    
+    const allowedCharsRegex = EMAIL_ALLOWED_CHARS_REGEX;
+    const emailMessage = EMAIL_FORMAT_HINT;
+
     input.addEventListener('input', (e) => {
       const value = (e.target as HTMLInputElement).value;
-      
-      // Фильтруем только разрешенные символы
+
       const filtered = value.split('').filter(char => allowedCharsRegex.test(char)).join('');
-      
+
       if (value !== filtered) {
         input.value = filtered;
         showEmailTooltip(input, emailMessage);
       }
 
-      // Визуальная валидация email формата
-      if (filtered && !emailRegex.test(filtered)) {
+      if (filtered && !isValidEmailFormat(filtered)) {
         input.classList.add('border-red-300');
         input.classList.remove('border-slate-300');
       } else {
@@ -424,7 +424,6 @@ function setupEventHandlers(page: HTMLElement) {
 
     input.addEventListener('keypress', (e) => {
       const char = e.key;
-      // Разрешаем латиницу, цифры, точки, дефисы, подчеркивания, @ и служебные клавиши
       if (!allowedCharsRegex.test(char) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Enter'].includes(char)) {
         e.preventDefault();
         showEmailTooltip(input, emailMessage);
@@ -433,15 +432,15 @@ function setupEventHandlers(page: HTMLElement) {
 
     input.addEventListener('blur', () => {
       const value = input.value.trim();
-      if (value && !emailRegex.test(value)) {
-        showEmailTooltip(input, 'Неверный формат email. Пример: example@email.com');
+      if (value && !isValidEmailFormat(value)) {
+        showEmailTooltip(input, EMAIL_FORMAT_HINT);
       }
     });
 
     input.addEventListener('paste', (e) => {
       const paste = (e.clipboardData || (window as any).clipboardData).getData('text');
       const filtered = paste.split('').filter((char: string) => allowedCharsRegex.test(char)).join('');
-      
+
       if (paste !== filtered) {
         e.preventDefault();
         const start = input.selectionStart || 0;
@@ -613,8 +612,7 @@ function setupEventHandlers(page: HTMLElement) {
       if (emailInput) markFieldAsInvalid(emailInput);
       isValid = false;
     } else {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
+      if (!isValidEmailFormat(email)) {
         if (emailInput) markFieldAsInvalid(emailInput);
         isValid = false;
       }
