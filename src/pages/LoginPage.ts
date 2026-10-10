@@ -35,7 +35,7 @@ export async function createLoginPage(): Promise<HTMLElement> {
           <div class="flex w-full flex-col items-stretch gap-4">
             <div class="flex flex-col">
               <label class="flex flex-col min-w-40 flex-1">
-                <p class="text-slate-700 text-base font-medium leading-normal pb-2">Логин</p>
+                <p class="text-slate-700 text-base font-medium leading-normal pb-2">Email</p>
                 <input 
                   id="login-email" 
                   class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-slate-900 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-300 bg-white h-14 placeholder:text-slate-400 p-[15px] text-base font-normal leading-normal" 
@@ -469,7 +469,7 @@ function setupEventHandlers(page: HTMLElement) {
 
     // Если есть ошибки, не продолжаем
     if (!isValid) {
-      showLoginError('Проверьте логин и пароль.');
+      showLoginError('Проверьте email и пароль.');
       // Фокусируемся на первом невалидном поле
       if (!email && emailInput) {
         emailInput.focus();
@@ -526,7 +526,7 @@ function setupEventHandlers(page: HTMLElement) {
       if (authFailure) {
         const authMsg =
           code === 'USER_NOT_FOUND' || code === 'INVALID_CREDENTIALS'
-            ? 'Неверный логин или пароль'
+            ? 'Неверный email или пароль'
             : errorMessage;
         showLoginError(authMsg);
         if (emailInput) markFieldAsInvalid(emailInput);

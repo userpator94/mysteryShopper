@@ -87,7 +87,7 @@ export async function createSignUpPage(): Promise<HTMLElement> {
             
             <div class="flex flex-col">
               <label class="flex flex-col min-w-40 flex-1">
-                <p class="text-slate-700 text-base font-medium leading-normal pb-2">Логин</p>
+                <p class="text-slate-700 text-base font-medium leading-normal pb-2">Email</p>
                 <input 
                   id="signup-email" 
                   class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-slate-900 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-300 bg-white h-14 placeholder:text-slate-400 p-[15px] text-base font-normal leading-normal" 
