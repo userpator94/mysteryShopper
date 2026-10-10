@@ -214,13 +214,13 @@ export async function createHomePage(): Promise<HTMLElement> {
           </div>
           
           <div id="filters-section" class="flex gap-3 px-4 py-3">
-            <button class="flex-1 h-12 shrink-0 rounded-lg bg-primary/10 px-4 flex items-center justify-center gap-2">
+            <button type="button" data-perk="discount" class="flex-1 h-12 shrink-0 rounded-lg bg-primary/10 px-4 flex items-center justify-center gap-2 cursor-pointer">
               <p class="text-primary text-sm font-semibold">Большая скидка</p>
             </button>
-            <button class="flex-1 h-12 shrink-0 rounded-lg bg-primary/10 px-4 flex items-center justify-center gap-2">
+            <button type="button" data-perk="high_income" class="flex-1 h-12 shrink-0 rounded-lg bg-primary/10 px-4 flex items-center justify-center gap-2 cursor-pointer">
               <p class="text-primary text-sm font-semibold">Высокий доход</p>
             </button>
-            <button class="flex-1 h-12 shrink-0 rounded-lg bg-primary/10 px-4 flex items-center justify-center gap-2">
+            <button type="button" class="flex-1 h-12 shrink-0 rounded-lg bg-primary/10 px-4 flex items-center justify-center gap-2 opacity-50 cursor-not-allowed" disabled>
               <p class="text-primary text-sm font-semibold">На карте</p>
             </button>
           </div>
@@ -295,6 +295,18 @@ function setupEventHandlers(page: HTMLElement) {
       if (category) {
         // Переходим на страницу предложений с фильтром категории
         window.location.hash = `#/offers?category=${category}`;
+      }
+    });
+  });
+
+  const perkButtons = page.querySelectorAll('[data-perk]');
+  perkButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const perk = (button as HTMLElement).dataset.perk;
+      if (perk === 'high_income') {
+        window.location.hash = '#/offers?sort=price_desc&perk=high_income';
+      } else if (perk === 'discount') {
+        window.location.hash = '#/offers?perk=discount';
       }
     });
   });

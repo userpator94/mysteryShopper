@@ -8,6 +8,8 @@ import {
   inferRewardKind,
   offerMatchesProductCategory,
   offerMatchesRewardFilter,
+  offerMentionsDiscount,
+  selectHighIncomeOffers,
   sortOffersForList,
   escapeHtml,
   formatExecutorMoneyRewardShort
@@ -20,6 +22,63 @@ const REWARD_LABELS: Record<string, string> = {
   mixed: 'Смешанное',
   unknown: '—'
 };
+
+const CATEGORY_NAMES: Record<string, string> = {
+  clothing: 'Одежда',
+  shoes: 'Обувь',
+  electronics: 'Электроника',
+  food: 'Продукты',
+  sports: 'Спорт',
+  beauty: 'Красота'
+};
+
+const PERK_META: Record<string, { title: string; note: string; empty: string }> = {
+  high_income: {
+    title: 'Высокий доход',
+    note: 'Показаны задания с наибольшим вознаграждением',
+    empty: 'Сейчас нет заданий с высоким вознаграждением'
+  },
+  discount: {
+    title: 'Большая скидка',
+    note: 'Показаны задания, где упомянута скидка',
+    empty: 'Сейчас нет заданий со скидкой'
+  }
+};
+
+function listHeading(queryParams: URLSearchParams): { title: string; note: string } {
+  const perk = queryParams.get('perk');
+  if (perk && PERK_META[perk]) {
+    return { title: PERK_META[perk].title, note: PERK_META[perk].note };
+  }
+  const category = queryParams.get('category');
+  if (category && CATEGORY_NAMES[category]) {
+    return { title: `${CATEGORY_NAMES[category]} — задания`, note: '' };
+  }
+  return { title: 'Задания', note: '' };
+}
+
+/** Медиана «высокого дохода» считается по всем секциям сразу, не внутри каждой. */
+function applyPerkToGroups(
+  groups: [Offer[], Offer[], Offer[]],
+  perk: string | null
+): [Offer[], Offer[], Offer[]] {
+  if (perk === 'discount') {
+    return [
+      groups[0].filter(offerMentionsDiscount),
+      groups[1].filter(offerMentionsDiscount),
+      groups[2].filter(offerMentionsDiscount)
+    ];
+  }
+  if (perk === 'high_income') {
+    const allowed = new Set(selectHighIncomeOffers(groups.flat()).map((o) => o.id));
+    return [
+      groups[0].filter((o) => allowed.has(o.id)),
+      groups[1].filter((o) => allowed.has(o.id)),
+      groups[2].filter((o) => allowed.has(o.id))
+    ];
+  }
+  return groups;
+}
 
 function normalizeApplications(data: unknown): Application[] {
   if (Array.isArray(data)) return data as Application[];
@@ -111,26 +170,14 @@ export async function createOffersListPage(): Promise<HTMLElement> {
   const page = document.createElement('div');
   page.className = 'offers-list-page';
 
-  const queryParams = router.getQueryParams();
-  const category = queryParams.get('category');
-
-  const categoryNames: Record<string, string> = {
-    clothing: 'Одежда',
-    shoes: 'Обувь',
-    electronics: 'Электроника',
-    food: 'Продукты',
-    sports: 'Спорт',
-    beauty: 'Красота'
-  };
-
-  const pageTitle =
-    category && categoryNames[category] ? `${categoryNames[category]} — задания` : 'Задания';
+  const heading = listHeading(router.getQueryParams());
 
   page.innerHTML = `
     <div class="relative w-full">
       <div>
         <header class="sticky top-0 bg-white/80 backdrop-blur-sm z-10 px-4 pt-4 pb-2">
-          <h1 class="text-2xl font-bold mb-3">${pageTitle}</h1>
+          <h1 id="offers-page-title" class="text-2xl font-bold${heading.note ? '' : ' mb-3'}">${escapeHtml(heading.title)}</h1>
+          <p id="offers-perk-note" class="text-sm text-slate-500 mt-1 mb-3${heading.note ? '' : ' hidden'}">${escapeHtml(heading.note)}</p>
           <div class="relative mb-3">
             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
               <svg class="text-slate-500" fill="currentColor" height="20" viewBox="0 0 256 256" width="20" xmlns="http://www.w3.org/2000/svg">
@@ -210,7 +257,8 @@ export async function createOffersListPage(): Promise<HTMLElement> {
             
             <div id="empty-state" class="hidden text-center py-8">
               <div class="text-slate-400 mb-2">📭</div>
-              <p class="text-slate-600">Нет заданий по выбранным условиям</p>
+              <p id="empty-state-text" class="text-slate-600">Нет заданий по выбранным условиям</p>
+              <a id="empty-state-all" href="#/offers" class="hidden inline-block mt-4 px-4 py-2 bg-primary text-white rounded-lg font-semibold">Все задания</a>
             </div>
             
             <div id="offers-container" class="space-y-4 hidden">
@@ -288,6 +336,35 @@ function renderOfferCard(offer: Offer, variant: 'default' | 'completed', app?: A
   `;
 }
 
+function syncListHeading(page: HTMLElement) {
+  const q = router.getQueryParams();
+  const { title, note } = listHeading(q);
+  const titleEl = page.querySelector('#offers-page-title');
+  const noteEl = page.querySelector('#offers-perk-note');
+  if (titleEl) {
+    titleEl.textContent = title;
+    titleEl.classList.toggle('mb-3', !note);
+  }
+  if (noteEl) {
+    noteEl.textContent = note;
+    noteEl.classList.toggle('hidden', !note);
+  }
+}
+
+function showPerkEmpty(page: HTMLElement, perk: string | null) {
+  const emptyState = page.querySelector('#empty-state') as HTMLElement;
+  const emptyText = page.querySelector('#empty-state-text');
+  const emptyLink = page.querySelector('#empty-state-all');
+  const offersContainer = page.querySelector('#offers-container') as HTMLElement;
+  const errorState = page.querySelector('#error-state') as HTMLElement;
+  const meta = perk ? PERK_META[perk] : undefined;
+  if (emptyText) {
+    emptyText.textContent = meta?.empty ?? 'Нет заданий по выбранным условиям';
+  }
+  emptyLink?.classList.toggle('hidden', !meta);
+  showState(emptyState, [errorState, offersContainer]);
+}
+
 function syncFiltersFromUrl(page: HTMLElement) {
   const q = router.getQueryParams();
   const search = page.querySelector('#search-input') as HTMLInputElement;
@@ -319,6 +396,9 @@ async function loadOffers(page: HTMLElement) {
     const rewardFilter = queryParams.get('reward') || 'all';
     const sortKey = queryParams.get('sort') || 'created_desc';
     const sectionView = queryParams.get('section') || 'all';
+    const perk = queryParams.get('perk');
+    syncListHeading(page);
+    syncFiltersFromUrl(page);
 
     const searchParams: SearchParams = {};
     if (searchQuery) searchParams.query = searchQuery;
@@ -346,13 +426,20 @@ async function loadOffers(page: HTMLElement) {
     let av = applyListFilters(available, filterOpts);
     let comp = applyListFilters(completed, filterOpts);
 
+    [acc, av, comp] = applyPerkToGroups([acc, av, comp], perk);
+
     acc = sortOffersForList(acc, sortKey);
     av = sortOffersForList(av, sortKey);
     comp = sortOffersForList(comp, sortKey);
 
-    if (offers.length === 0) {
-      emptyState.classList.remove('hidden');
-      offersContainer.classList.add('hidden');
+    const visibleCount =
+      (sectionView === 'all' || sectionView === 'accepted' ? acc.length : 0) +
+      (sectionView === 'all' || sectionView === 'available' ? av.length : 0) +
+      (sectionView === 'all' || sectionView === 'completed' ? comp.length : 0);
+
+    if (offers.length === 0 || (perk && PERK_META[perk] && visibleCount === 0)) {
+      showPerkEmpty(page, perk && PERK_META[perk] ? perk : null);
+      syncFiltersFromUrl(page);
       return;
     }
 
@@ -419,6 +506,8 @@ async function loadOffers(page: HTMLElement) {
   } catch (error) {
     console.error('Ошибка загрузки предложений:', error);
     hideState(loadingState);
+    syncListHeading(page);
+    syncFiltersFromUrl(page);
     showState(errorState, [emptyState, offersContainer]);
   }
 }

@@ -108,6 +108,30 @@ export function offerMatchesRewardFilter(offer: Offer, filter: string | null): b
   return inferRewardKind(offer) === filter;
 }
 
+/** Упоминание скидки в тексте задания. Не использует эвристику типа вознаграждения. */
+const DISCOUNT_HINT = /скидк|кэшбэк|кэшбек|купон|промокод/i;
+
+export function offerMentionsDiscount(offer: Pick<Offer, 'title' | 'description' | 'requirements'>): boolean {
+  const blob = `${offer.title || ''} ${offer.description || ''} ${offer.requirements || ''}`;
+  return DISCOUNT_HINT.test(blob);
+}
+
+/**
+ * Задания с вознаграждением строго выше медианы положительных сумм.
+ * Если выше медианы меньше двух заданий, порог не применяется: остаются все с положительной суммой.
+ */
+export function selectHighIncomeOffers<T extends Pick<Offer, 'price'>>(offers: T[]): T[] {
+  const priced = offers.filter((o) => getOfferMoneyRubPositive(o) > 0);
+  if (priced.length < 2) return priced;
+
+  const values = priced.map((o) => getOfferMoneyRubPositive(o)).sort((a, b) => a - b);
+  const mid = Math.floor(values.length / 2);
+  const median = values.length % 2 === 1 ? values[mid] : (values[mid - 1] + values[mid]) / 2;
+  const above = priced.filter((o) => getOfferMoneyRubPositive(o) > median);
+  if (above.length < 2) return priced;
+  return above;
+}
+
 export function sortOffersForList(
   offers: Offer[],
   sortKey: string
