@@ -66,7 +66,8 @@ router.addRoute({
   path: '/',
   component: async () => (getRole() === 'employer' ? createMyOffersPage() : createHomePage()),
   title: 'Главная',
-  requiresAuth: true // Главная страница требует аутентификации
+  // В dev можно смотреть карточки категорий без бэкенда и логина. В сборке вход по-прежнему обязателен.
+  requiresAuth: !import.meta.env.DEV
 })
 
 router.addRoute({

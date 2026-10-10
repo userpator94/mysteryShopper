@@ -169,36 +169,42 @@ export async function createHomePage(): Promise<HTMLElement> {
                     <span class="font-semibold text-blue-800 text-shadow text-sm">Одежда</span>
                   </button>
                   <button id="shoes-button" class="flex-1 rounded-lg bg-gradient-to-br from-green-200 to-green-300 h-24 flex flex-col items-center justify-center p-3 cursor-pointer hover:shadow-md transition-shadow" data-category="shoes">
-                    <svg class="w-8 h-8 text-green-700 mb-1" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M6 4C4.9 4 4 4.9 4 6V18C4 19.1 4.9 20 6 20H18C19.1 20 20 19.1 20 18V6C20 4.9 19.1 4 18 4H6ZM6 6H18V18H6V6ZM8 8C7.4 8 7 8.4 7 9V15C7 15.6 7.4 16 8 16H10C10.6 16 11 15.6 11 15V9C11 8.4 10.6 8 10 8H8ZM13 8C12.4 8 12 8.4 12 9V15C12 15.6 12.4 16 13 16H15C15.6 16 16 15.6 16 15V9C16 8.4 15.6 8 15 8H13ZM8 10H10V14H8V10ZM13 10H15V14H13V10Z"/>
+                    <svg class="w-8 h-8 text-green-700 mb-1" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M4 13.6v3.2c0 .9.7 1.6 1.6 1.6h14.2c.8 0 1.4-.8 1.2-1.6l-.8-3.2c-.2-.8-.9-1.3-1.7-1.3h-3l-1.1-3.1c-.3-.8-1-1.3-1.8-1.3H9.3c-.8 0-1.5.5-1.8 1.2L6 11.1H5.5c-.8 0-1.5.6-1.5 1.4v1.1zm2.4-.4 1.2-2.6h1.5l.6 1.6h1.4l.5-1.4h1.3l.8 2.4h2.6l.5 2H6.2l.2-2z"/>
                     </svg>
                     <span class="font-semibold text-green-800 text-shadow text-sm">Одежда</span>
                   </button>
                 </div>
                 <button id="electronics-button" class="rounded-lg bg-gradient-to-br from-purple-200 to-purple-300 h-24 flex flex-col items-center justify-center p-3 cursor-pointer hover:shadow-md transition-shadow" data-category="electronics">
-                  <svg class="w-8 h-8 text-purple-700 mb-1" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M4 6C2.9 6 2 6.9 2 8V16C2 17.1 2.9 18 4 18H20C21.1 18 22 17.1 22 16V8C22 6.9 21.1 6 20 6H4ZM4 8H20V16H4V8ZM6 10V14H18V10H6Z"/>
+                  <svg class="w-8 h-8 text-purple-700 mb-1" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M8 2.2h8c1.2 0 2.2 1 2.2 2.2v15.2c0 1.2-1 2.2-2.2 2.2H8c-1.2 0-2.2-1-2.2-2.2V4.4c0-1.2 1-2.2 2.2-2.2zm1.4 3.2v11h5.2v-11H9.4zm1.4 12.5h2.4v1.2h-2.4v-1.2z"/>
                   </svg>
                   <span class="font-semibold text-purple-800 text-shadow text-sm">Электроника</span>
                 </button>
               </div>
               <div class="flex flex-col gap-3 w-[60vw] shrink-0">
                 <button id="food-button" class="rounded-lg bg-gradient-to-br from-orange-200 to-orange-300 h-24 flex flex-col items-center justify-center p-3 cursor-pointer hover:shadow-md transition-shadow" data-category="food">
-                  <svg class="w-8 h-8 text-orange-700 mb-1" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M7 4V2C7 1.45 7.45 1 8 1S9 1.45 9 2V4H15V2C15 1.45 15.45 1 16 1S17 1.45 17 2V4H19C20.1 4 21 4.9 21 6V20C21 21.1 20.1 22 19 22H5C3.9 22 3 21.1 3 20V6C3 4.9 3.9 4 5 4H7ZM5 6V20H19V6H5ZM7 8H9V10H7V8ZM11 8H13V10H11V8ZM15 8H17V10H15V8ZM7 12H9V14H7V12ZM11 12H13V14H11V12ZM15 12H17V14H15V12ZM7 16H9V18H7V16ZM11 16H13V18H11V16ZM15 16H17V18H15V16Z"/>
+                  <svg class="w-8 h-8 text-orange-700 mb-1" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M8 9.1V7.4a4 4 0 0 1 8 0v1.7h1.6V7.4a5.6 5.6 0 0 0-11.2 0v1.7H8z"/>
+                    <path fill-rule="evenodd" d="M4.4 9.4h15.2l-1.3 10.1c-.1.8-.8 1.4-1.6 1.4H7.3c-.8 0-1.5-.6-1.6-1.4L4.4 9.4zm4.2 2.1h1.5v6.6H8.6v-6.6zm4.3 0h1.5v6.6h-1.5v-6.6z"/>
                   </svg>
                   <span class="font-semibold text-orange-800 text-shadow text-sm">Продукты</span>
                 </button>
                 <div class="flex gap-3">
                   <button id="sports-button" class="flex-1 rounded-lg bg-gradient-to-br from-red-200 to-red-300 h-24 flex flex-col items-center justify-center p-3 cursor-pointer hover:shadow-md transition-shadow" data-category="sports">
-                    <svg class="w-8 h-8 text-red-700 mb-1" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 2C6.48 2 2 6.48 2 12S6.48 22 12 22 22 17.52 22 12 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12S7.59 4 12 4 20 7.59 20 12 16.41 20 12 20ZM12 6C9.79 6 8 7.79 8 10S9.79 14 12 14 16 12.21 16 10 14.21 6 12 6ZM12 12C10.9 12 10 11.1 10 10S10.9 8 12 8 14 8.9 14 10 13.1 12 12 12Z"/>
+                    <svg class="w-8 h-8 text-red-700 mb-1" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M6.8 1.1c-2.5 0-4.3 2.9-4.3 6.5s1.8 6.5 4.3 6.5 4.3-2.9 4.3-6.5-1.8-6.5-4.3-6.5zm0 2.2c1.2 0 2 1.8 2 4.3s-.8 4.3-2 4.3-2-1.8-2-4.3.8-4.3 2-4.3z"/>
+                      <path d="M5.15 5.9h3.3v1.05H5.15zm0 2.35h3.3V9.3H5.15zM6.28 4.4h1.05v5.5H6.28z"/>
+                      <path d="M5.95 13.2h1.7v7.1c0 .55-.4 1-.95 1-.55 0-.95-.45-.95-1v-7.1z"/>
+                      <path d="M5.55 20.3h2.5v1.2c0 .28-.28.5-.65.5h-1.2c-.37 0-.65-.22-.65-.5v-1.2z"/>
+                      <circle cx="17.3" cy="5.6" r="2.85"/>
+                      <circle cx="17.3" cy="12.5" r="2.85"/>
                     </svg>
                     <span class="font-semibold text-red-800 text-shadow text-sm">Спорт</span>
                   </button>
                   <button id="beauty-button" class="flex-1 rounded-lg bg-gradient-to-br from-pink-200 to-pink-300 h-24 flex flex-col items-center justify-center p-3 cursor-pointer hover:shadow-md transition-shadow" data-category="beauty">
-                    <svg class="w-8 h-8 text-pink-700 mb-1" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 6.5V7.5C15 8.3 14.3 9 13.5 9S12 8.3 12 7.5V6.5L6 7V9L12 8.5V9.5C12 10.3 12.7 11 13.5 11S15 10.3 15 9.5V8.5L21 9ZM12 12C13.1 12 14 12.9 14 14C14 15.1 13.1 16 12 16C10.9 16 10 15.1 10 14C10 12.9 10.9 12 12 12ZM21 19V17L15 16.5V17.5C15 18.3 14.3 19 13.5 19S12 18.3 12 17.5V16.5L6 17V19L12 18.5V19.5C12 20.3 12.7 21 13.5 21S15 20.3 15 19.5V18.5L21 19Z"/>
+                    <svg class="w-8 h-8 text-pink-700 mb-1" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M12 3.8a3.9 3.9 0 1 1 0 7.8 3.9 3.9 0 0 1 0-7.8zM16.1 6.8a3.9 3.9 0 1 1 0 7.8 3.9 3.9 0 0 1 0-7.8zM14.5 11.6a3.9 3.9 0 1 1 0 7.8 3.9 3.9 0 0 1 0-7.8zM9.5 11.6a3.9 3.9 0 1 1 0 7.8 3.9 3.9 0 0 1 0-7.8zM7.9 6.8a3.9 3.9 0 1 1 0 7.8 3.9 3.9 0 0 1 0-7.8zM12 9.95a2.05 2.05 0 1 0 .01 0z"/>
                     </svg>
                     <span class="font-semibold text-pink-800 text-shadow text-sm">Красота</span>
                   </button>
