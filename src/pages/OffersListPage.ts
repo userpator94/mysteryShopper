@@ -25,7 +25,7 @@ const REWARD_LABELS: Record<string, string> = {
 
 const CATEGORY_NAMES: Record<string, string> = {
   clothing: 'Одежда',
-  shoes: 'Обувь',
+  shoes: 'Одежда',
   electronics: 'Электроника',
   food: 'Продукты',
   sports: 'Спорт',
@@ -208,7 +208,7 @@ export async function createOffersListPage(): Promise<HTMLElement> {
               <select id="filter-category" class="h-10 rounded-lg border border-slate-200 px-2 text-sm bg-white">
                 <option value="">Все темы</option>
                 <option value="clothing">Одежда</option>
-                <option value="shoes">Обувь</option>
+                <option value="shoes">Одежда</option>
                 <option value="electronics">Электроника</option>
                 <option value="food">Продукты</option>
                 <option value="sports">Спорт</option>

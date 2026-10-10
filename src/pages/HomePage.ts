@@ -172,7 +172,7 @@ export async function createHomePage(): Promise<HTMLElement> {
                     <svg class="w-8 h-8 text-green-700 mb-1" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M6 4C4.9 4 4 4.9 4 6V18C4 19.1 4.9 20 6 20H18C19.1 20 20 19.1 20 18V6C20 4.9 19.1 4 18 4H6ZM6 6H18V18H6V6ZM8 8C7.4 8 7 8.4 7 9V15C7 15.6 7.4 16 8 16H10C10.6 16 11 15.6 11 15V9C11 8.4 10.6 8 10 8H8ZM13 8C12.4 8 12 8.4 12 9V15C12 15.6 12.4 16 13 16H15C15.6 16 16 15.6 16 15V9C16 8.4 15.6 8 15 8H13ZM8 10H10V14H8V10ZM13 10H15V14H13V10Z"/>
                     </svg>
-                    <span class="font-semibold text-green-800 text-shadow text-sm">Обувь</span>
+                    <span class="font-semibold text-green-800 text-shadow text-sm">Одежда</span>
                   </button>
                 </div>
                 <button id="electronics-button" class="rounded-lg bg-gradient-to-br from-purple-200 to-purple-300 h-24 flex flex-col items-center justify-center p-3 cursor-pointer hover:shadow-md transition-shadow" data-category="electronics">
