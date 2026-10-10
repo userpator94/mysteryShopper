@@ -91,7 +91,7 @@ export async function createSignUpPage(): Promise<HTMLElement> {
                 <input 
                   id="signup-email" 
                   class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-slate-900 focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-300 bg-white h-14 placeholder:text-slate-400 p-[15px] text-base font-normal leading-normal" 
-                  placeholder="name+tag@email.com" 
+                  placeholder="Введите ваш email" 
                   type="text"
                   inputmode="text"
                   autocomplete="email"

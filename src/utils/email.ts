@@ -12,7 +12,7 @@ export const EMAIL_ALLOWED_CHARS_REGEX = new RegExp(
 );
 
 export const EMAIL_FORMAT_HINT =
-  'Неверный формат email. Пример: name+tag@email.com';
+  'Неверный формат email. Пример: your@mail.ru';
 
 export function isValidEmailFormat(email: string): boolean {
   const value = email.trim();
