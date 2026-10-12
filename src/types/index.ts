@@ -1,7 +1,77 @@
 // Основные типы данных для приложения
 
-/** Роль пользователя: user — исполнитель (тайный покупатель), employer — заказчик */
-export type UserRole = 'user' | 'employer';
+/** Роль пользователя: user — исполнитель, employer — заказчик, admin — платформенный админ */
+export type UserRole = 'user' | 'employer' | 'admin';
+
+/** Статистика админ-панели (GET /api/admin/stats/overview) */
+export interface AdminOverviewStats {
+  users: {
+    total: number;
+    by_role: Record<string, number>;
+    active: number;
+    inactive: number;
+    email_verified: number;
+    registered_last_7_days: number;
+    registered_last_30_days: number;
+  };
+  applications: {
+    by_status: Record<string, number>;
+    total: number;
+  };
+  reports: {
+    by_payment_status: Record<string, number>;
+    total: number;
+  };
+  offers: {
+    active: number;
+    inactive: number;
+    total: number;
+  };
+  withdraws: {
+    available: boolean;
+    by_status: Record<string, number>;
+    pending_amount: number;
+    total: number;
+  };
+}
+
+export interface AdminApplicationRow {
+  id: string;
+  offer_id: string;
+  offer_title: string | null;
+  user_id: string;
+  user_email: string | null;
+  user_name: string | null;
+  user_surname: string | null;
+  status: string;
+  applied_at: string | null;
+  approved_at: string | null;
+  completed_at: string | null;
+  employer_company: string | null;
+}
+
+export interface AdminQueuesPayload {
+  pending_applications: AdminApplicationRow[];
+  pending_reports: Array<{
+    id: string;
+    offer_id: string;
+    offer_title: string | null;
+    user_id: string;
+    user_email: string | null;
+    payment_status: string;
+    submitted_at: string | null;
+    employer_company: string | null;
+  }>;
+  pending_withdraws: Array<{
+    id: string;
+    user_id: string;
+    user_email: string | null;
+    amount: number;
+    status: string;
+    method: string;
+    created_at: string | null;
+  }>;
+}
 
 /** Профиль текущего пользователя (GET /api/me) */
 export interface MeUser {

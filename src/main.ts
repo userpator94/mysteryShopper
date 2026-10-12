@@ -27,12 +27,23 @@ import { createEmployerPendingReportsInboxPage } from './pages/EmployerPendingRe
 import { createRewardsPage } from './pages/RewardsPage.js'
 import { createWithdrawPage } from './pages/WithdrawPage.js'
 import { createWithdrawRequestPage } from './pages/WithdrawRequestPage.js'
+import { createAdminLoginPage } from './pages/admin/AdminLoginPage.js'
+import { createAdminOverviewPage } from './pages/admin/AdminOverviewPage.js'
+import { createAdminApplicationsPage } from './pages/admin/AdminApplicationsPage.js'
+import { createAdminQueuesPage } from './pages/admin/AdminQueuesPage.js'
 import { showWebDeviceModal } from './components/WebDeviceMessage.js'
 import { detectDevice } from './utils/deviceDetection.js'
 import { apiService } from './services/api.js'
 import { isAuthenticated, getRole } from './utils/auth.js'
 import { updateNavByRole } from './components/Layout.js'
 import { refreshEmployerInboxBadge } from './utils/employerInboxBadge.js'
+import {
+  ADMIN_APPLICATIONS_PATH,
+  ADMIN_LOGIN_PATH,
+  ADMIN_OVERVIEW_PATH,
+  ADMIN_QUEUES_PATH,
+  isAdminPanelPath
+} from './utils/adminPaths.js'
 
 // Проверяем тип устройства
 const app = document.querySelector<HTMLDivElement>('#app')!
@@ -45,9 +56,10 @@ if (!app) {
 const layout = createLayout()
 app.appendChild(layout)
 
-// Проверяем тип устройства и показываем модальное окно для веб-устройств
+// Мобильное ограничение только для публичного приложения; админ-панель — и на десктопе
+const initialPath = window.location.pathname || '/'
 const device = detectDevice()
-if (device.isDesktop) {
+if (device.isDesktop && !isAdminPanelPath(initialPath)) {
   showWebDeviceModal()
 }
 
@@ -203,6 +215,37 @@ router.addRoute({
   path: '/signup',
   component: createSignUpPage,
   title: 'Регистрация'
+})
+
+// Админ-панель (скрытый префикс; без пункта в публичной навигации)
+router.addRoute({
+  path: ADMIN_LOGIN_PATH,
+  component: createAdminLoginPage,
+  title: 'Admin login'
+})
+
+router.addRoute({
+  path: ADMIN_OVERVIEW_PATH,
+  component: createAdminOverviewPage,
+  title: 'Admin overview',
+  requiresAuth: true,
+  requiresRole: 'admin'
+})
+
+router.addRoute({
+  path: ADMIN_APPLICATIONS_PATH,
+  component: createAdminApplicationsPage,
+  title: 'Admin applications',
+  requiresAuth: true,
+  requiresRole: 'admin'
+})
+
+router.addRoute({
+  path: ADMIN_QUEUES_PATH,
+  component: createAdminQueuesPage,
+  title: 'Admin queues',
+  requiresAuth: true,
+  requiresRole: 'admin'
 })
 
 router.addRoute({

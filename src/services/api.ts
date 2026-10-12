@@ -19,13 +19,31 @@ import type {
   InboxApplicationRow,
   InboxReportRow,
   OfferApplicationRow,
-  EmployerPublicSummary
+  EmployerPublicSummary,
+  AdminOverviewStats,
+  AdminApplicationRow,
+  AdminQueuesPayload
 } from '../types/index.js';
 import { devLog } from '../utils/logger.js';
 import { setRole, clearRole } from '../utils/auth.js';
 import { clearRecentOffers } from '../utils/recentOffers.js';
+import { ADMIN_LOGIN_PATH, isAdminPanelPath } from '../utils/adminPaths.js';
 
 const API_BASE_URL = '/api';
+
+function redirectToLoginOnAuthFailure(): void {
+  localStorage.removeItem('auth_token');
+  localStorage.removeItem('user_id');
+  clearRole();
+  const path = window.location.pathname || '/';
+  window.location.href = isAdminPanelPath(path) ? ADMIN_LOGIN_PATH : '/login';
+}
+
+function applyAuthUserRole(role: unknown): void {
+  if (role === 'user' || role === 'employer' || role === 'admin') {
+    setRole(role);
+  }
+}
 
 export class ApiService {
   private static instance: ApiService;
@@ -170,9 +188,7 @@ export class ApiService {
         (err as { code?: string }).code = errCode;
         throw err;
       }
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user_id');
-      window.location.href = '/login';
+      redirectToLoginOnAuthFailure();
       throw new Error('Токен авторизации невалиден или истек');
     }
 
@@ -302,9 +318,7 @@ export class ApiService {
       
       // Обработка ошибок аутентификации
       if (response.status === 401) {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user_id');
-        window.location.href = '/login';
+        redirectToLoginOnAuthFailure();
         throw new Error('Токен авторизации невалиден или истек');
       }
       
@@ -578,11 +592,63 @@ export class ApiService {
     if (data.success && data.data?.token) {
       localStorage.setItem('auth_token', data.data.token);
       localStorage.setItem('user_id', data.data.user?.id?.toString() || '');
-      const role = data.data.user?.role;
-      if (role === 'user' || role === 'employer') setRole(role);
+      applyAuthUserRole(data.data.user?.role);
     }
 
     return data;
+  }
+
+  /** POST /api/admin/login — только для role=admin */
+  public async loginAdmin(
+    email: string,
+    password: string
+  ): Promise<{ success: boolean; data: { token: string; user: any; expiresIn: number } }> {
+    const data = await this.authPost<{ success: boolean; data: { token: string; user: any; expiresIn: number } }>(
+      '/admin/login',
+      { email, password }
+    );
+
+    if (data.success && data.data?.token) {
+      localStorage.setItem('auth_token', data.data.token);
+      localStorage.setItem('user_id', data.data.user?.id?.toString() || '');
+      applyAuthUserRole(data.data.user?.role);
+      this.meCache = null;
+    }
+
+    return data;
+  }
+
+  public async getAdminStatsOverview(): Promise<AdminOverviewStats> {
+    const response = await this.request<{ success: boolean; data: AdminOverviewStats }>('/admin/stats/overview');
+    return response.data;
+  }
+
+  public async getAdminApplications(params?: {
+    status?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{
+    data: AdminApplicationRow[];
+    pagination: { page: number; limit: number; total: number; totalPages: number };
+  }> {
+    const q = new URLSearchParams();
+    if (params?.status) q.set('status', params.status);
+    if (params?.limit != null) q.set('limit', String(params.limit));
+    if (params?.offset != null) q.set('offset', String(params.offset));
+    const qs = q.toString();
+    const response = await this.request<{
+      success: boolean;
+      data: AdminApplicationRow[];
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+    }>(`/admin/applications${qs ? `?${qs}` : ''}`);
+    return { data: response.data, pagination: response.pagination };
+  }
+
+  public async getAdminQueues(limit = 50): Promise<AdminQueuesPayload> {
+    const response = await this.request<{ success: boolean; data: AdminQueuesPayload }>(
+      `/admin/queues?limit=${limit}`
+    );
+    return response.data;
   }
 
   public async signup(
@@ -648,9 +714,7 @@ export class ApiService {
       return { success: true, data: this.meCache.data };
     }
     const data = await this.request<{ success: boolean; data: MeUser }>('/me');
-    if (data.data?.role === 'user' || data.data?.role === 'employer') {
-      setRole(data.data.role);
-    }
+    applyAuthUserRole(data.data?.role);
     if (data.data) {
       this.meCache = { data: data.data, timestamp: Date.now() };
     }
@@ -770,9 +834,7 @@ export class ApiService {
 
     // Обработка ошибок аутентификации
     if (response.status === 401) {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user_id');
-      window.location.href = '/login';
+      redirectToLoginOnAuthFailure();
       throw new Error('Токен авторизации невалиден или истек');
     }
 
@@ -920,9 +982,7 @@ export class ApiService {
       headers: token ? { Authorization: `Bearer ${token}` } : {}
     });
     if (response.status === 401) {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user_id');
-      window.location.href = '/login';
+      redirectToLoginOnAuthFailure();
       throw new Error('Токен авторизации невалиден или истек');
     }
     if (!response.ok) {

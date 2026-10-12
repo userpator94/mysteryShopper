@@ -1,6 +1,7 @@
 // Утилиты для работы с аутентификацией
 
 import type { UserRole } from '../types/index.js';
+import { ADMIN_OVERVIEW_PATH } from './adminPaths.js';
 
 const STORAGE_ROLE = 'user_role';
 
@@ -28,17 +29,17 @@ export function getUserId(): string | null {
 }
 
 /**
- * Получить роль пользователя из localStorage (user | employer).
- * Устанавливается при login/signup и при GET /api/me.
+ * Получить роль пользователя из localStorage (user | employer | admin).
+ * Устанавливается при login и при GET /api/me.
  */
 export function getRole(): UserRole | null {
   const role = localStorage.getItem(STORAGE_ROLE);
-  if (role === 'user' || role === 'employer') return role;
+  if (role === 'user' || role === 'employer' || role === 'admin') return role;
   return null;
 }
 
 /**
- * Сохранить роль в localStorage (вызывается из api при login/signup/getMe).
+ * Сохранить роль в localStorage (вызывается из api при login/getMe).
  */
 export function setRole(role: UserRole | null): void {
   if (role) {
@@ -56,8 +57,9 @@ export function clearRole(): void {
 }
 
 /**
- * Путь для редиректа после логина/регистрации по роли (employer → / главная=Мои задачи, user → /).
+ * Путь для редиректа после логина по роли.
  */
 export function getRedirectByRole(): string {
-  return getRole() === 'employer' ? '/' : '/';
+  if (getRole() === 'admin') return ADMIN_OVERVIEW_PATH;
+  return '/';
 }

@@ -116,11 +116,16 @@ function updateActiveNavLink(activeRoute: string) {
   });
 }
 
-/** Показать навигацию по роли (user — Главная/Задания/Избранное/Профиль, employer — Мои задачи/Создать/Профиль) */
+/** Показать навигацию по роли (user — Главная/Задания/Избранное/Профиль, employer — Мои задачи/Создать/Профиль). Admin — без публичного меню. */
 export function updateNavByRole(): void {
   const navUser = document.getElementById('nav-user');
   const navEmployer = document.getElementById('nav-employer');
   const role = getRole();
+  if (role === 'admin') {
+    if (navUser) navUser.classList.add('hidden');
+    if (navEmployer) navEmployer.classList.add('hidden');
+    return;
+  }
   if (navUser) navUser.classList.toggle('hidden', role === 'employer');
   if (navEmployer) navEmployer.classList.toggle('hidden', role !== 'employer');
   const path = window.location.pathname || (window.location.hash ? window.location.hash.slice(1).split('?')[0] : '/');
@@ -142,5 +147,8 @@ export function toggleFooter(show: boolean) {
 // Функция для проверки, нужно ли скрывать footer для данного маршрута
 export function shouldHideFooter(path: string): boolean {
   const hiddenRoutes = ['/login', '/signup', '/forgot-password', '/reset-password', '/verify-email', '/verify-email-pending'];
-  return hiddenRoutes.includes(path);
+  if (hiddenRoutes.includes(path)) return true;
+  // Админ-панель: свой layout, без публичного footer
+  if (path === '/svc-panel/admin' || path.startsWith('/svc-panel/admin/')) return true;
+  return false;
 }

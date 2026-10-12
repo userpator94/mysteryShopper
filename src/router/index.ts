@@ -1,6 +1,6 @@
 // Простой роутер для SPA приложения
 
-export type RouteRole = 'user' | 'employer';
+export type RouteRole = 'user' | 'employer' | 'admin';
 
 export interface Route {
   path: string;
@@ -41,7 +41,11 @@ class Router {
 
   private getCleanPath(path?: string): string {
     const raw = path ?? this.getCurrentPath();
-    return raw.split('?')[0] || '/';
+    const withoutQuery = raw.split('?')[0] || '/';
+    if (withoutQuery.length > 1 && withoutQuery.endsWith('/')) {
+      return withoutQuery.replace(/\/+$/, '') || '/';
+    }
+    return withoutQuery;
   }
 
   addRoute(route: Route) {
@@ -111,8 +115,7 @@ class Router {
     this.isHandlingRoute = true;
     
     try {
-      const path = this.getCurrentPath();
-      const [cleanPath] = path.split('?');
+      const cleanPath = this.getCleanPath();
       const route = this.findMatchingRoute(cleanPath);
       
       // Если маршрут не найден, показываем 404 только если это не главная страница
@@ -129,13 +132,36 @@ class Router {
         return;
       }
       
+      const { isAdminPanelPath, ADMIN_LOGIN_PATH, ADMIN_OVERVIEW_PATH } = await import(
+        '../utils/adminPaths.js'
+      );
+      const { isAuthenticated, getRole } = await import('../utils/auth.js');
+      const role = getRole();
+
+      // Админ-панель доступна с десктопа — убираем модалку «только мобильные»
+      if (isAdminPanelPath(cleanPath)) {
+        document.getElementById('web-device-modal')?.remove();
+      }
+
+      // Админ не использует публичные кабинеты — только /svc-panel/admin/*
+      if (
+        role === 'admin' &&
+        isAuthenticated() &&
+        !isAdminPanelPath(cleanPath) &&
+        cleanPath !== ADMIN_LOGIN_PATH
+      ) {
+        this.isHandlingRoute = false;
+        this.navigate(ADMIN_OVERVIEW_PATH, { replace: true });
+        return;
+      }
+
       // Проверяем аутентификацию для защищенных маршрутов
       if (route.requiresAuth) {
-        const { isAuthenticated } = await import('../utils/auth.js');
         if (!isAuthenticated()) {
-          if (cleanPath !== '/login') {
+          const loginTarget = isAdminPanelPath(cleanPath) ? ADMIN_LOGIN_PATH : '/login';
+          if (cleanPath !== loginTarget) {
             this.isHandlingRoute = false;
-            this.navigate('/login');
+            this.navigate(loginTarget);
           } else {
             this.isHandlingRoute = false;
           }
@@ -145,11 +171,17 @@ class Router {
 
       // Проверяем роль для маршрутов кабинета заказчика
       if (route.requiresRole === 'employer') {
-        const { getRole } = await import('../utils/auth.js');
-        const role = getRole();
         if (role !== 'employer') {
           this.isHandlingRoute = false;
           this.navigate('/');
+          return;
+        }
+      }
+
+      if (route.requiresRole === 'admin') {
+        if (role !== 'admin') {
+          this.isHandlingRoute = false;
+          this.navigate(ADMIN_LOGIN_PATH);
           return;
         }
       }
@@ -258,8 +290,7 @@ class Router {
   initialize() {
     if (!this.isInitialized) {
       this.isInitialized = true;
-      const path = this.getCurrentPath();
-      const [cleanPath] = path.split('?');
+      const cleanPath = this.getCleanPath();
       this.updateFooterVisibility(cleanPath);
       this.handleRoute();
     }
