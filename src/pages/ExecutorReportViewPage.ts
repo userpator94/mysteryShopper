@@ -7,6 +7,7 @@ import {
   buildReportReadOnlyBodyHtml,
   buildReportStatusAndDisclaimerHtml
 } from '../utils/reportViewContent.js';
+import { hydrateAuthenticatedImages } from '../utils/authenticatedImages.js';
 
 export async function createExecutorReportViewPage(offerId: string): Promise<HTMLElement> {
   const page = document.createElement('div');
@@ -44,6 +45,7 @@ export async function createExecutorReportViewPage(offerId: string): Promise<HTM
     const body = buildReportReadOnlyBodyHtml(r, { showExecutorLabel: false });
     const meta = buildReportStatusAndDisclaimerHtml(r);
     content.innerHTML = `<div class="read-only-report space-y-3">${body}${meta}</div>`;
+    await hydrateAuthenticatedImages(content);
   } catch (e: unknown) {
     loading.classList.add('hidden');
     const msg = e instanceof Error ? e.message : 'Не удалось загрузить отчёт';

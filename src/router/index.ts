@@ -185,6 +185,14 @@ class Router {
           return;
         }
       }
+
+      if (route.requiresRole === 'user') {
+        if (role !== 'user') {
+          this.isHandlingRoute = false;
+          this.navigate(role === 'employer' ? '/my-offers' : '/', { replace: true });
+          return;
+        }
+      }
       
       // Проверяем, что контейнер установлен
       if (!this.container) {

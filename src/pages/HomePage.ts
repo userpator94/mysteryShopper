@@ -3,7 +3,7 @@
 import type { Offer } from '../types/index.js';
 import { isMapsLocationUiEnabled } from '../config/yandexMaps.js';
 import { getCurrentLocation, formatCityName } from '../utils/geolocation.js';
-import { formatExecutorRewardShort } from '../utils/offerDisplay.js';
+import { escapeHtml, formatExecutorRewardNumber } from '../utils/offerDisplay.js';
 import { devLog } from '../utils/logger.js';
 
 // Кэш для промо-предложений
@@ -65,18 +65,22 @@ async function fetchPromoOffers(): Promise<Offer[]> {
   }
 }
 
-// Функция для генерации HTML карточки предложения
+/** Промо-карточка задания в сетке 2 колонки на главной. */
 function generateOfferCard(offer: any): string {
-  const priceLabel = formatExecutorRewardShort({ price: offer.price });
-  const imageUrl = offer.imageId ? `https://via.placeholder.com/300x300?text=${encodeURIComponent(offer.title)}` : '';
+  const priceLabel = formatExecutorRewardNumber({ price: offer.price });
+  const safeTitle = escapeHtml(String(offer.title || 'Без названия'));
+  const safeId = escapeHtml(String(offer.id || ''));
   return `
-    <div class="space-y-2 cursor-pointer hover:shadow-md transition-shadow" data-offer-id="${offer.id}">
-      <div class="w-full aspect-square bg-slate-200 rounded-lg ${imageUrl ? '' : ''}" ${imageUrl ? `style="background-image: url('${imageUrl}'); background-size: cover; background-position: center;"` : ''}></div>
-      <div class="flex justify-between items-start">
-        <h3 class="text-slate-900 text-sm font-semibold leading-tight">${offer.title}</h3>
-        <span class="text-primary text-sm font-bold">${priceLabel}</span>
-      </div>
-    </div>
+    <button
+      type="button"
+      class="group flex h-full min-h-[7.5rem] w-full flex-col justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3.5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md active:translate-y-0"
+      data-offer-id="${safeId}"
+    >
+      <h3 class="line-clamp-3 text-sm font-semibold leading-snug text-slate-900">${safeTitle}</h3>
+      <span class="inline-flex w-fit items-center rounded-lg bg-primary/10 px-2.5 py-1 text-sm font-bold tabular-nums text-primary">
+        ${escapeHtml(priceLabel)}
+      </span>
+    </button>
   `;
 }
 
@@ -243,32 +247,18 @@ export async function createHomePage(): Promise<HTMLElement> {
           </div>
           
           <div id="offers-section" class="px-4 pt-4 space-y-4">
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-2 items-stretch gap-3">
               ${promoOffers.length > 0 ? promoOffers.map(offer => generateOfferCard(offer)).join('') : `
-                <div class="space-y-2 cursor-pointer hover:shadow-md transition-shadow" data-offer-id="4">
-                  <div class="w-full aspect-square bg-slate-200 rounded-lg"></div>
-                  <div class="flex justify-between items-start">
-                    <h3 class="text-slate-900 text-sm font-semibold leading-tight">Продажа в Магазине Одежды</h3>
-                    <span class="text-primary text-sm font-bold">20%</span>
-                  </div>
-                  <div class="flex items-center gap-1.5">
-                    <span class="bg-slate-200 text-slate-600 text-xs font-medium px-2 py-0.5 rounded">Популярно</span>
-                    <span class="bg-green-100 text-green-600 text-xs font-medium px-2 py-0.5 rounded">Новое</span>
-                  </div>
-                </div>
-                <div class="space-y-2 cursor-pointer hover:shadow-md transition-shadow" data-offer-id="5">
-                  <div class="w-full aspect-square bg-slate-200 rounded-lg"></div>
-                  <div class="flex justify-between items-start">
-                    <h3 class="text-slate-900 text-sm font-semibold leading-tight">Продажа в Магазине Обуви</h3>
-                    <span class="text-primary text-sm font-bold">15%</span>
-                  </div>
-                  <div class="flex items-center gap-1.5">
-                    <span class="bg-slate-200 text-slate-600 text-xs font-medium px-2 py-0.5 rounded">Популярно</span>
-                  </div>
-                </div>
+                <button type="button" class="group flex h-full min-h-[7.5rem] w-full flex-col justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3.5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md" data-offer-id="4">
+                  <h3 class="line-clamp-3 text-sm font-semibold leading-snug text-slate-900">Продажа в Магазине Одежды</h3>
+                  <span class="inline-flex w-fit items-center rounded-lg bg-primary/10 px-2.5 py-1 text-sm font-bold tabular-nums text-primary">20%</span>
+                </button>
+                <button type="button" class="group flex h-full min-h-[7.5rem] w-full flex-col justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3.5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md" data-offer-id="5">
+                  <h3 class="line-clamp-3 text-sm font-semibold leading-snug text-slate-900">Продажа в Магазине Обуви</h3>
+                  <span class="inline-flex w-fit items-center rounded-lg bg-primary/10 px-2.5 py-1 text-sm font-bold tabular-nums text-primary">15%</span>
+                </button>
               `}
             </div>
-            <button class="w-full h-12 bg-primary text-white rounded-lg font-semibold" data-action="all-offers">Все задания</button>
           </div>
         </main>
       </div>
@@ -330,11 +320,6 @@ function setupEventHandlers(page: HTMLElement) {
     });
   });
 
-  // Обработчик для кнопки "Все предложения"
-  const allOffersBtn = page.querySelector('[data-action="all-offers"]');
-  allOffersBtn?.addEventListener('click', () => {
-    window.location.hash = '#/offers';
-  });
 }
 
 // function setupEventHandlers(page: HTMLElement) {

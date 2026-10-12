@@ -10,6 +10,9 @@
   },
   "devDependencies": {
     "@yandex/ymaps3-types": "^1.0.19487230",
+    "autoprefixer": "^10.6.1",
+    "postcss": "^8.5.29",
+    "tailwindcss": "^3.4.19",
     "typescript": "~5.8.3",
     "vite": "^7.1.7"
   },

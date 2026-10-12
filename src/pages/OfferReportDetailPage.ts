@@ -7,6 +7,7 @@ import {
   buildReportReadOnlyBodyHtml,
   buildReportStatusAndDisclaimerHtml
 } from '../utils/reportViewContent.js';
+import { hydrateAuthenticatedImages } from '../utils/authenticatedImages.js';
 import { refreshEmployerInboxBadge } from '../utils/employerInboxBadge.js';
 
 function countWords(text: string): number {
@@ -69,6 +70,7 @@ async function renderReportInto(
       : '';
 
   container.innerHTML = `<div class="read-only-report space-y-3">${profileBtn}${body}${reviewPanel}${resubmitHint}${meta}</div>`;
+  await hydrateAuthenticatedImages(container);
 
   container.querySelector('#exec-profile-link')?.addEventListener('click', () => {
     router.navigate(`/my-offers/${offerId}/executor/${r.executor_user_id}`);
