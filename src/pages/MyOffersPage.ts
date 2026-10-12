@@ -1,7 +1,7 @@
 // Страница «Мои задачи» (кабинет заказчика)
 
 import type { Offer } from '../types/index.js';
-import { formatExecutorMoneyRewardShort } from '../utils/offerDisplay.js';
+import { formatEmployerRewardShort } from '../utils/offerDisplay.js';
 import { MAX_PARTICIPANTS_UNLIMITED } from '../config/offerLimits.js';
 import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
@@ -125,7 +125,7 @@ function isOfferExpired(offer: Offer): boolean {
 function renderOfferCard(offer: Offer, isExpired: boolean): string {
   const start = offer.start_date ? new Date(offer.start_date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
   const end = offer.end_date ? new Date(offer.end_date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
-  const price = formatExecutorMoneyRewardShort(offer);
+  const price = formatEmployerRewardShort(offer);
   const slotsLabel =
     offer.max_participants === MAX_PARTICIPANTS_UNLIMITED
       ? `Исполнителей: ${Number(offer.current_participants ?? 0)} / без лимита`

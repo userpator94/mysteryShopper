@@ -1,8 +1,9 @@
 // Главный экран с поиском и фильтрами
 
 import type { Offer } from '../types/index.js';
+import { isMapsLocationUiEnabled } from '../config/yandexMaps.js';
 import { getCurrentLocation, formatCityName } from '../utils/geolocation.js';
-import { formatExecutorMoneyRewardShort } from '../utils/offerDisplay.js';
+import { formatExecutorRewardShort } from '../utils/offerDisplay.js';
 import { devLog } from '../utils/logger.js';
 
 // Кэш для промо-предложений
@@ -66,7 +67,7 @@ async function fetchPromoOffers(): Promise<Offer[]> {
 
 // Функция для генерации HTML карточки предложения
 function generateOfferCard(offer: any): string {
-  const priceLabel = formatExecutorMoneyRewardShort({ price: offer.price });
+  const priceLabel = formatExecutorRewardShort({ price: offer.price });
   const imageUrl = offer.imageId ? `https://via.placeholder.com/300x300?text=${encodeURIComponent(offer.title)}` : '';
   return `
     <div class="space-y-2 cursor-pointer hover:shadow-md transition-shadow" data-offer-id="${offer.id}">
@@ -82,6 +83,10 @@ function generateOfferCard(offer: any): string {
 export async function createHomePage(): Promise<HTMLElement> {
   const page = document.createElement('div');
   page.className = 'home-page';
+
+  // [AGENT] Геолокация/город в поиске скрыты вместе с картами (см. MAPS_LOCATION_UI_ENABLED).
+  // Вкл.: MAPS_LOCATION_UI_ENABLED = true + VITE_YANDEX_MAPS_API_KEY — больше правок не нужно.
+  const mapsLocationUi = isMapsLocationUiEnabled();
   
   // Сначала показываем страницу с индикатором загрузки
   page.innerHTML = `
@@ -94,7 +99,7 @@ export async function createHomePage(): Promise<HTMLElement> {
                 <path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path>
               </svg>
             </div>
-            <input class="w-full h-12 pl-10 pr-12 rounded-lg bg-slate-100 text-slate-900 placeholder:text-slate-500 border-0 focus:ring-2 focus:ring-primary" placeholder="Определяем местоположение..." type="text" disabled/>
+            <input class="w-full h-12 pl-10 pr-12 rounded-lg bg-slate-100 text-slate-900 placeholder:text-slate-500 border-0 focus:ring-2 focus:ring-primary" placeholder="${mapsLocationUi ? 'Определяем местоположение...' : 'Поиск'}" type="text" disabled/>
             <div class="absolute inset-y-0 right-0 flex items-center pr-3">
               <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
             </div>
@@ -105,7 +110,7 @@ export async function createHomePage(): Promise<HTMLElement> {
           <div class="flex items-center justify-center h-64">
             <div class="text-center">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-              <p class="text-slate-600">Определяем ваше местоположение...</p>
+              <p class="text-slate-600">${mapsLocationUi ? 'Определяем ваше местоположение...' : 'Загрузка…'}</p>
             </div>
           </div>
         </main>
@@ -113,20 +118,21 @@ export async function createHomePage(): Promise<HTMLElement> {
     </div>
   `;
   
-  // Получаем информацию о местоположении и промо-предложения параллельно
-  let cityName = 'Москва'; // Значение по умолчанию
+  let cityName = mapsLocationUi ? 'Москва' : ''; // город в placeholder только при включённой локации
   let promoOffers: Offer[] = [];
   
   // Важно: геолокация может зависнуть/долго отвечать во встроенных webview.
   // Не блокируем рендер — берём город по умолчанию и обновим позже, если получится.
   const offersPromise = fetchPromoOffers().catch(() => []);
-  const locationPromise = (async () => {
-    // уменьшаем ожидание до 1.5с, иначе UX ощущается «приложение зависло»
-    const timeoutMs = 1500;
-    const t = new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs));
-    const loc = await Promise.race([getCurrentLocation().catch(() => null), t]);
-    return loc;
-  })();
+  const locationPromise = mapsLocationUi
+    ? (async () => {
+        // уменьшаем ожидание до 1.5с, иначе UX ощущается «приложение зависло»
+        const timeoutMs = 1500;
+        const t = new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs));
+        const loc = await Promise.race([getCurrentLocation().catch(() => null), t]);
+        return loc;
+      })()
+    : Promise.resolve(null);
 
   try {
     const offers = await offersPromise;
@@ -146,7 +152,7 @@ export async function createHomePage(): Promise<HTMLElement> {
                 <path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path>
               </svg>
             </div>
-            <input class="w-full h-12 pl-10 pr-12 rounded-lg bg-slate-100 text-slate-900 placeholder:text-slate-500 border-0 focus:ring-2 focus:ring-primary" placeholder="Поиск в ${cityName}" type="text"/>
+            <input class="w-full h-12 pl-10 pr-12 rounded-lg bg-slate-100 text-slate-900 placeholder:text-slate-500 border-0 focus:ring-2 focus:ring-primary" placeholder="${mapsLocationUi && cityName ? `Поиск в ${cityName}` : 'Поиск'}" type="text"/>
             <div class="absolute inset-y-0 right-0 flex items-center pr-3">
               <button class="text-slate-500">
                 <svg fill="currentColor" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
@@ -226,9 +232,14 @@ export async function createHomePage(): Promise<HTMLElement> {
             <button type="button" data-perk="high_income" class="flex-1 h-12 shrink-0 rounded-lg bg-primary/10 px-4 flex items-center justify-center gap-2 cursor-pointer">
               <p class="text-primary text-sm font-semibold">Высокий доход</p>
             </button>
-            <button type="button" class="flex-1 h-12 shrink-0 rounded-lg bg-primary/10 px-4 flex items-center justify-center gap-2 opacity-50 cursor-not-allowed" disabled>
+            ${
+              /* [AGENT] Кнопка «На карте» скрыта. Вкл.: MAPS_LOCATION_UI_ENABLED + VITE_YANDEX_MAPS_API_KEY. */
+              mapsLocationUi
+                ? `<button type="button" class="flex-1 h-12 shrink-0 rounded-lg bg-primary/10 px-4 flex items-center justify-center gap-2 opacity-50 cursor-not-allowed" disabled>
               <p class="text-primary text-sm font-semibold">На карте</p>
-            </button>
+            </button>`
+                : `<!-- [AGENT] «На карте» скрыто. Вкл.: MAPS_LOCATION_UI_ENABLED + VITE_YANDEX_MAPS_API_KEY -->`
+            }
           </div>
           
           <div id="offers-section" class="px-4 pt-4 space-y-4">
@@ -264,15 +275,17 @@ export async function createHomePage(): Promise<HTMLElement> {
     </div>
   `;
 
-  // Догружаем местоположение «в фоне», без блокировки UI
-  locationPromise
-    .then((locationInfo) => {
-      if (!locationInfo) return;
-      const nextCity = formatCityName(locationInfo);
-      const input = page.querySelector('header input') as HTMLInputElement | null;
-      if (input) input.placeholder = `Поиск в ${nextCity}`;
-    })
-    .catch(() => {});
+  // Догружаем местоположение «в фоне», без блокировки UI (только если UI локации включён)
+  if (mapsLocationUi) {
+    locationPromise
+      .then((locationInfo) => {
+        if (!locationInfo) return;
+        const nextCity = formatCityName(locationInfo);
+        const input = page.querySelector('header input') as HTMLInputElement | null;
+        if (input) input.placeholder = `Поиск в ${nextCity}`;
+      })
+      .catch(() => {});
+  }
 
   // Настраиваем обработчики событий
   setupEventHandlers(page);

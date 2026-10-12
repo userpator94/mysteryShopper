@@ -1,3 +1,7 @@
+/**
+ * [AGENT] Монтирование карты оффера. UI скрыт (MAPS_LOCATION_UI_ENABLED) — код сохранён.
+ * Включение: MAPS_LOCATION_UI_ENABLED = true + VITE_YANDEX_MAPS_API_KEY в .env.
+ */
 import { getYandexMapsApiKey } from '../config/yandexMaps.js';
 import type { DomEvent } from 'ymaps3';
 import type { LocationPoint } from '../types/index.js';

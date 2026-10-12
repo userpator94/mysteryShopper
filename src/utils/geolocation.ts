@@ -1,5 +1,9 @@
 /**
- * Утилиты для работы с геолокацией и определением города
+ * Утилиты для работы с геолокацией и определением города.
+ *
+ * [AGENT] Использование в UI сейчас скрыто (см. MAPS_LOCATION_UI_ENABLED в src/config/yandexMaps.ts).
+ * Код не удалён. Чтобы снова показать локацию/карты: MAPS_LOCATION_UI_ENABLED = true
+ * и VITE_YANDEX_MAPS_API_KEY в .env — других правок не нужно.
  */
 
 export interface LocationInfo {

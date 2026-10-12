@@ -1,22 +1,68 @@
 import type { Offer } from '../types/index.js';
 
-/** Карточки исполнителя: без «0 бонусов», если сумма не задана */
+/** Карточки: без «0», если сумма не задана */
 export const EXECUTOR_PRICE_NOT_SET_LABEL = 'Вознаграждение не указано';
+export const EMPLOYER_PRICE_NOT_SET_LABEL = 'Вознаграждение не указано';
 
 /**
- * Положительная сумма вознаграждения в бонусах или 0 (null, пусто, 0 и ниже — «не задано»).
+ * В API `price` хранится в рублях (как вводит заказчик).
+ * Исполнителю показываем ту же величину в Рэшках.
+ * Курс можно поменять здесь, не трогая формы заказчика.
  */
-export function getOfferMoneyRubPositive(offer: Pick<Offer, 'price'>): number {
+export const RUB_TO_RESHKI_RATE = 1;
+
+export function rublesToReshki(rubles: number): number {
+  return Math.floor(rubles * RUB_TO_RESHKI_RATE);
+}
+
+/** Склонение единицы «Рэшка» по числу (1 Рэшка, 2 Рэшки, 5 Рэшек). */
+export function reshkiWord(n: number): string {
+  const abs = Math.abs(Math.floor(n)) % 100;
+  const last = abs % 10;
+  if (abs > 10 && abs < 20) return 'Рэшек';
+  if (last === 1) return 'Рэшка';
+  if (last >= 2 && last <= 4) return 'Рэшки';
+  return 'Рэшек';
+}
+
+/** «N Рэшек» с локальным форматированием числа. */
+export function formatReshkiAmount(n: number): string {
+  return `${n.toLocaleString('ru-RU')} ${reshkiWord(n)}`;
+}
+
+/** «N ₽» — отображение для заказчика. */
+export function formatRublesAmount(n: number): string {
+  return `${n.toLocaleString('ru-RU')} ₽`;
+}
+
+/**
+ * Положительная сумма вознаграждения в рублях (из API) или 0.
+ */
+export function getOfferRewardPositive(offer: Pick<Offer, 'price'>): number {
   const raw = offer.price != null ? String(offer.price).replace(/\s/g, '').replace(',', '.') : '';
   const num = parseFloat(raw);
   if (Number.isNaN(num) || num <= 0) return 0;
   return num;
 }
 
-/** Одна строка для списков/карточек: «N бонусов» или нейтральная подпись. */
-export function formatExecutorMoneyRewardShort(offer: Pick<Offer, 'price'>): string {
-  const n = getOfferMoneyRubPositive(offer);
-  return n > 0 ? `${n.toLocaleString('ru-RU')} бонусов` : EXECUTOR_PRICE_NOT_SET_LABEL;
+/** Одна строка для исполнителя: «N Рэшек» или нейтральная подпись. */
+export function formatExecutorRewardShort(offer: Pick<Offer, 'price'>): string {
+  const rub = getOfferRewardPositive(offer);
+  if (rub <= 0) return EXECUTOR_PRICE_NOT_SET_LABEL;
+  return formatReshkiAmount(rublesToReshki(rub));
+}
+
+/** Только число (для списка заданий); без единицы «Рэшки». */
+export function formatExecutorRewardNumber(offer: Pick<Offer, 'price'>): string {
+  const rub = getOfferRewardPositive(offer);
+  if (rub <= 0) return EXECUTOR_PRICE_NOT_SET_LABEL;
+  return rublesToReshki(rub).toLocaleString('ru-RU');
+}
+
+/** Одна строка для заказчика: «N ₽» или нейтральная подпись. */
+export function formatEmployerRewardShort(offer: Pick<Offer, 'price'>): string {
+  const rub = getOfferRewardPositive(offer);
+  return rub > 0 ? formatRublesAmount(rub) : EMPLOYER_PRICE_NOT_SET_LABEL;
 }
 
 export function escapeHtml(s: string): string {
@@ -49,17 +95,24 @@ export function requirementsToBulletsHtml(requirements: string, description: str
     .join('');
 }
 
+export type RewardViewer = 'executor' | 'employer';
+
 /**
- * Вознаграждение: отображение суммы в бонусах + текст из полей задания
- * (в тестовых данных суть невыкупных форматов задаётся в описании).
+ * Вознаграждение для карточки задания: заказчику — рубли, исполнителю — Рэшки.
  */
-export function formatCompensationLines(offer: Offer): string[] {
+export function formatCompensationLines(offer: Offer, viewer: RewardViewer = 'executor'): string[] {
   const lines: string[] = [];
-  const n = getOfferMoneyRubPositive(offer);
-  if (n > 0) {
-    lines.push(`Вознаграждение: ${n.toLocaleString('ru-RU')} бонусов`);
+  const rub = getOfferRewardPositive(offer);
+  if (rub > 0) {
+    const amount =
+      viewer === 'employer'
+        ? formatRublesAmount(rub)
+        : formatReshkiAmount(rublesToReshki(rub));
+    lines.push(`Вознаграждение: ${amount}`);
+  } else if (viewer === 'employer') {
+    lines.push('Фиксированная сумма в рублях не задана — условия вознаграждения см. в описании задания.');
   } else {
-    lines.push('Фиксированная сумма бонусов не задана — условия вознаграждения см. в описании задания.');
+    lines.push('Фиксированное число Рэшек не задано — условия вознаграждения см. в описании задания.');
   }
   return lines;
 }
@@ -68,15 +121,15 @@ export function formatCompensationLines(offer: Offer): string[] {
 export type RewardKindInferred = 'bonus' | 'non_bonus' | 'mixed' | 'unknown';
 
 export function inferRewardKind(offer: Offer): RewardKindInferred {
-  const hasMoney = getOfferMoneyRubPositive(offer) > 0;
+  const hasReshki = getOfferRewardPositive(offer) > 0;
   const text = `${offer.description || ''} ${offer.requirements || ''}`.toLowerCase();
-  const nonMoneyHints =
-    /сертификат|бартер|бонус|кэшбэк|не денежн|продукт|набор|подарок|скидк|эквивалент|безнал|договор|балл|депозит/i.test(
+  const nonReshkiHints =
+    /сертификат|бартер|кэшбэк|не денежн|продукт|набор|подарок|скидк|эквивалент|безнал|договор|депозит/i.test(
       text
     );
-  if (hasMoney && nonMoneyHints) return 'mixed';
-  if (hasMoney && !nonMoneyHints) return 'bonus';
-  if (!hasMoney || nonMoneyHints) return 'non_bonus';
+  if (hasReshki && nonReshkiHints) return 'mixed';
+  if (hasReshki && !nonReshkiHints) return 'bonus';
+  if (!hasReshki || nonReshkiHints) return 'non_bonus';
   return 'unknown';
 }
 
@@ -121,13 +174,13 @@ export function offerMentionsDiscount(offer: Pick<Offer, 'title' | 'description'
  * Если выше медианы меньше двух заданий, порог не применяется: остаются все с положительной суммой.
  */
 export function selectHighIncomeOffers<T extends Pick<Offer, 'price'>>(offers: T[]): T[] {
-  const priced = offers.filter((o) => getOfferMoneyRubPositive(o) > 0);
+  const priced = offers.filter((o) => getOfferRewardPositive(o) > 0);
   if (priced.length < 2) return priced;
 
-  const values = priced.map((o) => getOfferMoneyRubPositive(o)).sort((a, b) => a - b);
+  const values = priced.map((o) => getOfferRewardPositive(o)).sort((a, b) => a - b);
   const mid = Math.floor(values.length / 2);
   const median = values.length % 2 === 1 ? values[mid] : (values[mid - 1] + values[mid]) / 2;
-  const above = priced.filter((o) => getOfferMoneyRubPositive(o) > median);
+  const above = priced.filter((o) => getOfferRewardPositive(o) > median);
   if (above.length < 2) return priced;
   return above;
 }
@@ -137,7 +190,7 @@ export function sortOffersForList(
   sortKey: string
 ): Offer[] {
   const arr = [...offers];
-  const num = (o: Offer) => getOfferMoneyRubPositive(o);
+  const num = (o: Offer) => getOfferRewardPositive(o);
   const part = (o: Offer) => Number(o.current_participants ?? 0);
   const created = (o: Offer) => new Date(o.created_at || 0).getTime();
   const rk = (o: Offer) => REWARD_SORT_ORDER[inferRewardKind(o)];

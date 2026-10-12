@@ -12,15 +12,15 @@ import {
   selectHighIncomeOffers,
   sortOffersForList,
   escapeHtml,
-  formatExecutorMoneyRewardShort
+  formatExecutorRewardNumber
 } from '../utils/offerDisplay.js';
 import { listRowCardClasses, bindListRowCardHover } from '../utils/listRowUi.js';
 
 const REWARD_LABELS: Record<string, string> = {
-  bonus: 'Бонусы',
-  non_bonus: 'Не бонусы',
+  bonus: '',
+  non_bonus: 'Иное',
   mixed: 'Смешанное',
-  unknown: '—'
+  unknown: ''
 };
 
 const CATEGORY_NAMES: Record<string, string> = {
@@ -219,8 +219,8 @@ export async function createOffersListPage(): Promise<HTMLElement> {
               <span>Вознаграждение</span>
               <select id="filter-reward" class="h-10 rounded-lg border border-slate-200 px-2 text-sm bg-white">
                 <option value="all">Все типы</option>
-                <option value="bonus">Бонусы</option>
-                <option value="non_bonus">Не бонусы</option>
+                <option value="bonus">Рэшки</option>
+                <option value="non_bonus">Не Рэшки</option>
                 <option value="mixed">Смешанное</option>
               </select>
             </label>
@@ -310,9 +310,9 @@ export async function createOffersListPage(): Promise<HTMLElement> {
 }
 
 function renderOfferCard(offer: Offer, variant: 'default' | 'completed', app?: Application): string {
-  const priceStr = formatExecutorMoneyRewardShort(offer);
+  const priceStr = formatExecutorRewardNumber(offer);
   const rk = inferRewardKind(offer);
-  const badge = REWARD_LABELS[rk] || rk;
+  const badge = REWARD_LABELS[rk] || '';
   const needsRevision = app ? isApplicationNeedsRevision(app) : false;
   const doneBadge =
     needsRevision
@@ -329,7 +329,7 @@ function renderOfferCard(offer: Offer, variant: 'default' | 'completed', app?: A
       <p class="text-slate-600 text-sm mb-2 line-clamp-3">${escapeHtml(offer.description || '')}</p>
       <div class="flex flex-wrap justify-between items-center gap-2 text-sm">
         <span class="text-primary font-bold">${priceStr}</span>
-        <span class="text-slate-500 text-xs">${escapeHtml(badge)}</span>
+        ${badge ? `<span class="text-slate-500 text-xs">${escapeHtml(badge)}</span>` : ''}
       </div>
       <div class="mt-1 text-xs text-slate-400">Исполнителей: ${Number(offer.current_participants ?? 0)} / ${offer.max_participants === MAX_PARTICIPANTS_UNLIMITED ? 'без лимита' : Number(offer.max_participants)}</div>
     </div>
@@ -448,13 +448,19 @@ async function loadOffers(page: HTMLElement) {
     const completedSection = page.querySelector('#completed-section') as HTMLElement;
 
     if (acceptedSection) {
-      acceptedSection.classList.toggle('hidden', sectionView !== 'all' && sectionView !== 'accepted');
+      acceptedSection.classList.toggle(
+        'hidden',
+        (sectionView !== 'all' && sectionView !== 'accepted') || acc.length === 0
+      );
     }
     if (availableSection) {
       availableSection.classList.toggle('hidden', sectionView !== 'all' && sectionView !== 'available');
     }
     if (completedSection) {
-      completedSection.classList.toggle('hidden', sectionView !== 'all' && sectionView !== 'completed');
+      completedSection.classList.toggle(
+        'hidden',
+        (sectionView !== 'all' && sectionView !== 'completed') || comp.length === 0
+      );
     }
 
     const acceptedContainer = page.querySelector('#accepted-offers') as HTMLElement;

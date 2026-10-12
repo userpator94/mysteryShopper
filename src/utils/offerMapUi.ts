@@ -1,4 +1,8 @@
-import { isYandexMapsConfigured } from '../config/yandexMaps.js';
+/**
+ * [AGENT] UI карт скрыт (MAPS_LOCATION_UI_ENABLED). Код сохранён.
+ * Включение: MAPS_LOCATION_UI_ENABLED = true + VITE_YANDEX_MAPS_API_KEY в .env.
+ */
+import { isMapsLocationUiEnabled, isYandexMapsConfigured } from '../config/yandexMaps.js';
 import type { OfferMapEditorHandle } from '../maps/offerMap.js';
 import { mountOfferMapEditor } from '../maps/offerMap.js';
 import type { LocationPoint } from '../types/index.js';
@@ -18,6 +22,16 @@ export function initOfferMapCreateSection(page: HTMLElement): OfferMapCreateSect
   const pointsList = page.querySelector('#offer-map-points-list') as HTMLElement | null;
   const mapError = page.querySelector('#offer-map-error') as HTMLElement | null;
   const mapUnavailable = page.querySelector('#offer-map-unavailable') as HTMLElement | null;
+
+  // [AGENT] Карты скрыты в UI — не инициализируем редактор, пока флаг/ключ не включены.
+  if (!isMapsLocationUiEnabled()) {
+    toggleBtn?.classList.add('hidden');
+    panel?.classList.add('hidden');
+    return {
+      getLocationPointsForSubmit: () => null,
+      destroy: () => {},
+    };
+  }
 
   let mapVisible = false;
   let editor: OfferMapEditorHandle | null = null;
@@ -105,6 +119,10 @@ export async function mountReadonlyOfferMapBlock(
   points: LocationPoint[],
   errorEl?: HTMLElement | null
 ): Promise<{ destroy: () => void }> {
+  // [AGENT] Карты скрыты — early return; для включения нужен флаг + VITE_YANDEX_MAPS_API_KEY.
+  if (!isMapsLocationUiEnabled()) {
+    return { destroy: () => {} };
+  }
   if (!isYandexMapsConfigured()) {
     errorEl?.classList.remove('hidden');
     if (errorEl) errorEl.textContent = 'Карта недоступна: не задан ключ API.';

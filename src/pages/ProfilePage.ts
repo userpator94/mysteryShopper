@@ -7,6 +7,7 @@ import type { UserStatistics, MeUser, Offer, Application } from '../types/index.
 import { applyExecutorAvatarToElement } from '../utils/executorAvatar.js';
 import { devLog } from '../utils/logger.js';
 import { getRecentOffers } from '../utils/recentOffers.js';
+import { reshkiWord } from '../utils/offerDisplay.js';
 
 function escapeHtml(s: string): string {
   const el = document.createElement('div');
@@ -360,15 +361,16 @@ export async function createProfilePage(): Promise<HTMLElement> {
                   </div>
                   <button type="button" id="profile-metric-rewards" class="profile-metric-card flex flex-col items-center justify-center w-full rounded-lg border border-slate-200 p-2.5 hover:bg-slate-50 transition-colors text-center" data-action="payouts">
                     <span class="text-2xl font-bold text-primary leading-none">${executorRewardsTotal ?? 0}</span>
-                    <span class="text-xs text-slate-600 mt-1">бонусов начислено</span>
+                    <span class="text-xs text-slate-600 mt-1">${reshkiWord(executorRewardsTotal ?? 0)} начислено</span>
                   </button>
                 </div>
               `}
             </div>
             
             <div class="space-y-3">
+              ${/* [AGENT] Блок «Активность» скрыт по умолчанию. */ ''}
               ${isEmployer ? `
-                <div class="bg-white rounded-lg p-3 border border-slate-200">
+                <div class="hidden bg-white rounded-lg p-3 border border-slate-200">
                   <h3 class="font-semibold mb-1.5">Активность</h3>
                   <div class="space-y-2">
                     ${ed && ed.activity.length > 0
@@ -379,7 +381,7 @@ export async function createProfilePage(): Promise<HTMLElement> {
                   </div>
                 </div>
               ` : `
-                <div class="bg-white rounded-lg p-3 border border-slate-200">
+                <div class="hidden bg-white rounded-lg p-3 border border-slate-200">
                   <h3 class="font-semibold mb-1.5">Активность</h3>
                   <div class="space-y-2">
                     ${historyTop10.length > 0

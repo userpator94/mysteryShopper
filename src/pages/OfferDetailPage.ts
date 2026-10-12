@@ -13,9 +13,11 @@ import {
   formatCompensationLines
 } from '../utils/offerDisplay.js';
 import { MAX_PARTICIPANTS_UNLIMITED } from '../config/offerLimits.js';
+import { isMapsLocationUiEnabled } from '../config/yandexMaps.js';
 import { normalizeLocationPoints } from '../utils/locationPoints.js';
 import { mountReadonlyOfferMapBlock } from '../utils/offerMapUi.js';
 import { buildExecutorAvatarHtml } from '../utils/executorAvatar.js';
+import { copyToClipboard } from '../utils/clipboard.js';
 
 const detailMapHandles = new WeakMap<HTMLElement, { destroy: () => void }>();
 
@@ -206,19 +208,32 @@ export async function createOfferDetailPage(offerId: string): Promise<HTMLElemen
                 </div>
               </div>
               
-              <!-- Местоположение -->
-              <div class="bg-white rounded-lg p-4 border border-slate-200 mb-4">
+              <!-- Адрес места выполнения (опционально); карта — только при MAPS_LOCATION_UI_ENABLED -->
+              <div id="offer-address-block" class="hidden bg-white rounded-lg p-4 border border-slate-200 mb-4">
                 <h3 class="font-semibold mb-2 flex items-center gap-2">
                   <svg fill="currentColor" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
                     <path d="M12,2C8.13,2 5,5.13 5,9C5,14.25 12,22 12,22C12,22 19,14.25 19,9C19,5.13 15.87,2 12,2M12,4A5,5 0 0,1 17,9C17,10.5 16.5,12 12,18.71C7.5,12 7,10.5 7,9A5,5 0 0,1 12,4Z"/>
                   </svg>
-                  Местоположение
+                  Адрес
                 </h3>
-                <p id="offer-location" class="text-slate-600"></p>
+                <button type="button" id="offer-location" class="text-left text-primary underline decoration-primary/40 hover:decoration-primary break-words" title="Нажмите, чтобы скопировать адрес"></button>
+                <p id="offer-location-copied" class="hidden text-xs text-emerald-700 mt-1" aria-live="polite">Адрес скопирован</p>
+                <div id="offer-location-note-wrap" class="hidden mt-2">
+                  <button type="button" id="offer-location-note-toggle" class="text-sm text-slate-600 hover:text-slate-900 inline-flex items-center gap-1" aria-expanded="false">
+                    <span id="offer-location-note-chevron" class="inline-block transition-transform text-slate-400" aria-hidden="true">▸</span>
+                    <span>детали</span>
+                  </button>
+                  <p id="offer-location-note" class="hidden mt-2 text-sm text-slate-600 whitespace-pre-wrap break-words"></p>
+                </div>
+                ${
+                  isMapsLocationUiEnabled()
+                    ? `
                 <div id="offer-location-map-wrap" class="hidden mt-3">
                   <div id="offer-location-map-container" class="w-full h-56 rounded-lg border border-slate-200 overflow-hidden bg-slate-100"></div>
                   <p id="offer-location-map-error" class="hidden text-sm text-red-600 mt-2"></p>
-                </div>
+                </div>`
+                    : `<!-- [AGENT] Карта скрыта. Вкл.: MAPS_LOCATION_UI_ENABLED + VITE_YANDEX_MAPS_API_KEY -->`
+                }
               </div>
               
               <!-- Суть задания (описание) + доп. условия -->
@@ -469,7 +484,13 @@ function renderOffer(offer: Offer, page: HTMLElement) {
   const slotsEl = page.querySelector('#offer-slots') as HTMLElement;
   const ratingEl = page.querySelector('#offer-rating') as HTMLElement;
   const companyEl = page.querySelector('#offer-company') as HTMLElement;
-  const locationEl = page.querySelector('#offer-location') as HTMLElement;
+  const addressBlock = page.querySelector('#offer-address-block') as HTMLElement | null;
+  const locationEl = page.querySelector('#offer-location') as HTMLElement | null;
+  const locationCopiedEl = page.querySelector('#offer-location-copied') as HTMLElement | null;
+  const locationNoteWrap = page.querySelector('#offer-location-note-wrap') as HTMLElement | null;
+  const locationNoteToggle = page.querySelector('#offer-location-note-toggle') as HTMLButtonElement | null;
+  const locationNoteEl = page.querySelector('#offer-location-note') as HTMLElement | null;
+  const locationNoteChevron = page.querySelector('#offer-location-note-chevron') as HTMLElement | null;
   const requirementsExtraEl = page.querySelector('#offer-requirements-extra') as HTMLElement;
   const requirementsExtraWrap = page.querySelector('#offer-requirements-extra-wrap') as HTMLElement;
   
@@ -486,7 +507,8 @@ function renderOffer(offer: Offer, page: HTMLElement) {
   if (titleEl) titleEl.textContent = offer.title || 'Название не указано';
   if (descriptionEl) descriptionEl.innerHTML = descriptionToParagraphsHtml(offer.description || '');
   if (compensationEl) {
-    const lines = formatCompensationLines(offer);
+    const viewer = getRole() === 'employer' ? 'employer' : 'executor';
+    const lines = formatCompensationLines(offer, viewer);
     compensationEl.innerHTML = lines.map((p) => `<p>${escapeHtml(p)}</p>`).join('');
   }
   if (slotsEl) {
@@ -504,21 +526,55 @@ function renderOffer(offer: Offer, page: HTMLElement) {
   }
   if (ratingEl) ratingEl.textContent = offer.numeric_info ? offer.numeric_info.toString() : '0';
   if (companyEl) companyEl.textContent = offer.employer_company || 'Компания не указана';
-  if (locationEl) locationEl.textContent = offer.location || 'Местоположение не указано';
 
-  const mapWrap = page.querySelector('#offer-location-map-wrap') as HTMLElement | null;
-  const mapContainer = page.querySelector('#offer-location-map-container') as HTMLElement | null;
-  const mapError = page.querySelector('#offer-location-map-error') as HTMLElement | null;
-  detailMapHandles.get(page)?.destroy();
-  const locationPoints = normalizeLocationPoints(offer.location_points);
-  if (locationPoints && mapWrap && mapContainer) {
-    mapWrap.classList.remove('hidden');
-    void mountReadonlyOfferMapBlock(mapContainer, locationPoints, mapError).then((handle) => {
-      detailMapHandles.set(page, handle);
-    });
-  } else {
-    mapWrap?.classList.add('hidden');
-    if (mapContainer) mapContainer.innerHTML = '';
+  const address = (offer.location || '').trim();
+  const addressNote = (offer.location_note || '').trim();
+  if (addressBlock) {
+    if (address) {
+      addressBlock.classList.remove('hidden');
+      if (locationEl) {
+        locationEl.textContent = address;
+        locationEl.dataset.address = address;
+      }
+      if (locationCopiedEl) locationCopiedEl.classList.add('hidden');
+      if (locationNoteWrap && locationNoteEl && locationNoteToggle) {
+        if (addressNote) {
+          locationNoteWrap.classList.remove('hidden');
+          locationNoteEl.textContent = addressNote;
+          locationNoteEl.classList.add('hidden');
+          locationNoteToggle.setAttribute('aria-expanded', 'false');
+          if (locationNoteChevron) locationNoteChevron.style.transform = '';
+        } else {
+          locationNoteWrap.classList.add('hidden');
+          locationNoteEl.textContent = '';
+          locationNoteEl.classList.add('hidden');
+        }
+      }
+    } else {
+      addressBlock.classList.add('hidden');
+      if (locationEl) {
+        locationEl.textContent = '';
+        delete locationEl.dataset.address;
+      }
+    }
+  }
+
+  // [AGENT] Карта только при MAPS_LOCATION_UI_ENABLED + VITE_YANDEX_MAPS_API_KEY.
+  if (isMapsLocationUiEnabled()) {
+    const mapWrap = page.querySelector('#offer-location-map-wrap') as HTMLElement | null;
+    const mapContainer = page.querySelector('#offer-location-map-container') as HTMLElement | null;
+    const mapError = page.querySelector('#offer-location-map-error') as HTMLElement | null;
+    detailMapHandles.get(page)?.destroy();
+    const locationPoints = normalizeLocationPoints(offer.location_points);
+    if (address && locationPoints && mapWrap && mapContainer) {
+      mapWrap.classList.remove('hidden');
+      void mountReadonlyOfferMapBlock(mapContainer, locationPoints, mapError).then((handle) => {
+        detailMapHandles.set(page, handle);
+      });
+    } else {
+      mapWrap?.classList.add('hidden');
+      if (mapContainer) mapContainer.innerHTML = '';
+    }
   }
 
   // Изображение
@@ -597,6 +653,30 @@ function hideState(element: HTMLElement) {
 }
 
 function setupEventHandlers(page: HTMLElement, offerId: string) {
+  const locationBtn = page.querySelector('#offer-location') as HTMLElement | null;
+  const locationCopiedEl = page.querySelector('#offer-location-copied') as HTMLElement | null;
+  let copiedTimer: ReturnType<typeof setTimeout> | null = null;
+  locationBtn?.addEventListener('click', async () => {
+    const address = (locationBtn.dataset.address || locationBtn.textContent || '').trim();
+    if (!address) return;
+    const ok = await copyToClipboard(address);
+    if (!ok || !locationCopiedEl) return;
+    locationCopiedEl.classList.remove('hidden');
+    if (copiedTimer) clearTimeout(copiedTimer);
+    copiedTimer = setTimeout(() => locationCopiedEl.classList.add('hidden'), 2000);
+  });
+
+  const noteToggle = page.querySelector('#offer-location-note-toggle') as HTMLButtonElement | null;
+  const noteEl = page.querySelector('#offer-location-note') as HTMLElement | null;
+  const noteChevron = page.querySelector('#offer-location-note-chevron') as HTMLElement | null;
+  noteToggle?.addEventListener('click', () => {
+    if (!noteEl) return;
+    const open = noteEl.classList.contains('hidden');
+    noteEl.classList.toggle('hidden', !open);
+    noteToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (noteChevron) noteChevron.style.transform = open ? 'rotate(90deg)' : '';
+  });
+
   // Кнопка "Назад"
   const backBtn = page.querySelector('#back-btn');
   backBtn?.addEventListener('click', () => {

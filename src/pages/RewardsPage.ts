@@ -1,6 +1,7 @@
 import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
 import { getRole } from '../utils/auth.js';
+import { formatReshkiAmount } from '../utils/offerDisplay.js';
 
 type RewardsSummary = {
   balance: number;
@@ -34,9 +35,15 @@ function formatLocalDateTime(iso: string): string {
 
 function kindLabel(kind: string): string {
   const k = (kind || '').toLowerCase();
-  if (k === 'bonus') return 'Бонусы';
+  if (k === 'bonus') return 'Рэшки';
   if (k === 'yandex_plus_points') return 'Баллы Яндекс Плюс';
   return 'Вознаграждение';
+}
+
+function formatRewardAmount(kind: string, amount: number): string {
+  const k = (kind || '').toLowerCase();
+  if (k === 'bonus' || !k) return formatReshkiAmount(amount);
+  return amount.toLocaleString('ru-RU');
 }
 
 export async function createRewardsPage(): Promise<HTMLElement> {
@@ -85,7 +92,7 @@ export async function createRewardsPage(): Promise<HTMLElement> {
             (r) => `
               <div class="flex items-start justify-between gap-3 border-b border-slate-100 pb-2">
                 <div class="min-w-0">
-                  <p class="text-sm font-semibold text-slate-900">${escapeHtml(kindLabel(r.kind))}: +${Number(r.amount).toLocaleString()}</p>
+                  <p class="text-sm font-semibold text-slate-900">${escapeHtml(kindLabel(r.kind))}: +${formatRewardAmount(r.kind, Number(r.amount))}</p>
                   <p class="text-xs text-slate-500">${escapeHtml(formatLocalDateTime(r.created_at))}</p>
                 </div>
                 <span class="text-xs text-slate-500">${escapeHtml(String(r.status || ''))}</span>
@@ -100,15 +107,15 @@ export async function createRewardsPage(): Promise<HTMLElement> {
     content.innerHTML = `
       <div class="rounded-lg border border-slate-200 bg-white p-3">
         <h2 class="text-sm font-semibold text-slate-800 mb-1.5">Баланс</h2>
-        <p class="text-2xl font-bold text-slate-900">${Number(summary.balance).toLocaleString()} бонусов</p>
-        <p class="text-xs text-slate-500 mt-1">Мы показываем начисленные вознаграждения. Как вы тратите бонусы у партнёров — вы решаете самостоятельно.</p>
+        <p class="text-2xl font-bold text-slate-900">${formatReshkiAmount(Number(summary.balance))}</p>
+        <p class="text-xs text-slate-500 mt-1">Мы показываем начисленные вознаграждения в Рэшках. Как вы тратите их у партнёров — вы решаете самостоятельно.</p>
       </div>
 
       <div class="rounded-lg border border-slate-200 bg-white p-3">
         <div class="flex items-stretch gap-3">
           <div class="min-w-0 flex-1">
-            <h2 class="text-sm font-semibold text-slate-800">Потратить бонусы</h2>
-            <p class="text-sm text-slate-600 mt-1">Вы можете потратить бонусы у наших партнёров.</p>
+            <h2 class="text-sm font-semibold text-slate-800">Потратить Рэшки</h2>
+            <p class="text-sm text-slate-600 mt-1">Вы можете потратить Рэшки у наших партнёров.</p>
           </div>
           <a
             href="https://market.yandex.ru/"
@@ -121,6 +128,17 @@ export async function createRewardsPage(): Promise<HTMLElement> {
         </div>
       </div>
 
+      <button type="button" id="rewards-withdraw-section"
+        class="w-full text-left rounded-lg border border-slate-200 bg-white p-3 hover:bg-slate-50 transition-colors">
+        <div class="flex items-center gap-3">
+          <div class="min-w-0 flex-1">
+            <h2 class="text-sm font-semibold text-slate-800">Обналичить Рэшки</h2>
+            <p class="text-sm text-slate-600 mt-1">Реквизиты счёта для вывода средств.</p>
+          </div>
+          <span class="text-slate-400 text-lg shrink-0" aria-hidden="true">→</span>
+        </div>
+      </button>
+
       <div class="rounded-lg border border-slate-200 bg-white p-3">
         <h2 class="text-sm font-semibold text-slate-800 mb-2">История</h2>
         <div class="space-y-2">
@@ -128,6 +146,10 @@ export async function createRewardsPage(): Promise<HTMLElement> {
         </div>
       </div>
     `;
+
+    content.querySelector('#rewards-withdraw-section')?.addEventListener('click', () => {
+      router.navigate('/rewards/withdraw');
+    });
   } catch (e: any) {
     loading.classList.add('hidden');
     err.textContent = e?.message || 'Не удалось загрузить вознаграждения';

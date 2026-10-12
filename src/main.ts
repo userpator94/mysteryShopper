@@ -25,6 +25,8 @@ import { createEmployerExecutorProfilePage } from './pages/EmployerExecutorProfi
 import { createEmployerPendingApplicationsInboxPage } from './pages/EmployerPendingApplicationsInboxPage.js'
 import { createEmployerPendingReportsInboxPage } from './pages/EmployerPendingReportsInboxPage.js'
 import { createRewardsPage } from './pages/RewardsPage.js'
+import { createWithdrawPage } from './pages/WithdrawPage.js'
+import { createWithdrawRequestPage } from './pages/WithdrawRequestPage.js'
 import { showWebDeviceModal } from './components/WebDeviceMessage.js'
 import { detectDevice } from './utils/deviceDetection.js'
 import { apiService } from './services/api.js'
@@ -114,6 +116,22 @@ router.addRoute({
   path: '/rewards',
   component: createRewardsPage,
   title: 'Вознаграждения',
+  requiresAuth: true,
+  requiresRole: 'user'
+})
+
+router.addRoute({
+  path: '/rewards/withdraw',
+  component: createWithdrawPage,
+  title: 'Обналичить Рэшки',
+  requiresAuth: true,
+  requiresRole: 'user'
+})
+
+router.addRoute({
+  path: '/rewards/withdraw/request',
+  component: createWithdrawRequestPage,
+  title: 'Вывод средств',
   requiresAuth: true,
   requiresRole: 'user'
 })

@@ -40,20 +40,26 @@ export interface ChecklistSchema {
   items: ChecklistItem[];
 }
 
-/** Метка на карте (lng/lat — WGS84, как в Yandex Maps API) */
+/**
+ * Метка на карте (lng/lat — WGS84, как в Yandex Maps API).
+ * [AGENT] UI карт скрыт (MAPS_LOCATION_UI_ENABLED). Вкл.: флаг + VITE_YANDEX_MAPS_API_KEY.
+ */
 export interface LocationPoint {
   lng: number;
   lat: number;
   label?: string;
 }
 
-/** Тело запроса создания оффера (POST /api/offers). `price` — вознаграждение в бонусах (целое число). */
+/** Тело запроса создания оффера (POST /api/offers). `price` — вознаграждение в рублях (целое число). */
 export interface CreateOfferPayload {
   title: string;
   description: string;
-  /** Вознаграждение в бонусах (целое). Поле в API называется `price`. */
+  /** Вознаграждение в рублях (целое). Исполнителю показывается в Рэшках. Поле в API — `price`. */
   price: number;
-  location: string;
+  /** Адрес места выполнения (опционально) */
+  location?: string | null;
+  /** Пометка заказчика к адресу (до 300 символов; только вместе с location) */
+  location_note?: string | null;
   /** Метки на карте; только при создании, опционально */
   location_points?: LocationPoint[] | null;
   requirements?: string;
@@ -68,13 +74,14 @@ export interface CreateOfferPayload {
   schema_version?: number;
 }
 
-/** Тело запроса обновления оффера (PATCH /api/offers/:id) — все поля опциональны. `price` — вознаграждение в бонусах (целое). */
+/** Тело запроса обновления оффера (PATCH /api/offers/:id) — все поля опциональны. `price` — вознаграждение в рублях (целое). */
 export interface UpdateOfferPayload {
   title?: string;
   description?: string;
-  /** Вознаграждение в бонусах (целое). Поле в API называется `price`. */
+  /** Вознаграждение в рублях (целое). Исполнителю показывается в Рэшках. Поле в API — `price`. */
   price?: number;
-  location?: string;
+  location?: string | null;
+  location_note?: string | null;
   requirements?: string;
   tags?: string;
   start_date?: string;
@@ -112,14 +119,17 @@ export interface Offer {
   start_date: string;
   end_date: string;
   is_active: boolean;
-  /** Вознаграждение в бонусах. Поле в API называется `price`. */
+  /** Вознаграждение в рублях. Исполнителю показывается в Рэшках. Поле в API — `price`. */
   price: string;
   /** 999 — без лимита исполнителей */
   max_participants: number;
   current_participants: number;
   description: string;
   requirements: string;
-  location: string;
+  /** Адрес места выполнения (опционально) */
+  location: string | null;
+  /** Пометка заказчика к адресу (как пройти), до 300 символов */
+  location_note?: string | null;
   location_points?: LocationPoint[] | null;
   created_at: string;
   updated_at: string;

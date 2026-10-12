@@ -1,7 +1,7 @@
 // Страница избранного
 
 import type { FavoriteOfferSummary } from '../types/index.js';
-import { formatExecutorMoneyRewardShort } from '../utils/offerDisplay.js';
+import { formatExecutorRewardShort } from '../utils/offerDisplay.js';
 import { listRowCardClasses, bindListRowCardHover } from '../utils/listRowUi.js';
 import { apiService } from '../services/api.js';
 import { devLog } from '../utils/logger.js';
@@ -34,41 +34,13 @@ export async function createFavoritesPage(): Promise<HTMLElement> {
             
             <div id="empty-favorites-state" class="hidden text-center py-8">
               <div id="cat-shrug-visualization" class="mb-4 flex justify-center items-center" style="height: 200px;">
-                <svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-                  <!-- Cat shrug emoji style -->
-                  <!-- Left arm -->
-                  <path d="M 20 60 Q 10 40, 15 25 Q 20 10, 25 15 Q 30 20, 35 25 Q 40 30, 35 45 Q 32 50, 30 55 Z" fill="#137fec" stroke="#0f6fd6" stroke-width="2"/>
-                  
-                  <!-- Right arm -->
-                  <path d="M 180 60 Q 190 40, 185 25 Q 180 10, 175 15 Q 170 20, 165 25 Q 160 30, 165 45 Q 168 50, 170 55 Z" fill="#137fec" stroke="#0f6fd6" stroke-width="2"/>
-                  
-                  <!-- Cat head -->
-                  <circle cx="100" cy="80" r="50" fill="#137fec" stroke="#0f6fd6" stroke-width="2"/>
-                  
-                  <!-- Left ear -->
-                  <path d="M 70 50 L 80 25 L 90 50 Z" fill="#3b82f6" stroke="#0f6fd6" stroke-width="2"/>
-                  
-                  <!-- Right ear -->
-                  <path d="M 110 50 L 120 25 L 130 50 Z" fill="#3b82f6" stroke="#0f6fd6" stroke-width="2"/>
-                  
-                  <!-- Left eye -->
-                  <ellipse cx="85" cy="75" rx="8" ry="12" fill="#0f172a"/>
-                  
-                  <!-- Right eye -->
-                  <ellipse cx="115" cy="75" rx="8" ry="12" fill="#0f172a"/>
-                  
-                  <!-- Nose -->
-                  <path d="M 100 85 L 95 95 L 105 95 Z" fill="#0f172a"/>
-                  
-                  <!-- Mouth -->
-                  <path d="M 100 95 Q 90 100, 85 105 M 100 95 Q 110 100, 115 105" stroke="#0f172a" stroke-width="2" fill="none" stroke-linecap="round"/>
-                  
-                  <!-- Whiskers -->
-                  <line x1="60" y1="85" x2="75" y2="88" stroke="#0f172a" stroke-width="2" stroke-linecap="round"/>
-                  <line x1="60" y1="95" x2="75" y2="95" stroke="#0f172a" stroke-width="2" stroke-linecap="round"/>
-                  <line x1="140" y1="85" x2="125" y2="88" stroke="#0f172a" stroke-width="2" stroke-linecap="round"/>
-                  <line x1="140" y1="95" x2="125" y2="95" stroke="#0f172a" stroke-width="2" stroke-linecap="round"/>
-                </svg>
+                <img
+                  src="/cat-shrug.png"
+                  alt="Милый котик пожимает плечами"
+                  class="max-h-full max-w-full object-contain"
+                  width="200"
+                  height="200"
+                />
               </div>
               <p class="text-slate-600 mb-4">У вас пока нет избранных</p>
               <button id="explore-empty-btn" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
@@ -157,7 +129,7 @@ function renderFavorites(container: HTMLElement, favorites: FavoriteOfferSummary
       <h3 class="font-semibold mb-2">${favorite.title}</h3>
       <p class="text-slate-600 text-sm mb-2">${favorite.description}</p>
       <div class="flex justify-between items-center">
-        <span class="text-primary font-bold">${formatExecutorMoneyRewardShort({ price: favorite.price })}</span>
+        <span class="text-primary font-bold">${formatExecutorRewardShort({ price: favorite.price })}</span>
         <button class="text-red-500 hover:text-red-700 p-1" data-remove-favorite="${favorite.id}" title="Удалить из избранного">
           <svg fill="currentColor" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
             <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/>

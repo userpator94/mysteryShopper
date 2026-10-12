@@ -5,6 +5,7 @@ import { MAX_PARTICIPANTS_UNLIMITED } from '../config/offerLimits.js';
 import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
 import { checklistSectionHtml, initChecklistBuilder, collectOfferChecklistFromPage } from '../utils/checklistOfferUi.js';
+import { isMapsLocationUiEnabled } from '../config/yandexMaps.js';
 import { normalizeLocationPoints } from '../utils/locationPoints.js';
 import { mountReadonlyOfferMapBlock } from '../utils/offerMapUi.js';
 
@@ -46,17 +47,26 @@ export async function createEditOfferPage(offerId: string): Promise<HTMLElement>
             <textarea id="offer-description" name="description" required rows="4" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary resize-none"></textarea>
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Вознаграждение (бонусы) *</label>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Вознаграждение (₽) *</label>
             <input id="offer-price" name="price" type="number" min="0" step="1" required class="w-full h-12 px-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Местоположение *</label>
-            <input id="offer-location" name="location" required class="w-full h-12 px-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary" />
+            <label class="block text-sm font-medium text-slate-700 mb-1">Адрес</label>
+            <input id="offer-location" name="location" maxlength="255" class="w-full h-12 px-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary" placeholder="Адрес места выполнения (необязательно)" />
+            <label class="block text-sm font-medium text-slate-700 mb-1 mt-3">Детали к адресу</label>
+            <textarea id="offer-location-note" name="location_note" maxlength="300" rows="2" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary resize-none" placeholder="Как пройти, ориентиры (необязательно, до 300 символов)"></textarea>
+            <p class="text-xs text-slate-500 mt-1"><span id="offer-location-note-count">0</span>/300</p>
+            ${
+              /* [AGENT] Карта скрыта. Вкл.: MAPS_LOCATION_UI_ENABLED + VITE_YANDEX_MAPS_API_KEY. */
+              isMapsLocationUiEnabled()
+                ? `
             <div id="offer-edit-map-wrap" class="hidden mt-3 space-y-2">
               <p class="text-xs text-slate-500">Метки на карте задаются только при создании и не редактируются.</p>
               <div id="offer-edit-map-container" class="w-full h-56 rounded-lg border border-slate-200 overflow-hidden bg-slate-100"></div>
               <p id="offer-edit-map-error" class="hidden text-sm text-red-600"></p>
-            </div>
+            </div>`
+                : `<!-- [AGENT] Карта скрыта. Вкл.: MAPS_LOCATION_UI_ENABLED + VITE_YANDEX_MAPS_API_KEY -->`
+            }
           </div>
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">Требования</label>
@@ -145,6 +155,17 @@ export async function createEditOfferPage(offerId: string): Promise<HTMLElement>
       }
       return;
     }
+    const location = (page.querySelector('#offer-location') as HTMLInputElement)?.value.trim() || null;
+    const location_note_raw = (page.querySelector('#offer-location-note') as HTMLTextAreaElement)?.value.trim() || '';
+    const location_note = location && location_note_raw ? location_note_raw.slice(0, 300) : null;
+    if (location_note_raw && !location) {
+      const errEl = page.querySelector('#form-error') as HTMLElement;
+      if (errEl) {
+        errEl.textContent = 'Детали к адресу можно указать только вместе с адресом.';
+        errEl.classList.remove('hidden');
+      }
+      return;
+    }
     const payload: UpdateOfferPayload = {
       title: (page.querySelector('#offer-title') as HTMLInputElement)?.value.trim(),
       description: (page.querySelector('#offer-description') as HTMLTextAreaElement)?.value.trim(),
@@ -152,7 +173,8 @@ export async function createEditOfferPage(offerId: string): Promise<HTMLElement>
         const v = (page.querySelector('#offer-price') as HTMLInputElement)?.value;
         return v !== undefined && v !== '' ? Math.floor(Number(v)) : undefined;
       })(),
-      location: (page.querySelector('#offer-location') as HTMLInputElement)?.value.trim(),
+      location,
+      location_note,
       requirements: (page.querySelector('#offer-requirements') as HTMLTextAreaElement)?.value.trim() || undefined,
       start_date: (page.querySelector('#offer-start-date') as HTMLInputElement)?.value,
       end_date: (page.querySelector('#offer-end-date') as HTMLInputElement)?.value,
@@ -196,6 +218,15 @@ function fillForm(page: HTMLElement, offer: Offer) {
   (page.querySelector('#offer-description') as HTMLTextAreaElement).value = offer.description || '';
   (page.querySelector('#offer-price') as HTMLInputElement).value = offer.price != null ? String(Math.floor(Number(offer.price))) : '';
   (page.querySelector('#offer-location') as HTMLInputElement).value = offer.location || '';
+  const noteEl = page.querySelector('#offer-location-note') as HTMLTextAreaElement;
+  const noteCount = page.querySelector('#offer-location-note-count') as HTMLElement;
+  if (noteEl) {
+    noteEl.value = offer.location_note || '';
+    noteEl.addEventListener('input', () => {
+      if (noteCount) noteCount.textContent = String(noteEl.value.length);
+    });
+  }
+  if (noteCount) noteCount.textContent = String(noteEl?.value.length ?? 0);
   (page.querySelector('#offer-requirements') as HTMLTextAreaElement).value = offer.requirements || '';
   const unlimited = offer.max_participants === MAX_PARTICIPANTS_UNLIMITED;
   (page.querySelector('#offer-unlimited-participants') as HTMLInputElement).checked = unlimited;
@@ -210,6 +241,9 @@ function fillForm(page: HTMLElement, offer: Offer) {
     const d = new Date(offer.end_date);
     (page.querySelector('#offer-end-date') as HTMLInputElement).value = d.toISOString().slice(0, 10);
   }
+
+  // [AGENT] Карты скрыты в UI; при включении (флаг + API key) блок ниже снова монтирует карту.
+  if (!isMapsLocationUiEnabled()) return;
 
   const points = normalizeLocationPoints(offer.location_points);
   const mapWrap = page.querySelector('#offer-edit-map-wrap') as HTMLElement | null;

@@ -5,6 +5,7 @@ import { MAX_PARTICIPANTS_UNLIMITED } from '../config/offerLimits.js';
 import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
 import { checklistSectionHtml, initChecklistBuilder, collectOfferChecklistFromPage } from '../utils/checklistOfferUi.js';
+import { isMapsLocationUiEnabled } from '../config/yandexMaps.js';
 import { initOfferMapCreateSection } from '../utils/offerMapUi.js';
 
 export async function createCreateOfferPage(): Promise<HTMLElement> {
@@ -30,12 +31,19 @@ export async function createCreateOfferPage(): Promise<HTMLElement> {
             <textarea id="offer-description" name="description" required rows="4" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary resize-none" placeholder="Описание задачи"></textarea>
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Вознаграждение (бонусы) *</label>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Вознаграждение (₽) *</label>
             <input id="offer-price" name="price" type="number" min="0" step="1" required class="w-full h-12 px-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary" placeholder="0" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Местоположение *</label>
-            <input id="offer-location" name="location" required class="w-full h-12 px-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary" placeholder="Адрес или город" />
+            <label class="block text-sm font-medium text-slate-700 mb-1">Адрес</label>
+            <input id="offer-location" name="location" maxlength="255" class="w-full h-12 px-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary" placeholder="Адрес места выполнения (необязательно)" />
+            <label class="block text-sm font-medium text-slate-700 mb-1 mt-3">Детали к адресу</label>
+            <textarea id="offer-location-note" name="location_note" maxlength="300" rows="2" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary resize-none" placeholder="Как пройти, ориентиры (необязательно, до 300 символов)"></textarea>
+            <p class="text-xs text-slate-500 mt-1"><span id="offer-location-note-count">0</span>/300</p>
+            ${
+              /* [AGENT] Блок карты скрыт. Вкл.: MAPS_LOCATION_UI_ENABLED = true + VITE_YANDEX_MAPS_API_KEY. */
+              isMapsLocationUiEnabled()
+                ? `
             <button type="button" id="offer-map-toggle" class="mt-2 text-sm font-semibold text-primary hover:text-primary/80">
               Добавить карту
             </button>
@@ -49,7 +57,9 @@ export async function createCreateOfferPage(): Promise<HTMLElement> {
               <div id="offer-map-container" class="w-full h-64 rounded-lg border border-slate-300 overflow-hidden bg-slate-200"></div>
               <ul id="offer-map-points-list" class="text-sm"></ul>
               <p class="text-xs text-slate-500">Клик по карте — новая метка. Не более 10 меток.</p>
-            </div>
+            </div>`
+                : `<!-- [AGENT] Карта скрыта. Вкл.: MAPS_LOCATION_UI_ENABLED + VITE_YANDEX_MAPS_API_KEY -->`
+            }
           </div>
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">Требования</label>
@@ -89,6 +99,14 @@ export async function createCreateOfferPage(): Promise<HTMLElement> {
   initChecklistBuilder(page, null);
   const mapSection = initOfferMapCreateSection(page);
 
+  const locationNoteInput = page.querySelector('#offer-location-note') as HTMLTextAreaElement;
+  const locationNoteCount = page.querySelector('#offer-location-note-count') as HTMLElement;
+  const syncLocationNoteCount = () => {
+    if (locationNoteCount) locationNoteCount.textContent = String(locationNoteInput?.value.length ?? 0);
+  };
+  locationNoteInput?.addEventListener('input', syncLocationNoteCount);
+  syncLocationNoteCount();
+
   const unlimitedCb = page.querySelector('#offer-unlimited-participants') as HTMLInputElement;
   const maxInput = page.querySelector('#offer-max-participants') as HTMLInputElement;
   const syncMaxParticipantsUi = () => {
@@ -107,7 +125,9 @@ export async function createCreateOfferPage(): Promise<HTMLElement> {
     const title = (page.querySelector('#offer-title') as HTMLInputElement)?.value.trim();
     const description = (page.querySelector('#offer-description') as HTMLTextAreaElement)?.value.trim();
     const priceRaw = (page.querySelector('#offer-price') as HTMLInputElement)?.value;
-    const location = (page.querySelector('#offer-location') as HTMLInputElement)?.value.trim();
+    const location = (page.querySelector('#offer-location') as HTMLInputElement)?.value.trim() || null;
+    const location_note_raw = (page.querySelector('#offer-location-note') as HTMLTextAreaElement)?.value.trim() || '';
+    const location_note = location_note_raw ? location_note_raw.slice(0, 300) : null;
     const requirements = (page.querySelector('#offer-requirements') as HTMLTextAreaElement)?.value.trim();
     const start_date = (page.querySelector('#offer-start-date') as HTMLInputElement)?.value;
     const end_date = (page.querySelector('#offer-end-date') as HTMLInputElement)?.value;
@@ -118,9 +138,17 @@ export async function createCreateOfferPage(): Promise<HTMLElement> {
     const is_promo = (page.querySelector('#offer-is-promo') as HTMLInputElement)?.checked ?? false;
 
     const price = priceRaw !== undefined && priceRaw !== '' ? Math.floor(Number(priceRaw)) : NaN;
-    if (!title || !description || Number.isNaN(price) || price < 0 || !location || !start_date || !end_date) {
+    if (!title || !description || Number.isNaN(price) || price < 0 || !start_date || !end_date) {
       const errEl = page.querySelector('#form-error') as HTMLElement;
-      if (errEl) { errEl.textContent = 'Заполните обязательные поля. Вознаграждение — целое число.'; errEl.classList.remove('hidden'); }
+      if (errEl) { errEl.textContent = 'Заполните обязательные поля. Вознаграждение — целое число в рублях.'; errEl.classList.remove('hidden'); }
+      return;
+    }
+    if (location_note && !location) {
+      const errEl = page.querySelector('#form-error') as HTMLElement;
+      if (errEl) {
+        errEl.textContent = 'Детали к адресу можно указать только вместе с адресом.';
+        errEl.classList.remove('hidden');
+      }
       return;
     }
 
@@ -140,7 +168,7 @@ export async function createCreateOfferPage(): Promise<HTMLElement> {
       title,
       description,
       price,
-      location,
+      ...(location ? { location, ...(location_note ? { location_note } : {}) } : {}),
       ...(location_points != null ? { location_points } : {}),
       ...(requirements ? { requirements } : {}),
       start_date,

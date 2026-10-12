@@ -1,3 +1,7 @@
+/**
+ * [AGENT] Загрузчик Яндекс.Карт. UI карт скрыт (MAPS_LOCATION_UI_ENABLED).
+ * Включение: MAPS_LOCATION_UI_ENABLED = true + VITE_YANDEX_MAPS_API_KEY в .env.
+ */
 import { getYandexMapsApiKey } from '../config/yandexMaps.js';
 import { getYmapsApi } from './ymapsApi.js';
 

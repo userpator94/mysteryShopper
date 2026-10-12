@@ -406,6 +406,57 @@ export class ApiService {
     return this.request<{ success: true; data: any[] }>(`/me/rewards?limit=${encodeURIComponent(String(limit))}&offset=${encodeURIComponent(String(offset))}`);
   }
 
+  /** Реквизиты для вывода Рэшек (GET /api/me/withdraw-details). */
+  public async getWithdrawDetails(): Promise<{
+    success: true;
+    data: any | null;
+    defaults?: {
+      last_name: string;
+      first_name: string;
+      middle_name: string | null;
+      phone: string;
+    };
+  }> {
+    return this.request<{
+      success: true;
+      data: any | null;
+      defaults?: {
+        last_name: string;
+        first_name: string;
+        middle_name: string | null;
+        phone: string;
+      };
+    }>('/me/withdraw-details');
+  }
+
+  /** Сохранить реквизиты для вывода (PUT /api/me/withdraw-details). */
+  public async saveWithdrawDetails(body: {
+    method: 'bank_account' | 'phone' | 'card';
+    last_name: string;
+    first_name: string;
+    middle_name?: string | null;
+    account_number?: string | null;
+    bik?: string | null;
+    bank_name?: string | null;
+    phone?: string | null;
+    card_number?: string | null;
+  }): Promise<{ success: true; data: any }> {
+    return this.request<{ success: true; data: any }>('/me/withdraw-details', {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    });
+  }
+
+  /** Создать заявку на вывод Рэшек (POST /api/me/withdraw-requests). */
+  public async createWithdrawRequest(body: {
+    amount: number;
+  }): Promise<{ success: true; data: any }> {
+    return this.request<{ success: true; data: any }>('/me/withdraw-requests', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
   public async getApplyByOfferId(offerId: string): Promise<Application | null> {
     try {
       const url = `${API_BASE_URL}/applies?offer_id=${offerId}`;

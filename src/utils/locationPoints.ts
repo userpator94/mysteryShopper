@@ -1,3 +1,7 @@
+/**
+ * [AGENT] Нормализация меток карты. UI карт скрыт (см. MAPS_LOCATION_UI_ENABLED).
+ * Включение UI: флаг + VITE_YANDEX_MAPS_API_KEY — код менять не нужно.
+ */
 import type { LocationPoint } from '../types/index.js';
 
 function parseCoord(v: unknown): number | null {
