@@ -2,13 +2,14 @@ import { router } from '../../router/index.js';
 import { apiService } from '../../services/api.js';
 import {
   ADMIN_APPLICATIONS_PATH,
+  ADMIN_DOCUMENTS_PATH,
   ADMIN_LOGIN_PATH,
   ADMIN_OVERVIEW_PATH,
   ADMIN_QUEUES_PATH
 } from '../../utils/adminPaths.js';
 import { clearRole } from '../../utils/auth.js';
 
-type AdminNavKey = 'overview' | 'applications' | 'queues';
+type AdminNavKey = 'overview' | 'applications' | 'queues' | 'documents';
 
 function navClass(active: boolean): string {
   return active
@@ -40,6 +41,7 @@ export function wrapWithAdminShell(content: HTMLElement, active: AdminNavKey): H
         <a href="#" data-admin-nav="${ADMIN_OVERVIEW_PATH}" class="${navClass(active === 'overview')}">Обзор</a>
         <a href="#" data-admin-nav="${ADMIN_APPLICATIONS_PATH}" class="${navClass(active === 'applications')}">Заявки</a>
         <a href="#" data-admin-nav="${ADMIN_QUEUES_PATH}" class="${navClass(active === 'queues')}">Очереди</a>
+        <a href="#" data-admin-nav="${ADMIN_DOCUMENTS_PATH}" class="${navClass(active === 'documents')}">Документы</a>
       </nav>
     </header>
     <main id="admin-shell-main" class="mx-auto max-w-5xl px-4 py-6"></main>

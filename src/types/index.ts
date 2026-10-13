@@ -3,6 +3,23 @@
 /** Роль пользователя: user — исполнитель, employer — заказчик, admin — платформенный админ */
 export type UserRole = 'user' | 'employer' | 'admin';
 
+/** Метаданные оферты (GET /api/legal/offers, GET /api/admin/legal/docs) */
+export interface LegalOfferMeta {
+  role: 'user' | 'employer';
+  label: string;
+  filename: string;
+  version: string;
+  url: string;
+  exists: boolean;
+  size: number | null;
+  mtime: string | null;
+}
+
+export interface LegalOffersPayload {
+  user: LegalOfferMeta;
+  employer: LegalOfferMeta;
+}
+
 /** Статистика админ-панели (GET /api/admin/stats/overview) */
 export interface AdminOverviewStats {
   users: {

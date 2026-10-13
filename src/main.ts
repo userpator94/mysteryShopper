@@ -31,6 +31,7 @@ import { createAdminLoginPage } from './pages/admin/AdminLoginPage.js'
 import { createAdminOverviewPage } from './pages/admin/AdminOverviewPage.js'
 import { createAdminApplicationsPage } from './pages/admin/AdminApplicationsPage.js'
 import { createAdminQueuesPage } from './pages/admin/AdminQueuesPage.js'
+import { createAdminDocumentsPage } from './pages/admin/AdminDocumentsPage.js'
 import { showWebDeviceModal } from './components/WebDeviceMessage.js'
 import { detectDevice } from './utils/deviceDetection.js'
 import { apiService } from './services/api.js'
@@ -39,6 +40,7 @@ import { updateNavByRole } from './components/Layout.js'
 import { refreshEmployerInboxBadge } from './utils/employerInboxBadge.js'
 import {
   ADMIN_APPLICATIONS_PATH,
+  ADMIN_DOCUMENTS_PATH,
   ADMIN_LOGIN_PATH,
   ADMIN_OVERVIEW_PATH,
   ADMIN_QUEUES_PATH,
@@ -244,6 +246,14 @@ router.addRoute({
   path: ADMIN_QUEUES_PATH,
   component: createAdminQueuesPage,
   title: 'Admin queues',
+  requiresAuth: true,
+  requiresRole: 'admin'
+})
+
+router.addRoute({
+  path: ADMIN_DOCUMENTS_PATH,
+  component: createAdminDocumentsPage,
+  title: 'Admin documents',
   requiresAuth: true,
   requiresRole: 'admin'
 })

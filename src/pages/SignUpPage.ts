@@ -2,6 +2,7 @@
 
 import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
+import type { LegalOffersPayload } from '../types/index.js';
 import { EMAIL_FORMAT_HINT, isValidEmailFormat } from '../utils/email.js';
 import { devLog } from '../utils/logger.js';
 
@@ -166,11 +167,33 @@ export async function createSignUpPage(): Promise<HTMLElement> {
                 </div>
               </label>
             </div>
+
+            <div class="flex flex-col gap-1">
+              <label class="flex items-start gap-3 cursor-pointer select-none">
+                <input
+                  id="signup-accept-offer"
+                  type="checkbox"
+                  class="mt-1 h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
+                />
+                <span class="text-sm text-slate-700 leading-snug">
+                  Ознакомлен(а) и присоединяюсь к
+                  <a
+                    id="signup-offer-link"
+                    href="/api/legal/offers/user"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="font-semibold text-primary underline-offset-2 hover:underline"
+                  >оферте</a>
+                </span>
+              </label>
+              <p id="signup-offer-error" class="hidden text-xs text-red-600">Необходимо принять оферту</p>
+            </div>
           </div>
           
           <button 
             id="signup-button" 
-            class="flex h-14 w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-base font-semibold text-white shadow-sm transition-all hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            class="flex h-14 w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-base font-semibold text-white shadow-sm transition-all hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled
           >
             Зарегистрироваться
           </button>
@@ -198,6 +221,42 @@ export async function createSignUpPage(): Promise<HTMLElement> {
 }
 
 function setupEventHandlers(page: HTMLElement) {
+  let legalOffers: LegalOffersPayload | null = null;
+
+  const offerLink = page.querySelector('#signup-offer-link') as HTMLAnchorElement | null;
+  const acceptOfferInput = page.querySelector('#signup-accept-offer') as HTMLInputElement | null;
+  const offerError = page.querySelector('#signup-offer-error') as HTMLElement | null;
+  const signupButtonEarly = page.querySelector('#signup-button') as HTMLButtonElement | null;
+
+  const selectedRole = (): 'user' | 'employer' => {
+    const employerRadio = page.querySelector(
+      'input[name="signup-role"][value="employer"]'
+    ) as HTMLInputElement | null;
+    return employerRadio?.checked ? 'employer' : 'user';
+  };
+
+  const syncOfferLink = () => {
+    if (!offerLink || !legalOffers) return;
+    const role = selectedRole();
+    const meta = legalOffers[role];
+    offerLink.href = meta.url;
+  };
+
+  const syncSignupButtonEnabled = () => {
+    if (!signupButtonEarly) return;
+    signupButtonEarly.disabled = !(acceptOfferInput?.checked ?? false);
+  };
+
+  void apiService
+    .getLegalOffers()
+    .then((data) => {
+      legalOffers = data;
+      syncOfferLink();
+    })
+    .catch((err) => {
+      console.error('Не удалось загрузить ссылки на оферты:', err);
+    });
+
   // Показать/скрыть поля заказчика при смене роли
   const roleInputs = page.querySelectorAll<HTMLInputElement>('input[name="signup-role"]');
   const employerFields = page.querySelector('#signup-employer-fields') as HTMLElement;
@@ -205,7 +264,18 @@ function setupEventHandlers(page: HTMLElement) {
     input.addEventListener('change', () => {
       if (employerFields) employerFields.classList.toggle('hidden', input.value !== 'employer');
       if (employerFields) employerFields.classList.toggle('flex', input.value === 'employer');
+      syncOfferLink();
     });
+  });
+
+  acceptOfferInput?.addEventListener('change', () => {
+    if (offerError) offerError.classList.add('hidden');
+    syncSignupButtonEnabled();
+  });
+
+  // Клик по ссылке оферты не должен переключать чекбокс
+  offerLink?.addEventListener('click', (e) => {
+    e.stopPropagation();
   });
 
   // Создание и показ тултипа с ошибкой
@@ -624,6 +694,24 @@ function setupEventHandlers(page: HTMLElement) {
       isValid = false;
     }
 
+    const offerAccepted = acceptOfferInput?.checked ?? false;
+    if (!offerAccepted) {
+      if (offerError) offerError.classList.remove('hidden');
+      isValid = false;
+    }
+
+    const roleKey = isEmployer ? 'employer' : 'user';
+    const offerVersion = legalOffers?.[roleKey]?.version?.trim() || '';
+    if (!offerVersion) {
+      if (offerError) {
+        offerError.textContent = 'Не удалось загрузить оферту. Обновите страницу.';
+        offerError.classList.remove('hidden');
+      }
+      isValid = false;
+    } else if (offerError && offerError.textContent !== 'Необходимо принять оферту') {
+      offerError.textContent = 'Необходимо принять оферту';
+    }
+
     if (!isValid) {
       // Фокусируемся на первом невалидном поле
       if (!name && nameInput) {
@@ -650,7 +738,17 @@ function setupEventHandlers(page: HTMLElement) {
     }
 
     try {
-      const options: { role?: 'user' | 'employer'; company?: string; description?: string; website?: string } = {};
+      const options: {
+        role?: 'user' | 'employer';
+        company?: string;
+        description?: string;
+        website?: string;
+        accept_offer?: boolean;
+        offer_version?: string;
+      } = {
+        accept_offer: true,
+        offer_version: offerVersion
+      };
       if (isEmployer) {
         options.role = 'employer';
         options.company = company;
@@ -705,10 +803,10 @@ function setupEventHandlers(page: HTMLElement) {
         }
       }
     } finally {
-      // Восстанавливаем кнопку
+      // Восстанавливаем кнопку (остаётся disabled без галочки оферты)
       if (signupButton) {
-        signupButton.disabled = false;
         signupButton.textContent = 'Зарегистрироваться';
+        syncSignupButtonEnabled();
       }
     }
   };

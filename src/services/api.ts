@@ -22,7 +22,9 @@ import type {
   EmployerPublicSummary,
   AdminOverviewStats,
   AdminApplicationRow,
-  AdminQueuesPayload
+  AdminQueuesPayload,
+  LegalOffersPayload,
+  LegalOfferMeta
 } from '../types/index.js';
 import { devLog } from '../utils/logger.js';
 import { setRole, clearRole } from '../utils/auth.js';
@@ -651,19 +653,72 @@ export class ApiService {
     return response.data;
   }
 
+  public async getLegalOffers(): Promise<LegalOffersPayload> {
+    const response = await this.request<{ success: boolean; data: LegalOffersPayload }>(
+      '/legal/offers',
+      {},
+      false
+    );
+    return response.data;
+  }
+
+  public async getAdminLegalDocs(): Promise<LegalOfferMeta[]> {
+    const response = await this.request<{ success: boolean; data: LegalOfferMeta[] }>(
+      '/admin/legal/docs'
+    );
+    return response.data;
+  }
+
+  /** Открыть PDF оферты из админки (JWT) в новой вкладке */
+  public async openAdminLegalDoc(role: 'user' | 'employer'): Promise<void> {
+    const url = `${API_BASE_URL}/admin/legal/docs/${role}`;
+    const token = this.getAuthToken();
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    });
+    if (response.status === 401) {
+      redirectToLoginOnAuthFailure();
+      throw new Error('Токен авторизации невалиден или истек');
+    }
+    if (!response.ok) {
+      try {
+        const err = await this.parseResponse(response);
+        throw new Error(err.error?.message || `Ошибка загрузки PDF (${response.status})`);
+      } catch (e: unknown) {
+        if (e instanceof Error && e.message && !e.message.includes('технические работы')) throw e;
+        throw new Error(`Ошибка загрузки PDF: ${response.status}`);
+      }
+    }
+    const blob = await response.blob();
+    const href = URL.createObjectURL(blob);
+    window.open(href, '_blank', 'noopener,noreferrer');
+    // revoke later — сразу отозвать нельзя, вкладка ещё грузит blob
+    setTimeout(() => URL.revokeObjectURL(href), 60_000);
+  }
+
   public async signup(
     name: string,
     lastname: string,
     email: string,
     phone: string,
     password: string,
-    options?: { role?: UserRole; company?: string; description?: string; website?: string }
+    options?: {
+      role?: UserRole;
+      company?: string;
+      description?: string;
+      website?: string;
+      accept_offer?: boolean;
+      offer_version?: string;
+    }
   ): Promise<{ success: boolean; data: { message: string; email: string } }> {
     const body: Record<string, unknown> = { name, lastname, email, phone, password };
     if (options?.role) body.role = options.role;
     if (options?.company !== undefined) body.company = options.company;
     if (options?.description !== undefined) body.description = options.description;
     if (options?.website !== undefined) body.website = options.website;
+    if (options?.accept_offer !== undefined) body.accept_offer = options.accept_offer;
+    if (options?.offer_version !== undefined) body.offer_version = options.offer_version;
 
     return this.authPost<{ success: boolean; data: { message: string; email: string } }>(
       '/signup',
