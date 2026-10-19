@@ -73,11 +73,21 @@ function isAppPendingApproval(app: Application): boolean {
   return (app.status || '').toLowerCase() === 'pending';
 }
 
-/** Задача в работе: одобрена, отчёт ещё не отправлен или требует доработки. */
+/** Календарный день end_date уже прошёл — тот же критерий, что и «Вышел срок». */
+function isOfferEndDatePassed(endDate: string | undefined): boolean {
+  if (endDate == null || String(endDate).trim() === '') return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return new Date(endDate).setHours(0, 0, 0, 0) < today.getTime();
+}
+
+/** Задача в работе: одобрена, срок не истёк, отчёт ещё не отправлен или требует доработки. */
 function isAppActiveTask(app: Application): boolean {
+  const s = (app.status || '').toLowerCase();
+  if (s === 'expired') return false;
+  if (!app.has_report && isOfferEndDatePassed(app.offer_end_date)) return false;
   if (isAppNeedsRevision(app)) return true;
   if (app.has_report) return false;
-  const s = (app.status || '').toLowerCase();
   if (s === 'rejected' || s === 'cancelled' || s === 'pending') return false;
   return s === 'approved' || s === 'in_progress' || s === 'accepted';
 }

@@ -9,7 +9,8 @@ const STATUSES = [
   'rejected',
   'in_progress',
   'completed',
-  'cancelled'
+  'cancelled',
+  'expired'
 ];
 
 function renderTable(rows: AdminApplicationRow[]): string {

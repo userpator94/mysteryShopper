@@ -448,7 +448,7 @@ export interface Application {
   application_id: string;
   offer_id: string;
   user_id: string;
-  status: 'pending' | 'approved' | 'rejected' | 'done' | 'in_progress' | 'completed' | 'cancelled' | string;
+  status: 'pending' | 'approved' | 'rejected' | 'done' | 'in_progress' | 'completed' | 'cancelled' | 'expired' | string;
   applied_at: string;
   approved_at?: string;
   has_report?: boolean;
@@ -458,6 +458,8 @@ export interface Application {
   can_resubmit?: boolean;
   /** Исполнитель уже отправил единственную доработку отчёта */
   resubmit_used?: boolean;
+  /** Календарный срок задачи (offers.end_date) */
+  offer_end_date?: string;
 }
 
 export interface ApplicationsResponse {

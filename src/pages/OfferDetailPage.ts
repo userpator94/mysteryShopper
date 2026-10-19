@@ -818,8 +818,13 @@ async function checkAndSetApplyStatus(offerId: string, page: HTMLElement, offer:
       const canResubmit = Boolean(app.can_resubmit);
       const reportRejected = reportStatus === 'rejected';
       const st = (app.status || '').toLowerCase();
+      const taskExpired = st === 'expired';
       const taskDoneByReportOrStatus =
-        (hasReport && !canResubmit) || st === 'completed' || st === 'done' || st === 'rejected';
+        (hasReport && !canResubmit) ||
+        st === 'completed' ||
+        st === 'done' ||
+        st === 'rejected' ||
+        taskExpired;
       if (cancelApplyBtn) {
         cancelApplyBtn.classList.toggle('hidden', taskDoneByReportOrStatus);
         setCancelApplyButtonLabel(cancelApplyBtn, st);
@@ -843,7 +848,12 @@ async function checkAndSetApplyStatus(offerId: string, page: HTMLElement, offer:
       }
       if (viewReportBtn) viewReportBtn.classList.toggle('hidden', !hasReport);
       if (reportSentNote) {
-        if (hasReport && reportRejected) {
+        if (taskExpired) {
+          reportSentNote.className =
+            'text-center text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-lg py-2 px-3';
+          reportSentNote.textContent = 'Срок задачи истёк. Задание не выполнено.';
+          reportSentNote.classList.remove('hidden');
+        } else if (hasReport && reportRejected) {
           const comment = app.employer_review_comment?.trim();
           reportSentNote.className =
             'text-center text-sm rounded-lg py-2 px-3 border ' +
@@ -1066,8 +1076,12 @@ async function cancelApply(offerId: string, button: HTMLButtonElement, page: HTM
       const app = application as Application;
       const hasReport = Boolean(app.has_report);
       const st = (app.status || '').toLowerCase();
-      if (hasReport || st === 'completed' || st === 'done') {
-        alert('Отказаться от задания нельзя: отчёт уже отправлен или заявка считается выполненной.');
+      if (hasReport || st === 'completed' || st === 'done' || st === 'expired') {
+        alert(
+          st === 'expired'
+            ? 'Срок задачи истёк. Задание не выполнено.'
+            : 'Отказаться от задания нельзя: отчёт уже отправлен или заявка считается выполненной.'
+        );
         return;
       }
     }

@@ -29,7 +29,8 @@ const APP_STATUS_LABELS: Record<string, string> = {
   rejected: 'Отклонены',
   in_progress: 'В работе',
   completed: 'Завершены',
-  cancelled: 'Отменены'
+  cancelled: 'Отменены',
+  expired: 'Срок истёк'
 };
 
 const REPORT_STATUS_LABELS: Record<string, string> = {
