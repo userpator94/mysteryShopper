@@ -128,17 +128,54 @@ export async function createOfferDetailPage(offerId: string): Promise<HTMLElemen
   page.innerHTML = `
     <div class="relative w-full">
       <div>
-        <header class="sticky top-0 bg-white/80 backdrop-blur-sm z-10 px-4 pt-4">
-          <div class="flex items-center gap-3">
-            <button id="back-btn" class="text-slate-500">
+        <header class="sticky top-0 bg-white/80 backdrop-blur-sm z-10 px-4 py-3 border-b border-slate-100">
+          <div class="flex items-center gap-3 flex-wrap">
+            <button id="back-btn" type="button" class="shrink-0 text-slate-500 p-1 -ml-1 rounded-lg hover:bg-slate-100" aria-label="Назад">
               <svg fill="currentColor" height="24" viewBox="0 0 256 256" width="24">
                 <path d="M224,128a8,8,0,0,1-8,8H59.31l58.35,58.34a8,8,0,0,1-11.32,11.32l-72-72a8,8,0,0,1,0-11.32l72-72a8,8,0,0,1,11.32,11.32L59.31,120H216A8,8,0,0,1,224,128Z"></path>
               </svg>
             </button>
+            <div id="offer-actions-user" class="offer-header-actions ml-auto hidden flex items-center">
+              <div class="app-cta-row">
+                <div id="apply-block">
+                  <button id="apply-btn" class="app-cta bg-primary text-white py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors">
+                    Участвовать
+                  </button>
+                </div>
+                <button id="view-report-btn" type="button" class="app-cta hidden bg-slate-800 text-white py-2 rounded-lg text-sm font-semibold hover:bg-slate-900 transition-colors">
+                  Просмотреть отчёт
+                </button>
+                <button id="report-btn" class="app-cta hidden bg-emerald-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-emerald-700 transition-colors">
+                  Отчитаться
+                </button>
+                <button id="add-to-favorites-btn" class="app-cta bg-slate-200 text-slate-700 py-2 rounded-lg text-sm font-semibold hover:bg-slate-300 transition-colors">
+                  В избранное
+                </button>
+                <button id="cancel-apply-btn" class="app-cta hidden bg-red-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors">
+                  Отказаться
+                </button>
+              </div>
+            </div>
+            <div id="offer-actions-employer" class="offer-header-actions ml-auto hidden flex items-center">
+              <div class="app-cta-row">
+                <button id="close-offer-early-btn" type="button" class="app-cta hidden border border-amber-300 bg-amber-50 text-amber-950 py-2 px-3 rounded-lg text-sm font-semibold hover:bg-amber-100 transition-colors">
+                  Завершить досрочно
+                </button>
+                <button id="employer-reports-btn" type="button" class="app-cta bg-slate-800 text-white py-2 px-3 rounded-lg text-sm font-semibold hover:bg-slate-900 transition-colors">
+                  Отчёты
+                </button>
+                <button id="edit-offer-btn" type="button" class="app-cta bg-primary text-white py-2 px-3 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors">
+                  Изменить
+                </button>
+                <button id="delete-offer-btn" type="button" class="app-cta bg-red-50 text-red-600 py-2 px-3 rounded-lg text-sm font-semibold hover:bg-red-100 border border-red-200 transition-colors">
+                  Удалить
+                </button>
+              </div>
+            </div>
           </div>
         </header>
         
-        <main class="pb-28">
+        <main class="pb-28 lg:pb-8">
           <div id="loading-state" class="flex justify-center items-center py-8">
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             <span class="ml-2 text-slate-600">Загрузка задания...</span>
@@ -258,51 +295,15 @@ export async function createOfferDetailPage(offerId: string): Promise<HTMLElemen
                 <div id="employer-executors-sections" class="space-y-4 text-slate-800"></div>
               </div>
               
-              <!-- Кнопки действий (для исполнителя: участвовать + избранное; для заказчика: изменить + удалить) -->
-              <div id="offer-actions-user" class="space-y-3">
-                <div id="apply-block">
-                  <button id="apply-btn" class="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors">
-                    Участвовать
-                  </button>
-                  <p id="apply-hint" class="text-xs text-slate-500 text-center mt-2">
-                    Заказчик может рассматривать вашу заявку в течение некоторого времени
-                  </p>
-                </div>
-                <p id="report-sent-note" class="hidden text-center text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg py-2 px-3">
-                  Отчёт по этой задаче уже отправлен. Повторная отправка недоступна.
-                </p>
-                <button id="view-report-btn" type="button" class="hidden w-full bg-slate-800 text-white py-3 rounded-lg font-semibold hover:bg-slate-900 transition-colors">
-                  Просмотреть отчёт
-                </button>
-                <button id="report-btn" class="hidden w-full bg-emerald-600 text-white py-3 rounded-lg font-semibold hover:bg-emerald-700 transition-colors">
-                  Отчитаться
-                </button>
-                <button id="add-to-favorites-btn" class="w-full bg-slate-200 text-slate-700 py-3 rounded-lg font-semibold hover:bg-slate-300 transition-colors">
-                  Добавить в избранное
-                </button>
-                <button id="cancel-apply-btn" class="hidden w-full bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors mt-2">
-                  Отказаться
-                </button>
-              </div>
-              <div id="offer-actions-employer" class="hidden flex flex-col gap-2">
-                <p id="offer-edit-locked-note" class="hidden text-xs text-slate-500 text-center order-last w-full">
-                  Редактирование недоступно: по задаче есть отчёт или заявка исполнителя в работе.
-                </p>
-                <button id="close-offer-early-btn" type="button" class="hidden w-full border border-amber-300 bg-amber-50 text-amber-950 py-3 px-4 rounded-lg font-semibold hover:bg-amber-100 transition-colors">
-                  Завершить задачу досрочно
-                </button>
-                <div class="flex flex-wrap gap-3">
-                <button id="employer-reports-btn" type="button" class="flex-1 min-w-[120px] bg-slate-800 text-white py-3 px-4 rounded-lg font-semibold hover:bg-slate-900 transition-colors">
-                  Отчёты
-                </button>
-                <button id="edit-offer-btn" type="button" class="flex-1 min-w-[120px] bg-primary text-white py-3 px-4 rounded-lg font-semibold hover:bg-primary/90 transition-colors">
-                  Изменить
-                </button>
-                <button id="delete-offer-btn" type="button" class="flex-1 min-w-[120px] bg-red-50 text-red-600 py-3 px-4 rounded-lg font-semibold hover:bg-red-100 border border-red-200 transition-colors">
-                  Удалить
-                </button>
-                </div>
-              </div>
+              <p id="apply-hint" class="app-cta-hint hidden text-xs text-slate-500 text-center lg:text-left mb-3">
+                Заказчик может рассматривать вашу заявку в течение некоторого времени
+              </p>
+              <p id="report-sent-note" class="hidden text-center lg:text-left text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg py-2 px-3 mb-3">
+                Отчёт по этой задаче уже отправлен. Повторная отправка недоступна.
+              </p>
+              <p id="offer-edit-locked-note" class="hidden text-xs text-slate-500 text-center lg:text-left mb-3">
+                Редактирование недоступно: по задаче есть отчёт или заявка исполнителя в работе.
+              </p>
             </div>
           </div>
         </main>
@@ -909,15 +910,19 @@ async function checkAndSetApplyStatus(offerId: string, page: HTMLElement, offer:
         offer.available_slots != null &&
         offer.available_slots <= 0;
       // Кнопку «Участвовать» не показываем, если срок, задача снята с публикации или набран лимит
-      if (applyBlock) applyBlock.classList.toggle('hidden', offerExpired || inactiveBeforeEnd || slotsFull);
+      const hideApply = offerExpired || inactiveBeforeEnd || slotsFull;
+      if (applyBlock) applyBlock.classList.toggle('hidden', hideApply);
       const applyHint = page.querySelector('#apply-hint') as HTMLElement;
       if (applyHint) {
         if (slotsFull && !offerExpired && !inactiveBeforeEnd) {
           applyHint.textContent = 'Набран максимум исполнителей по этой задаче';
           applyHint.classList.remove('hidden');
-        } else {
+        } else if (!hideApply) {
           applyHint.textContent =
             'Заказчик может рассматривать вашу заявку в течение некоторого времени';
+          applyHint.classList.remove('hidden');
+        } else {
+          applyHint.classList.add('hidden');
         }
       }
     }

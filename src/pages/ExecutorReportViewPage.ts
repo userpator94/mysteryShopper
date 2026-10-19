@@ -21,7 +21,7 @@ export async function createExecutorReportViewPage(offerId: string): Promise<HTM
           <h1 class="text-xl font-bold">Мой отчёт</h1>
         </div>
       </header>
-      <main class="pb-28 px-4 py-4">
+      <main class="pb-28 lg:pb-8 px-4 py-4">
         <div id="loading" class="py-8 text-center">Загрузка…</div>
         <div id="content" class="hidden space-y-4"></div>
         <div id="err" class="hidden text-red-600 text-center py-8"></div>

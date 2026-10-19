@@ -19,7 +19,7 @@ export async function createMyOffersPage(): Promise<HTMLElement> {
           <span>+</span> Создать задачу
         </a>
       </header>
-      <main class="pb-28">
+      <main class="pb-28 lg:pb-8">
         <div class="px-4 py-4">
           <div id="loading-state" class="flex justify-center items-center py-8">
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -42,7 +42,7 @@ export async function createMyOffersPage(): Promise<HTMLElement> {
                 </svg>
               </button>
               <div id="active-section-content" class="px-4 pb-4">
-                <div id="active-offers" class="space-y-4"></div>
+                <div id="active-offers" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
               </div>
             </div>
             <!-- Секция "Вышел срок" (снизу, по умолчанию скрыта) -->
@@ -54,7 +54,7 @@ export async function createMyOffersPage(): Promise<HTMLElement> {
                 </svg>
               </button>
               <div id="expired-section-content" class="hidden px-4 pb-4">
-                <div id="expired-offers" class="space-y-4"></div>
+                <div id="expired-offers" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
               </div>
             </div>
           </div>

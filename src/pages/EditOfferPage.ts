@@ -23,7 +23,7 @@ export async function createEditOfferPage(offerId: string): Promise<HTMLElement>
           <h1 class="text-2xl font-bold">Редактировать задачу</h1>
         </div>
       </header>
-      <main class="pb-28">
+      <main class="pb-28 lg:pb-8">
         <div id="loading-state" class="flex justify-center items-center py-8">
           <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
@@ -101,7 +101,9 @@ export async function createEditOfferPage(offerId: string): Promise<HTMLElement>
           </div>
           ${checklistSectionHtml()}
           <div id="form-error" class="hidden text-red-600 text-sm"></div>
-          <button type="submit" id="submit-btn" class="w-full h-14 rounded-lg bg-primary text-white font-semibold hover:bg-primary/90">Сохранить</button>
+          <div class="app-cta-row">
+            <button type="submit" id="submit-btn" class="app-cta h-14 rounded-lg bg-primary text-white font-semibold hover:bg-primary/90">Сохранить</button>
+          </div>
         </form>
       </main>
     </div>

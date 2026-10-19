@@ -110,7 +110,7 @@ export async function createHomePage(): Promise<HTMLElement> {
           </div>
         </header>
         
-        <main class="pb-28">
+        <main class="pb-28 lg:pb-8">
           <div class="flex items-center justify-center h-64">
             <div class="text-center">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
@@ -167,10 +167,10 @@ export async function createHomePage(): Promise<HTMLElement> {
           </div>
         </header>
         
-        <main class="pb-28">
+        <main class="pb-28 lg:pb-8">
           <div id="categories-section" class="p-4">
-            <div class="flex gap-3 overflow-x-auto no-scrollbar -mx-4 px-4">
-              <div class="flex flex-col gap-3 w-[60vw] shrink-0">
+            <div class="flex gap-3 overflow-x-auto no-scrollbar -mx-4 px-4 lg:mx-0 lg:grid lg:grid-cols-2 lg:overflow-visible lg:px-0">
+              <div class="flex flex-col gap-3 w-[60vw] shrink-0 lg:w-auto lg:shrink">
                 <div class="flex gap-3">
                   <button id="clothing-button" class="flex-1 rounded-lg bg-gradient-to-br from-blue-200 to-blue-300 h-24 flex flex-col items-center justify-center p-3 cursor-pointer hover:shadow-md transition-shadow" data-category="clothing">
                     <svg class="w-8 h-8 text-blue-700 mb-1" fill="currentColor" viewBox="0 0 24 24">
@@ -192,7 +192,7 @@ export async function createHomePage(): Promise<HTMLElement> {
                   <span class="font-semibold text-purple-800 text-shadow text-sm">Электроника</span>
                 </button>
               </div>
-              <div class="flex flex-col gap-3 w-[60vw] shrink-0">
+              <div class="flex flex-col gap-3 w-[60vw] shrink-0 lg:w-auto lg:shrink">
                 <button id="food-button" class="rounded-lg bg-gradient-to-br from-orange-200 to-orange-300 h-24 flex flex-col items-center justify-center p-3 cursor-pointer hover:shadow-md transition-shadow" data-category="food">
                   <svg class="w-8 h-8 text-orange-700 mb-1" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M8 9.1V7.4a4 4 0 0 1 8 0v1.7h1.6V7.4a5.6 5.6 0 0 0-11.2 0v1.7H8z"/>

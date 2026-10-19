@@ -273,11 +273,20 @@ export async function createProfilePage(): Promise<HTMLElement> {
   page.innerHTML = `
     <div class="relative w-full">
       <div>
-        <header class="sticky top-0 bg-white/80 backdrop-blur-sm z-10 px-4 pt-3">
-          <h1 class="text-xl font-bold">Профиль</h1>
+        <header class="sticky top-0 bg-white/80 backdrop-blur-sm z-10 px-4 py-3 border-b border-slate-100">
+          <div class="flex items-center gap-3 flex-wrap">
+            <h1 class="text-xl font-bold">Профиль</h1>
+            <button
+              id="logout-button"
+              type="button"
+              class="ml-auto shrink-0 bg-red-500 text-white py-2 px-3.5 rounded-lg text-sm font-semibold hover:bg-red-600 transition-colors"
+            >
+              Выйти из аккаунта
+            </button>
+          </div>
         </header>
         
-        <main class="pb-28">
+        <main class="pb-28 lg:pb-8">
           <div class="px-4 py-2">
             <div id="user-info-block" class="bg-white rounded-lg p-4 border border-slate-200 mb-3">
               ${meErrorBanner}
@@ -427,10 +436,6 @@ export async function createProfilePage(): Promise<HTMLElement> {
                   </div>
                 </div>
               </div>
-              
-              <button id="logout-button" class="w-full bg-red-500 text-white py-2.5 rounded-lg font-semibold">
-                Выйти из аккаунта
-              </button>
             </div>
           </div>
         </main>

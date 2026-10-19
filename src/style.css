@@ -54,6 +54,94 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* App shell: hide public chrome (sidebar + bottom nav) on auth/admin */
+#app-shell.chrome-hidden #desktop-sidebar {
+  display: none !important;
+}
+
+#app-shell.chrome-hidden #main-content {
+  padding-left: 0 !important;
+}
+
+#app-shell.chrome-hidden #main-footer {
+  display: none !important;
+}
+
+/* Primary action buttons: full-width on mobile, content-sized on desktop */
+.app-cta {
+  width: 100%;
+}
+
+.app-cta-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+@media (min-width: 1024px) {
+  .app-cta {
+    width: auto;
+    min-width: 10.5rem;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+
+  .app-cta-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .app-cta-row .app-cta {
+    flex: 0 0 auto;
+  }
+
+  .app-cta-hint {
+    text-align: left;
+  }
+}
+
+/* Compact CTA strip in offer detail sticky header */
+.offer-detail-page .offer-header-actions {
+  max-width: 100%;
+}
+
+.offer-detail-page .offer-header-actions .app-cta-row {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.offer-detail-page .offer-header-actions .app-cta {
+  width: auto !important;
+  min-width: 0 !important;
+  padding-left: 0.875rem;
+  padding-right: 0.875rem;
+}
+
+/* Desktop: constrain public page width inside the content column */
+@media (min-width: 1024px) {
+  #app-shell:not(.chrome-hidden) #main-content > * {
+    max-width: 72rem;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  #app-shell:not(.chrome-hidden) #main-content > .offer-detail-page,
+  #app-shell:not(.chrome-hidden) #main-content > .create-offer-page,
+  #app-shell:not(.chrome-hidden) #main-content > .edit-offer-page,
+  #app-shell:not(.chrome-hidden) #main-content > .report-page,
+  #app-shell:not(.chrome-hidden) #main-content > .change-password-page,
+  #app-shell:not(.chrome-hidden) #main-content > .executor-report-view-page,
+  #app-shell:not(.chrome-hidden) #main-content > .offer-report-detail-page,
+  #app-shell:not(.chrome-hidden) #main-content > .employer-executor-profile-page,
+  #app-shell:not(.chrome-hidden) #main-content > .withdraw-page,
+  #app-shell:not(.chrome-hidden) #main-content > .withdraw-request-page {
+    max-width: 48rem;
+  }
+}
+
 /* Layout */
 .layout {
   min-height: 100vh;

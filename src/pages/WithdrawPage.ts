@@ -294,7 +294,7 @@ export async function createWithdrawPage(): Promise<HTMLElement> {
           <h1 class="text-xl font-bold flex-1 min-w-0">Обналичить Рэшки</h1>
         </div>
       </header>
-      <main class="pb-28 px-4 py-3 space-y-3 max-w-md mx-auto">
+      <main class="pb-28 lg:pb-8 px-4 py-3 space-y-3 max-w-md mx-auto">
         <p class="text-sm text-slate-600">
           Выберите способ вывода и сохраните реквизиты. Их можно изменить в любой момент.
         </p>

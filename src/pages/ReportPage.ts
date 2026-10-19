@@ -51,7 +51,7 @@ export async function createReportPage(offerId: string): Promise<HTMLElement> {
           </div>
         </header>
         
-        <main class="pb-28">
+        <main class="pb-28 lg:pb-8">
           <div id="loading-state" class="flex justify-center items-center py-8">
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             <span class="ml-2 text-slate-600">Загрузка информации...</span>
@@ -67,7 +67,7 @@ export async function createReportPage(offerId: string): Promise<HTMLElement> {
           
           <div id="blocked-state" class="hidden text-center py-8 px-4">
             <p id="blocked-message" class="text-slate-700 mb-4"></p>
-            <button id="blocked-view-report-btn" type="button" class="hidden w-full max-w-sm mx-auto mb-3 px-4 py-2 bg-slate-800 text-white rounded-lg font-semibold hover:bg-slate-900">
+            <button id="blocked-view-report-btn" type="button" class="app-cta hidden mb-3 px-4 py-2 bg-slate-800 text-white rounded-lg font-semibold hover:bg-slate-900">
               Просмотреть отчёт
             </button>
             <button id="blocked-back-btn" type="button" class="px-4 py-2 bg-slate-200 text-slate-800 rounded-lg font-semibold hover:bg-slate-300">
@@ -110,22 +110,22 @@ export async function createReportPage(offerId: string): Promise<HTMLElement> {
               </div>
               
               <!-- Кнопки действий -->
-              <div class="space-y-3">
+              <div class="app-cta-row">
                 <button 
                   id="submit-report-btn" 
-                  class="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors"
+                  class="app-cta bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors"
                 >
                   Отправить отчёт
                 </button>
                 <button 
                   id="open-form-btn" 
-                  class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                  class="app-cta bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                 >
                   Открыть форму Yandex
                 </button>
                 <button 
                   id="cancel-btn" 
-                  class="w-full bg-slate-200 text-slate-700 py-3 rounded-lg font-semibold hover:bg-slate-300 transition-colors"
+                  class="app-cta bg-slate-200 text-slate-700 py-3 rounded-lg font-semibold hover:bg-slate-300 transition-colors"
                 >
                   Отмена
                 </button>

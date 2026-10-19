@@ -13,7 +13,7 @@ export async function createOrderHistoryPage(): Promise<HTMLElement> {
           <h1 class="text-2xl font-bold">История заказов</h1>
         </header>
         
-        <main class="pb-28">
+        <main class="pb-28 lg:pb-8">
           <div class="px-4 py-4">
             <div class="space-y-4">
               <div class="bg-white rounded-lg p-4 border border-slate-200">

@@ -17,8 +17,7 @@ export function getLastEmployerInboxCounts(): EmployerInboxCounts | null {
 
 function applyBadges(counts: EmployerInboxCounts): void {
   const total = counts.pending_applications + counts.pending_reports;
-  const navBadge = document.getElementById('employer-nav-inbox-badge');
-  if (navBadge) {
+  document.querySelectorAll<HTMLElement>('.employer-nav-inbox-badge').forEach((navBadge) => {
     if (total > 0) {
       navBadge.textContent = total > 99 ? '99+' : String(total);
       navBadge.classList.remove('hidden');
@@ -26,7 +25,7 @@ function applyBadges(counts: EmployerInboxCounts): void {
       navBadge.textContent = '';
       navBadge.classList.add('hidden');
     }
-  }
+  });
 
   document.querySelectorAll<HTMLElement>('[data-metric-badge="reports"]').forEach((dot) => {
     dot.classList.toggle('hidden', counts.pending_reports <= 0);

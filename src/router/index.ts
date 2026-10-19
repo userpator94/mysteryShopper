@@ -248,11 +248,13 @@ class Router {
       const hideFooter = shouldHideFooter(path);
       toggleFooter(!hideFooter);
     }).catch(() => {
-      // Если импорт не удался, используем прямой доступ к DOM
+      const shell = document.getElementById('app-shell');
       const footer = document.getElementById('main-footer');
       const hiddenRoutes = ['/login', '/signup', '/forgot-password', '/reset-password', '/verify-email', '/verify-email-pending'];
+      const hide = hiddenRoutes.includes(path) || path.startsWith('/svc-panel/admin');
+      shell?.classList.toggle('chrome-hidden', hide);
       if (footer) {
-        footer.style.display = hiddenRoutes.includes(path) ? 'none' : 'block';
+        footer.style.display = hide ? 'none' : '';
       }
     });
   }

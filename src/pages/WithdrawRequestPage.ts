@@ -62,7 +62,7 @@ export async function createWithdrawRequestPage(): Promise<HTMLElement> {
           <h1 class="text-xl font-bold flex-1 min-w-0">Вывод средств</h1>
         </div>
       </header>
-      <main class="pb-28 px-4 py-3 space-y-3 max-w-md mx-auto">
+      <main class="pb-28 lg:pb-8 px-4 py-3 space-y-3 max-w-md mx-auto">
         <div id="loading" class="py-6 text-center text-slate-500">Загрузка…</div>
         <div id="err" class="hidden py-8 text-center text-red-600"></div>
         <div id="content" class="hidden space-y-3"></div>
@@ -98,7 +98,7 @@ export async function createWithdrawRequestPage(): Promise<HTMLElement> {
         <div class="rounded-lg border border-slate-200 bg-white p-3 space-y-3">
           <p class="text-sm text-slate-600">Сначала сохраните реквизиты для вывода.</p>
           <button type="button" id="go-details"
-            class="w-full bg-primary text-white py-2.5 rounded-lg font-semibold hover:bg-primary/90">
+            class="app-cta bg-primary text-white py-2.5 rounded-lg font-semibold hover:bg-primary/90">
             Указать реквизиты
           </button>
         </div>
@@ -154,7 +154,7 @@ export async function createWithdrawRequestPage(): Promise<HTMLElement> {
         <p id="wr-err" class="hidden text-sm text-red-600"></p>
         <p id="wr-ok" class="hidden text-sm text-emerald-700"></p>
         <button type="submit" id="wr-submit"
-          class="w-full bg-primary text-white py-2.5 rounded-lg font-semibold hover:bg-primary/90 disabled:opacity-60"
+          class="app-cta bg-primary text-white py-2.5 rounded-lg font-semibold hover:bg-primary/90 disabled:opacity-60"
           ${canWithdraw ? '' : 'disabled'}>
           Вывести
         </button>

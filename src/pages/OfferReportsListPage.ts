@@ -31,9 +31,9 @@ export async function createOfferReportsListPage(offerId: string): Promise<HTMLE
             </label>
           </div>
         </header>
-        <main class="pb-28 px-4">
+        <main class="pb-28 lg:pb-8 px-4">
           <div id="loading" class="py-8 text-center text-slate-500">Загрузка…</div>
-          <div id="list" class="hidden space-y-2"></div>
+          <div id="list" class="hidden grid grid-cols-1 md:grid-cols-2 gap-3"></div>
           <div id="empty" class="hidden text-center py-8 text-slate-500">Отчётов пока нет</div>
           <div id="err" class="hidden text-center py-8 text-red-600"></div>
         </main>

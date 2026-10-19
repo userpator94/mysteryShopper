@@ -61,9 +61,9 @@ async function renderReportInto(
           <p class="text-xs text-slate-600">При отклонении укажите комментарий не короче 10 слов.</p>
           <label class="block text-xs font-medium text-slate-600" for="reject-comment">Комментарий при отклонении</label>
           <textarea id="reject-comment" class="w-full min-h-[100px] border border-slate-300 rounded-lg p-2 text-sm" placeholder="Поясните, что не устроило..."></textarea>
-          <div class="flex gap-2 flex-wrap">
-            <button type="button" id="btn-approve" class="flex-1 min-w-[120px] bg-emerald-600 text-white py-2 rounded-lg font-semibold hover:bg-emerald-700">Принять</button>
-            <button type="button" id="btn-reject" class="flex-1 min-w-[120px] bg-red-600 text-white py-2 rounded-lg font-semibold hover:bg-red-700">Отклонить</button>
+          <div class="app-cta-row">
+            <button type="button" id="btn-approve" class="app-cta bg-emerald-600 text-white py-2 rounded-lg font-semibold hover:bg-emerald-700">Принять</button>
+            <button type="button" id="btn-reject" class="app-cta bg-red-600 text-white py-2 rounded-lg font-semibold hover:bg-red-700">Отклонить</button>
           </div>
           <p id="review-err" class="hidden text-sm text-red-600"></p>
         </div>`
@@ -150,7 +150,7 @@ export async function createOfferReportDetailPage(offerId: string, reportId: str
           </button>
         </div>
       </header>
-      <main class="pb-28 px-4 py-4">
+      <main class="pb-28 lg:pb-8 px-4 py-4">
         <div id="loading" class="py-8 text-center">Загрузка…</div>
         <div id="content" class="hidden space-y-4"></div>
         <div id="err" class="hidden text-red-600 text-center py-8"></div>

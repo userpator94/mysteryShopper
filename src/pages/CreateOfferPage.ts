@@ -20,7 +20,7 @@ export async function createCreateOfferPage(): Promise<HTMLElement> {
           <h1 class="text-2xl font-bold">Создать задачу</h1>
         </div>
       </header>
-      <main class="pb-28">
+      <main class="pb-28 lg:pb-8">
         <form id="create-offer-form" class="px-4 py-4 space-y-4">
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">Название *</label>
@@ -90,7 +90,9 @@ export async function createCreateOfferPage(): Promise<HTMLElement> {
           </div>
           ${checklistSectionHtml()}
           <div id="form-error" class="hidden text-red-600 text-sm"></div>
-          <button type="submit" id="submit-btn" class="w-full h-14 rounded-lg bg-primary text-white font-semibold hover:bg-primary/90">Создать</button>
+          <div class="app-cta-row">
+            <button type="submit" id="submit-btn" class="app-cta h-14 rounded-lg bg-primary text-white font-semibold hover:bg-primary/90">Создать</button>
+          </div>
         </form>
       </main>
     </div>

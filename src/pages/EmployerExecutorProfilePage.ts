@@ -21,7 +21,7 @@ export async function createEmployerExecutorProfilePage(offerId: string, executo
           <h1 class="text-xl font-bold flex-1 min-w-0">Исполнитель</h1>
         </div>
       </header>
-      <main class="pb-28 px-4 py-3">
+      <main class="pb-28 lg:pb-8 px-4 py-3">
         <div id="loading" class="py-8 text-center text-slate-500">Загрузка…</div>
         <div id="content" class="hidden space-y-3"></div>
         <div id="err" class="hidden text-red-600 text-center py-8"></div>

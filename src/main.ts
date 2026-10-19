@@ -32,8 +32,6 @@ import { createAdminOverviewPage } from './pages/admin/AdminOverviewPage.js'
 import { createAdminApplicationsPage } from './pages/admin/AdminApplicationsPage.js'
 import { createAdminQueuesPage } from './pages/admin/AdminQueuesPage.js'
 import { createAdminDocumentsPage } from './pages/admin/AdminDocumentsPage.js'
-import { showWebDeviceModal } from './components/WebDeviceMessage.js'
-import { detectDevice } from './utils/deviceDetection.js'
 import { apiService } from './services/api.js'
 import { isAuthenticated, getRole } from './utils/auth.js'
 import { updateNavByRole } from './components/Layout.js'
@@ -43,11 +41,9 @@ import {
   ADMIN_DOCUMENTS_PATH,
   ADMIN_LOGIN_PATH,
   ADMIN_OVERVIEW_PATH,
-  ADMIN_QUEUES_PATH,
-  isAdminPanelPath
+  ADMIN_QUEUES_PATH
 } from './utils/adminPaths.js'
 
-// Проверяем тип устройства
 const app = document.querySelector<HTMLDivElement>('#app')!
 
 if (!app) {
@@ -57,13 +53,6 @@ if (!app) {
 // Создаем layout
 const layout = createLayout()
 app.appendChild(layout)
-
-// Мобильное ограничение только для публичного приложения; админ-панель — и на десктопе
-const initialPath = window.location.pathname || '/'
-const device = detectDevice()
-if (device.isDesktop && !isAdminPanelPath(initialPath)) {
-  showWebDeviceModal()
-}
 
 // Настраиваем роутер
 const mainContent = document.getElementById('main-content')!

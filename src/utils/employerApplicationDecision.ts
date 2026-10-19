@@ -4,12 +4,16 @@ import { refreshEmployerInboxBadge } from './employerInboxBadge.js';
 export function buildAppDecisionHtml(): string {
   return `<div id="app-decision" class="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-3">
     <p class="text-sm font-semibold text-amber-950">Заявка на эту задачу ожидает вашего решения</p>
-    <button type="button" id="app-approve-btn" class="w-full bg-emerald-600 text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-emerald-700">Одобрить</button>
+    <div class="app-cta-row">
+      <button type="button" id="app-approve-btn" class="app-cta bg-emerald-600 text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-emerald-700">Одобрить</button>
+    </div>
     <div class="space-y-1">
       <label class="text-xs font-medium text-slate-700" for="app-reject-text">Комментарий при отклонении (не менее 10 слов)</label>
       <textarea id="app-reject-text" class="w-full min-h-[88px] border border-slate-300 rounded-lg p-2 text-sm" placeholder="Поясните причину отказа..."></textarea>
     </div>
-    <button type="button" id="app-reject-btn" class="w-full bg-red-600 text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-red-700">Отклонить заявку</button>
+    <div class="app-cta-row">
+      <button type="button" id="app-reject-btn" class="app-cta bg-red-600 text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-red-700">Отклонить заявку</button>
+    </div>
     <p id="app-decision-err" class="hidden text-sm text-red-600"></p>
   </div>`;
 }

@@ -17,7 +17,7 @@ export async function createFavoritesPage(): Promise<HTMLElement> {
           <h1 class="text-2xl font-bold">Избранное</h1>
         </header>
         
-        <main class="pb-28">
+        <main class="pb-28 lg:pb-8">
           <div class="px-4 py-4">
             <div id="loading-state" class="flex justify-center items-center py-8">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -56,7 +56,7 @@ export async function createFavoritesPage(): Promise<HTMLElement> {
               </button>
             </div>
             
-            <div id="favorites-container" class="grid grid-cols-1 gap-4">
+            <div id="favorites-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <!-- Избранные предложения будут загружены динамически -->
             </div>
           </div>
