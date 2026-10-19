@@ -9,6 +9,12 @@ import { devLog } from '../utils/logger.js';
 import { getRecentOffers } from '../utils/recentOffers.js';
 import { reshkiWord } from '../utils/offerDisplay.js';
 
+/** Первые 7 символов хеша — та группа, что видна в `git log --oneline`. */
+function shortCommit(value: string | null | undefined): string {
+  const v = (value ?? '').trim().toLowerCase();
+  return /^[0-9a-f]{7,40}$/.test(v) ? v.slice(0, 7) : '—';
+}
+
 function escapeHtml(s: string): string {
   const el = document.createElement('div');
   el.textContent = s;
@@ -279,6 +285,7 @@ export async function createProfilePage(): Promise<HTMLElement> {
   const historyTop10 = historyItems.slice(0, 10);
 
   const ed = employerDash;
+  const buildVersions = `f:${shortCommit(import.meta.env.VITE_COMMIT)} | b:${shortCommit(meUser?.commit)}`;
 
   page.innerHTML = `
     <div class="relative w-full">
@@ -441,6 +448,7 @@ export async function createProfilePage(): Promise<HTMLElement> {
               <button id="logout-button" class="w-full bg-red-500 text-white py-2.5 rounded-lg font-semibold">
                 Выйти из аккаунта
               </button>
+              <p class="mt-4 text-center font-mono text-[10px] leading-none tracking-wide text-slate-400/40 select-none">${escapeHtml(buildVersions)}</p>
             </div>
           </div>
         </main>
