@@ -8,11 +8,11 @@ import { applyExecutorAvatarToElement } from '../utils/executorAvatar.js';
 import { devLog } from '../utils/logger.js';
 import { getRecentOffers } from '../utils/recentOffers.js';
 import { reshkiWord } from '../utils/offerDisplay.js';
+import { FRONTEND_VERSION } from '../config/appVersion.js';
 
-/** Первые 7 символов хеша — та группа, что видна в `git log --oneline`. */
-function shortCommit(value: string | null | undefined): string {
-  const v = (value ?? '').trim().toLowerCase();
-  return /^[0-9a-f]{7,40}$/.test(v) ? v.slice(0, 7) : '—';
+function versionLabel(value: string | null | undefined): string {
+  const v = (value ?? '').trim();
+  return v || '—';
 }
 
 function escapeHtml(s: string): string {
@@ -285,7 +285,7 @@ export async function createProfilePage(): Promise<HTMLElement> {
   const historyTop10 = historyItems.slice(0, 10);
 
   const ed = employerDash;
-  const buildVersions = `f:${shortCommit(import.meta.env.VITE_COMMIT)} | b:${shortCommit(meUser?.commit)}`;
+  const buildVersions = `f:${versionLabel(FRONTEND_VERSION)} | b:${versionLabel(meUser?.version)}`;
 
   page.innerHTML = `
     <div class="relative w-full">

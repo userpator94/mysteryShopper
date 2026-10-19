@@ -7,8 +7,6 @@ interface ImportMetaEnv {
    * Чтобы включить: MAPS_LOCATION_UI_ENABLED = true + этот ключ в .env. Больше ничего не нужно.
    */
   readonly VITE_YANDEX_MAPS_API_KEY?: string;
-  /** Короткий хеш коммита фронтенда, подставляется в vite.config.ts при старте/сборке. */
-  readonly VITE_COMMIT?: string;
 }
 
 interface ImportMeta {

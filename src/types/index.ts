@@ -104,8 +104,8 @@ export interface MeUser {
   company?: string;
   description?: string;
   website?: string;
-  /** Короткий хеш коммита запущенного бэкенда (GET /api/me). */
-  commit?: string;
+  /** Версия запущенного бэкенда (GET /api/me). */
+  version?: string;
 }
 
 /** Элемент кастомного чек-листа (согласовано с API) */
