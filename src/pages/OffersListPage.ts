@@ -32,6 +32,10 @@ const CATEGORY_NAMES: Record<string, string> = {
   beauty: 'Красота'
 };
 
+type OfferSectionId = 'accepted' | 'available' | 'completed';
+
+const SECTION_ORDER: OfferSectionId[] = ['accepted', 'available', 'completed'];
+
 const PERK_META: Record<string, { title: string; note: string; empty: string }> = {
   high_income: {
     title: 'Высокий доход',
@@ -178,32 +182,34 @@ export async function createOffersListPage(): Promise<HTMLElement> {
         <header class="sticky top-0 bg-white/80 backdrop-blur-sm z-10 px-4 pt-4 pb-2">
           <h1 id="offers-page-title" class="text-2xl font-bold${heading.note ? '' : ' mb-3'}">${escapeHtml(heading.title)}</h1>
           <p id="offers-perk-note" class="text-sm text-slate-500 mt-1 mb-3${heading.note ? '' : ' hidden'}">${escapeHtml(heading.note)}</p>
-          <div class="relative mb-3">
-            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <svg class="text-slate-500" fill="currentColor" height="20" viewBox="0 0 256 256" width="20" xmlns="http://www.w3.org/2000/svg">
-                <path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path>
-              </svg>
+          <div class="flex items-center gap-2 mb-1">
+            <div class="relative flex-1">
+              <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                <svg class="text-slate-500" fill="currentColor" height="20" viewBox="0 0 256 256" width="20" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path>
+                </svg>
+              </div>
+              <input id="search-input" class="w-full h-12 pl-10 pr-3 rounded-lg bg-slate-100 text-slate-900 placeholder:text-slate-500 border-0 focus:ring-2 focus:ring-primary" placeholder="Поиск по названию и описанию..." type="text"/>
             </div>
-            <input id="search-input" class="w-full h-12 pl-10 pr-3 rounded-lg bg-slate-100 text-slate-900 placeholder:text-slate-500 border-0 focus:ring-2 focus:ring-primary" placeholder="Поиск по названию и описанию..." type="text"/>
-          </div>
-          <div class="mb-1">
-            <button type="button" id="filters-panel-toggle" class="w-full flex items-center justify-between gap-2 py-2.5 px-3 rounded-lg border border-slate-200 bg-slate-50 text-left text-sm font-medium text-slate-800 hover:bg-slate-100 transition-colors" aria-expanded="false" aria-controls="filters-panel">
-              <span>Фильтры и сортировка</span>
-              <svg id="filters-panel-icon" class="w-5 h-5 text-slate-500 shrink-0 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            <button type="button" id="filters-panel-toggle" class="h-12 w-12 shrink-0 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50" aria-label="Фильтры и сортировка" aria-haspopup="dialog" aria-expanded="false" aria-controls="filters-panel">
+              <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
               </svg>
             </button>
-            <div id="filters-panel" class="hidden flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end mt-2 pt-2 border-t border-slate-100">
-            <label class="flex flex-col gap-1 text-xs text-slate-600 flex-1 min-w-[140px]">
-              <span>Секция</span>
-              <select id="filter-section" class="h-10 rounded-lg border border-slate-200 px-2 text-sm bg-white">
-                <option value="all">Все секции</option>
-                <option value="accepted">Принятые</option>
-                <option value="available">Доступные</option>
-                <option value="completed">Выполненные</option>
-              </select>
-            </label>
-            <label class="flex flex-col gap-1 text-xs text-slate-600 flex-1 min-w-[140px]">
+          </div>
+        </header>
+        <div id="filters-panel" class="hidden fixed inset-0 z-50" role="dialog" aria-modal="true" aria-labelledby="filters-panel-title" hidden>
+          <div id="filters-panel-backdrop" class="absolute inset-0 bg-black/50"></div>
+          <div class="relative mx-auto mt-16 w-[calc(100%-2rem)] max-w-md rounded-xl bg-white p-4 shadow-xl flex flex-col gap-3">
+            <div class="flex items-center justify-between gap-3">
+              <h2 id="filters-panel-title" class="text-lg font-semibold text-slate-900">Фильтры и сортировка</h2>
+              <button type="button" id="filters-panel-close" class="h-9 w-9 shrink-0 rounded-lg text-slate-500 hover:bg-slate-100" aria-label="Закрыть">
+                <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </div>
+            <label class="flex flex-col gap-1 text-xs text-slate-600">
               <span>Тема</span>
               <select id="filter-category" class="h-10 rounded-lg border border-slate-200 px-2 text-sm bg-white">
                 <option value="">Все темы</option>
@@ -215,7 +221,7 @@ export async function createOffersListPage(): Promise<HTMLElement> {
                 <option value="beauty">Красота</option>
               </select>
             </label>
-            <label class="flex flex-col gap-1 text-xs text-slate-600 flex-1 min-w-[140px]">
+            <label class="flex flex-col gap-1 text-xs text-slate-600">
               <span>Вознаграждение</span>
               <select id="filter-reward" class="h-10 rounded-lg border border-slate-200 px-2 text-sm bg-white">
                 <option value="all">Все типы</option>
@@ -224,7 +230,7 @@ export async function createOffersListPage(): Promise<HTMLElement> {
                 <option value="mixed">Смешанное</option>
               </select>
             </label>
-            <label class="flex flex-col gap-1 text-xs text-slate-600 flex-1 min-w-[160px]">
+            <label class="flex flex-col gap-1 text-xs text-slate-600">
               <span>Сортировка</span>
               <select id="sort-select" class="h-10 rounded-lg border border-slate-200 px-2 text-sm bg-white">
                 <option value="created_desc">Сначала новые</option>
@@ -236,12 +242,15 @@ export async function createOffersListPage(): Promise<HTMLElement> {
                 <option value="reward_kind">Тип вознаграждения</option>
               </select>
             </label>
+            <div class="flex gap-2 pt-1">
+              <button type="button" id="filters-reset" class="flex-1 h-11 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50">Сбросить</button>
+              <button type="button" id="filters-apply" class="flex-1 h-11 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90">Применить</button>
             </div>
           </div>
-        </header>
+        </div>
         
         <main class="pb-28">
-          <div class="px-4 py-4">
+          <div class="px-4 pt-2 pb-4">
             <div id="loading-state" class="flex justify-center items-center py-8">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               <span class="ml-2 text-slate-600">Загрузка заданий...</span>
@@ -261,41 +270,18 @@ export async function createOffersListPage(): Promise<HTMLElement> {
               <a id="empty-state-all" href="#/offers" class="hidden inline-block mt-4 px-4 py-2 bg-primary text-white rounded-lg font-semibold">Все задания</a>
             </div>
             
-            <div id="offers-container" class="space-y-4 hidden">
-              <div id="accepted-section" class="bg-white rounded-lg border border-slate-200 overflow-hidden transition-colors">
-                <button type="button" id="accepted-section-header" class="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors">
-                  <span class="font-semibold text-lg">Принятые</span>
-                  <svg id="accepted-section-icon" class="w-5 h-5 text-slate-500 transition-transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                  </svg>
-                </button>
-                <div id="accepted-section-content" class="px-4 pb-4">
-                  <div id="accepted-offers" class="grid grid-cols-1 gap-4"></div>
+            <div id="offers-container" class="hidden">
+              <div id="offers-section-tabs" class="hidden mb-3" hidden>
+                <div class="flex p-1 rounded-lg bg-slate-100 gap-1" role="tablist" aria-label="Списки заданий">
+                  <button type="button" role="tab" id="offers-tab-accepted" data-section="accepted" aria-controls="accepted-offers" aria-selected="false" class="offers-section-tab flex-1 py-2 px-2 rounded-md text-sm font-semibold text-slate-500">Принятые</button>
+                  <button type="button" role="tab" id="offers-tab-available" data-section="available" aria-controls="available-offers" aria-selected="false" class="offers-section-tab flex-1 py-2 px-2 rounded-md text-sm font-semibold text-slate-500">Доступные</button>
+                  <button type="button" role="tab" id="offers-tab-completed" data-section="completed" aria-controls="completed-offers" aria-selected="false" class="offers-section-tab flex-1 py-2 px-2 rounded-md text-sm font-semibold text-slate-500">Выполненные</button>
                 </div>
               </div>
-              
-              <div id="available-section" class="bg-white rounded-lg border border-slate-200 overflow-hidden">
-                <button type="button" id="available-section-header" class="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors">
-                  <span class="font-semibold text-lg">Доступные</span>
-                  <svg id="available-section-icon" class="w-5 h-5 text-slate-500 transition-transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                  </svg>
-                </button>
-                <div id="available-section-content" class="px-4 pb-4">
-                  <div id="available-offers" class="grid grid-cols-1 gap-4"></div>
-                </div>
-              </div>
-
-              <div id="completed-section" class="bg-white rounded-lg border border-slate-200 overflow-hidden">
-                <button type="button" id="completed-section-header" class="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors">
-                  <span class="font-semibold text-lg">Выполненные</span>
-                  <svg id="completed-section-icon" class="w-5 h-5 text-slate-500 transition-transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                  </svg>
-                </button>
-                <div id="completed-section-content" class="px-4 pb-4">
-                  <div id="completed-offers" class="grid grid-cols-1 gap-4"></div>
-                </div>
+              <div id="offers-section-viewport" class="touch-pan-y">
+                <div id="accepted-offers" role="tabpanel" aria-labelledby="offers-tab-accepted" class="grid grid-cols-1 gap-4"></div>
+                <div id="available-offers" role="tabpanel" aria-labelledby="offers-tab-available" class="grid grid-cols-1 gap-4 hidden" hidden></div>
+                <div id="completed-offers" role="tabpanel" aria-labelledby="offers-tab-completed" class="grid grid-cols-1 gap-4 hidden" hidden></div>
               </div>
             </div>
           </div>
@@ -368,15 +354,23 @@ function showPerkEmpty(page: HTMLElement, perk: string | null) {
 function syncFiltersFromUrl(page: HTMLElement) {
   const q = router.getQueryParams();
   const search = page.querySelector('#search-input') as HTMLInputElement;
-  const section = page.querySelector('#filter-section') as HTMLSelectElement;
   const cat = page.querySelector('#filter-category') as HTMLSelectElement;
   const reward = page.querySelector('#filter-reward') as HTMLSelectElement;
   const sort = page.querySelector('#sort-select') as HTMLSelectElement;
   if (search) search.value = q.get('query') || '';
-  if (section) section.value = q.has('section') ? q.get('section') || 'all' : 'all';
   if (cat) cat.value = q.get('category') || '';
   if (reward) reward.value = q.has('reward') ? q.get('reward') || 'all' : 'all';
   if (sort) sort.value = q.get('sort') || 'created_desc';
+  const filtersToggle = page.querySelector('#filters-panel-toggle');
+  const filtersActive = Boolean(
+    q.get('category') ||
+      (q.get('reward') && q.get('reward') !== 'all') ||
+      (q.get('sort') && q.get('sort') !== 'created_desc')
+  );
+  filtersToggle?.classList.toggle('border-primary', filtersActive);
+  filtersToggle?.classList.toggle('text-primary', filtersActive);
+  filtersToggle?.classList.toggle('border-slate-200', !filtersActive);
+  filtersToggle?.classList.toggle('text-slate-700', !filtersActive);
 }
 
 async function loadOffers(page: HTMLElement) {
@@ -395,7 +389,6 @@ async function loadOffers(page: HTMLElement) {
     const categoryFilter = queryParams.get('category');
     const rewardFilter = queryParams.get('reward') || 'all';
     const sortKey = queryParams.get('sort') || 'created_desc';
-    const sectionView = queryParams.get('section') || 'all';
     const perk = queryParams.get('perk');
     syncListHeading(page);
     syncFiltersFromUrl(page);
@@ -432,10 +425,7 @@ async function loadOffers(page: HTMLElement) {
     av = sortOffersForList(av, sortKey);
     comp = sortOffersForList(comp, sortKey);
 
-    const visibleCount =
-      (sectionView === 'all' || sectionView === 'accepted' ? acc.length : 0) +
-      (sectionView === 'all' || sectionView === 'available' ? av.length : 0) +
-      (sectionView === 'all' || sectionView === 'completed' ? comp.length : 0);
+    const visibleCount = acc.length + av.length + comp.length;
 
     if (offers.length === 0 || (perk && PERK_META[perk] && visibleCount === 0)) {
       showPerkEmpty(page, perk && PERK_META[perk] ? perk : null);
@@ -443,66 +433,38 @@ async function loadOffers(page: HTMLElement) {
       return;
     }
 
-    const acceptedSection = page.querySelector('#accepted-section') as HTMLElement;
-    const availableSection = page.querySelector('#available-section') as HTMLElement;
-    const completedSection = page.querySelector('#completed-section') as HTMLElement;
-
-    if (acceptedSection) {
-      acceptedSection.classList.toggle(
-        'hidden',
-        (sectionView !== 'all' && sectionView !== 'accepted') || acc.length === 0
-      );
-    }
-    if (availableSection) {
-      availableSection.classList.toggle('hidden', sectionView !== 'all' && sectionView !== 'available');
-    }
-    if (completedSection) {
-      completedSection.classList.toggle(
-        'hidden',
-        (sectionView !== 'all' && sectionView !== 'completed') || comp.length === 0
-      );
-    }
-
-    const acceptedContainer = page.querySelector('#accepted-offers') as HTMLElement;
-    const availableContainer = page.querySelector('#available-offers') as HTMLElement;
-    const completedContainer = page.querySelector('#completed-offers') as HTMLElement;
-    const acceptedContent = page.querySelector('#accepted-section-content') as HTMLElement;
-    const availableContent = page.querySelector('#available-section-content') as HTMLElement;
-    const completedContent = page.querySelector('#completed-section-content') as HTMLElement;
-    const acceptedIcon = page.querySelector('#accepted-section-icon') as HTMLElement;
-    const availableIcon = page.querySelector('#available-section-icon') as HTMLElement;
-    const completedIcon = page.querySelector('#completed-section-icon') as HTMLElement;
-
-    if (acceptedSection) {
-      acceptedSection.classList.toggle('bg-primary/5', acc.length > 0);
-      acceptedSection.classList.toggle('bg-white', acc.length === 0);
+    const sectionOffers: Record<OfferSectionId, Offer[]> = {
+      accepted: acc,
+      available: av,
+      completed: comp
+    };
+    const present = SECTION_ORDER.filter((id) => sectionOffers[id].length > 0);
+    if (present.length === 0) {
+      showPerkEmpty(page, perk && PERK_META[perk] ? perk : null);
+      syncFiltersFromUrl(page);
+      return;
     }
 
     const byOffer = latestAppByOffer(applications);
-
-    if (acceptedContainer) {
-      acceptedContainer.innerHTML =
-        acc.length > 0
-          ? acc.map((o) => renderOfferCard(o, 'default', byOffer.get(o.id))).join('')
-          : '<p class="text-slate-500 text-center py-4">Нет принятых заданий</p>';
-    }
-    if (availableContainer) {
-      availableContainer.innerHTML =
-        av.length > 0
-          ? av.map((o) => renderOfferCard(o, 'default')).join('')
-          : '<p class="text-slate-500 text-center py-4">Нет доступных заданий</p>';
-    }
-    if (completedContainer) {
-      completedContainer.innerHTML =
-        comp.length > 0
-          ? comp.map((o) => renderOfferCard(o, 'completed')).join('')
-          : '<p class="text-slate-500 text-center py-4">Пока нет выполненных заданий</p>';
+    for (const id of SECTION_ORDER) {
+      const panel = page.querySelector(`#${id}-offers`) as HTMLElement | null;
+      const tab = page.querySelector(`#offers-tab-${id}`);
+      const list = sectionOffers[id];
+      const shown = list.length > 0;
+      tab?.classList.toggle('hidden', !shown);
+      tab?.toggleAttribute('hidden', !shown);
+      if (!panel) continue;
+      if (id === 'accepted') {
+        panel.innerHTML = list.map((o) => renderOfferCard(o, 'default', byOffer.get(o.id))).join('');
+      } else if (id === 'completed') {
+        panel.innerHTML = list.map((o) => renderOfferCard(o, 'completed')).join('');
+      } else {
+        panel.innerHTML = list.map((o) => renderOfferCard(o, 'default')).join('');
+      }
     }
 
-    [acceptedContent, availableContent, completedContent].forEach((el) => el?.classList.remove('hidden'));
-    [acceptedIcon, availableIcon, completedIcon].forEach((ic) => {
-      if (ic) ic.style.transform = 'rotate(180deg)';
-    });
+    const remembered = page.dataset.activeSection as OfferSectionId | undefined;
+    showOfferSection(page, remembered && present.includes(remembered) ? remembered : present[0]);
 
     emptyState.classList.add('hidden');
     showState(offersContainer, [errorState, emptyState]);
@@ -527,6 +489,36 @@ function hideState(element: HTMLElement) {
   element.classList.add('hidden');
 }
 
+function visibleOfferSections(page: HTMLElement): OfferSectionId[] {
+  return SECTION_ORDER.filter((id) => {
+    const tab = page.querySelector(`#offers-tab-${id}`);
+    return Boolean(tab && !tab.hasAttribute('hidden'));
+  });
+}
+
+function showOfferSection(page: HTMLElement, id: OfferSectionId) {
+  const visible = visibleOfferSections(page);
+  const next = visible.includes(id) ? id : visible[0];
+  if (!next) return;
+  page.dataset.activeSection = next;
+  const tabs = page.querySelector('#offers-section-tabs');
+  const showTabs = visible.length > 1;
+  tabs?.classList.toggle('hidden', !showTabs);
+  tabs?.toggleAttribute('hidden', !showTabs);
+  for (const sectionId of SECTION_ORDER) {
+    const tab = page.querySelector(`#offers-tab-${sectionId}`);
+    const panel = page.querySelector(`#${sectionId}-offers`);
+    const on = sectionId === next;
+    tab?.setAttribute('aria-selected', on ? 'true' : 'false');
+    tab?.classList.toggle('bg-white', on);
+    tab?.classList.toggle('text-slate-900', on);
+    tab?.classList.toggle('shadow-sm', on);
+    tab?.classList.toggle('text-slate-500', !on);
+    panel?.classList.toggle('hidden', !on);
+    panel?.toggleAttribute('hidden', !on);
+  }
+}
+
 function setupEventHandlers(page: HTMLElement) {
   const searchInput = page.querySelector('#search-input') as HTMLInputElement;
   let searchTimeout: number;
@@ -541,50 +533,103 @@ function setupEventHandlers(page: HTMLElement) {
 
   const filtersToggle = page.querySelector('#filters-panel-toggle') as HTMLButtonElement;
   const filtersPanel = page.querySelector('#filters-panel') as HTMLElement;
-  const filtersIcon = page.querySelector('#filters-panel-icon') as HTMLElement;
-  const syncFiltersPanelUi = () => {
-    if (!filtersPanel || !filtersIcon || !filtersToggle) return;
-    const expanded = !filtersPanel.classList.contains('hidden');
-    filtersToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-    filtersIcon.style.transform = expanded ? 'rotate(180deg)' : 'rotate(0deg)';
+  const setFiltersOpen = (open: boolean) => {
+    if (!filtersPanel || !filtersToggle) return;
+    filtersPanel.classList.toggle('hidden', !open);
+    filtersPanel.toggleAttribute('hidden', !open);
+    filtersToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    document.body.style.overflow = open ? 'hidden' : '';
+  };
+  const closeFilters = () => {
+    syncFiltersFromUrl(page);
+    setFiltersOpen(false);
+  };
+  const readFilterDraft = () => {
+    const category = (page.querySelector('#filter-category') as HTMLSelectElement | null)?.value || null;
+    const rewardRaw = (page.querySelector('#filter-reward') as HTMLSelectElement | null)?.value || 'all';
+    const sortRaw = (page.querySelector('#sort-select') as HTMLSelectElement | null)?.value || 'created_desc';
+    return {
+      category: category || null,
+      reward: rewardRaw === 'all' ? null : rewardRaw,
+      sort: sortRaw === 'created_desc' ? null : sortRaw
+    };
   };
   filtersToggle?.addEventListener('click', () => {
-    filtersPanel?.classList.toggle('hidden');
-    syncFiltersPanelUi();
+    const opening = filtersPanel.classList.contains('hidden');
+    if (opening) syncFiltersFromUrl(page);
+    setFiltersOpen(opening);
   });
-  syncFiltersPanelUi();
+  page.querySelector('#filters-panel-close')?.addEventListener('click', closeFilters);
+  page.querySelector('#filters-panel-backdrop')?.addEventListener('click', closeFilters);
+  page.querySelector('#filters-apply')?.addEventListener('click', () => {
+    setHashQuery(readFilterDraft());
+    setFiltersOpen(false);
+  });
+  page.querySelector('#filters-reset')?.addEventListener('click', () => {
+    const category = page.querySelector('#filter-category') as HTMLSelectElement | null;
+    const reward = page.querySelector('#filter-reward') as HTMLSelectElement | null;
+    const sort = page.querySelector('#sort-select') as HTMLSelectElement | null;
+    if (category) category.value = '';
+    if (reward) reward.value = 'all';
+    if (sort) sort.value = 'created_desc';
+    setHashQuery({ category: null, reward: null, sort: null });
+  });
+  const onFiltersKey = (event: KeyboardEvent) => {
+    if (!page.isConnected) {
+      document.removeEventListener('keydown', onFiltersKey);
+      document.body.style.overflow = '';
+      return;
+    }
+    if (event.key === 'Escape' && filtersPanel && !filtersPanel.classList.contains('hidden')) {
+      closeFilters();
+    }
+  };
+  document.addEventListener('keydown', onFiltersKey);
+  setFiltersOpen(false);
 
   page.querySelector('#retry-btn')?.addEventListener('click', () => loadOffers(page));
 
-  const bindSelect = (id: string, key: string, map?: (v: string) => string | null) => {
-    page.querySelector(id)?.addEventListener('change', (e) => {
-      const raw = (e.target as HTMLSelectElement).value;
-      const final = map ? map(raw) : raw;
-      const v = final === null || final === '' ? null : final;
-      setHashQuery({ [key]: v });
+  page.querySelectorAll<HTMLButtonElement>('.offers-section-tab').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      const id = tab.dataset.section as OfferSectionId | undefined;
+      if (id) showOfferSection(page, id);
     });
-  };
-  bindSelect('#filter-section', 'section', (v) => (v === 'all' ? null : v));
-  bindSelect('#filter-category', 'category', (v) => v || null);
-  bindSelect('#filter-reward', 'reward', (v) => (v === 'all' ? null : v));
-  bindSelect('#sort-select', 'sort', (v) => (v === 'created_desc' ? null : v));
+  });
 
-  const toggle = (header: string, content: string, icon: string) => {
-    page.querySelector(header)?.addEventListener('click', () => {
-      const c = page.querySelector(content) as HTMLElement;
-      const i = page.querySelector(icon) as HTMLElement;
-      if (c && i) {
-        c.classList.toggle('hidden');
-        const expanded = !c.classList.contains('hidden');
-        i.style.transform = expanded ? 'rotate(180deg)' : 'rotate(0deg)';
-      }
-    });
-  };
-  toggle('#accepted-section-header', '#accepted-section-content', '#accepted-section-icon');
-  toggle('#available-section-header', '#available-section-content', '#available-section-icon');
-  toggle('#completed-section-header', '#completed-section-content', '#completed-section-icon');
+  const viewport = page.querySelector('#offers-section-viewport');
+  let swipe: { id: number; x: number; y: number } | null = null;
+  let suppressCardClick = false;
+  viewport?.addEventListener('pointerdown', (e) => {
+    const event = e as PointerEvent;
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    swipe = { id: event.pointerId, x: event.clientX, y: event.clientY };
+  });
+  viewport?.addEventListener('pointerup', (e) => {
+    const event = e as PointerEvent;
+    if (!swipe || swipe.id !== event.pointerId) return;
+    const dx = event.clientX - swipe.x;
+    const dy = event.clientY - swipe.y;
+    swipe = null;
+    if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+    const visible = visibleOfferSections(page);
+    const current = (page.dataset.activeSection || visible[0]) as OfferSectionId;
+    const index = visible.indexOf(current);
+    const next = dx < 0 ? visible[index + 1] : visible[index - 1];
+    if (!next) return;
+    suppressCardClick = true;
+    showOfferSection(page, next);
+  });
+  viewport?.addEventListener('pointercancel', () => {
+    swipe = null;
+  });
 
   page.addEventListener('click', (e) => {
+    if (suppressCardClick) {
+      suppressCardClick = false;
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
     const target = e.target as HTMLElement;
     const offerCard = target.closest('[data-offer-id]') as HTMLElement;
     if (offerCard?.dataset.offerId) {

@@ -32,7 +32,10 @@ class Router {
       if (this.navigationStack.length > 0) {
         this.navigationStack.pop();
       }
-      this.lastRenderedCleanPath = null;
+      const cleanPath = this.getCleanPath();
+      if (this.lastRenderedCleanPath !== cleanPath) {
+        this.lastRenderedCleanPath = null;
+      }
       void this.handleRoute();
     });
     window.addEventListener('hashchange', () => this.handleRoute());
