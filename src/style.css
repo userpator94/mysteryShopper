@@ -2406,6 +2406,29 @@ label.checklist-bool-switch-label:focus-within .android-switch-track {
   }
 }
 
+@keyframes ad-link-flicker {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.45);
+  }
+}
+
+.ad-link-flicker {
+  animation: ad-link-flicker 2.2s ease-in-out infinite;
+}
+
+.ad-link-flicker--delay {
+  animation-delay: 0.7s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ad-link-flicker {
+    animation: none;
+  }
+}
+
 /* Улучшенные стили для мобильных устройств */
 @media (max-width: 768px) {
   .offer-card-enhanced {

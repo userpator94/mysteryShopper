@@ -223,10 +223,13 @@ export async function createHomePage(): Promise<HTMLElement> {
             </div>
           </div>
           
-          <div id="advertisement-section" class="px-4 py-2">
-            <div class="w-full bg-slate-800 rounded-xl h-28 flex items-center justify-center p-4">
-              <p class="text-white text-center text-lg font-medium">Место для вашей рекламы</p>
-            </div>
+          <div id="advertisement-section" class="grid grid-cols-2 gap-3 px-4 py-1">
+            <a href="https://iliamartynenko.com/" target="_blank" rel="noopener noreferrer" class="ad-link-flicker flex h-12 items-center justify-center rounded-xl bg-slate-800 px-3 text-center text-sm font-medium text-white transition-colors hover:bg-slate-700">
+              Разработчик
+            </a>
+            <a href="https://oldos-shop.ru/" target="_blank" rel="noopener noreferrer" class="ad-link-flicker ad-link-flicker--delay flex h-12 items-center justify-center rounded-xl bg-slate-800 px-3 text-center text-sm font-medium text-white transition-colors hover:bg-slate-700">
+              Бизнес-партнёр
+            </a>
           </div>
           
           <div id="filters-section" class="flex gap-3 px-4 py-3">
