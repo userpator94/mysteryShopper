@@ -6,8 +6,21 @@
 <title>Mystery Shopper</title>
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<!--
+  Шрифты подключены НЕ как render-blocking <link rel="stylesheet">, а через
+  media="print" + onload-трюк: браузер скачивает CSS с высоким приоритетом,
+  но не блокирует первую отрисовку страницы, ожидая ответ от fonts.googleapis.com.
+  Это критично для пользователей, у которых Google-домены медленно отвечают или
+  недоступны (например, часть мобильных операторов в РФ) — раньше в таких случаях
+  страница оставалась полностью белой (даже форма логина не рендерилась) до тех
+  пор, пока запрос к Google Fonts не завершался по таймауту браузера.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet" media="print" onload="this.media='all'"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" media="print" onload="this.media='all'"/>
+<noscript>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+</noscript>
 <style>
     .no-scrollbar::-webkit-scrollbar {
       display: none;
