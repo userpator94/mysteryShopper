@@ -2,6 +2,7 @@
 
 import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
+import { mailIcon } from '../utils/icons.js';
 
 function getEmailFromUrl(): string {
   const path = window.location.hash
@@ -21,7 +22,7 @@ export async function createVerifyEmailPendingPage(): Promise<HTMLElement> {
       <main class="flex w-full flex-col items-center justify-center min-h-screen p-4">
         <div class="w-full max-w-sm flex flex-col gap-4 text-center">
           <div class="flex h-14 w-14 mx-auto items-center justify-center rounded-2xl bg-primary/20 text-primary">
-            <span class="material-symbols-outlined text-3xl">mail</span>
+            ${mailIcon({ className: 'text-3xl' })}
           </div>
           <h1 class="text-xl font-bold text-slate-900">Подтвердите email</h1>
           <p class="text-sm text-slate-600">

@@ -1,3 +1,12 @@
+// Self-hosted Inter — раньше грузился с fonts.googleapis.com как
+// render-blocking <link>, из-за чего при недоступности/медленном ответе
+// Google-доменов (характерно для части мобильных сетей РФ, в т.ч. из
+// встроенного браузера Telegram) страница оставалась полностью белой.
+// Теперь шрифт — часть сборки и раздаётся с того же домена, что и сайт.
+import '@fontsource/inter/400.css'
+import '@fontsource/inter/500.css'
+import '@fontsource/inter/600.css'
+import '@fontsource/inter/700.css'
 import './style.css'
 import { router } from './router/index.js'
 import { createLayout } from './components/Layout.js'

@@ -5,6 +5,7 @@ import { apiService } from '../services/api.js';
 import type { LegalOffersPayload } from '../types/index.js';
 import { EMAIL_FORMAT_HINT, isValidEmailFormat } from '../utils/email.js';
 import { devLog } from '../utils/logger.js';
+import { shoppingBagIcon, visibilityToggleIcons } from '../utils/icons.js';
 
 export async function createSignUpPage(): Promise<HTMLElement> {
   const page = document.createElement('div');
@@ -15,9 +16,7 @@ export async function createSignUpPage(): Promise<HTMLElement> {
       <main class="flex w-full flex-col items-center justify-center grow p-4">
         <div class="flex w-full max-w-sm flex-col items-center gap-6">
           <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/20 text-primary">
-            <span class="material-symbols-outlined text-4xl">
-              shopping_bag
-            </span>
+            ${shoppingBagIcon({ className: 'text-4xl' })}
           </div>
           
           <h1 class="text-slate-900 tracking-tight text-[32px] font-bold leading-tight text-center">Регистрация</h1>
@@ -135,9 +134,7 @@ export async function createSignUpPage(): Promise<HTMLElement> {
                     class="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 hover:text-primary focus:outline-none" 
                     type="button"
                   >
-                    <span class="material-symbols-outlined text-2xl">
-                      visibility
-                    </span>
+                    ${visibilityToggleIcons('text-2xl')}
                   </button>
                 </div>
               </label>
@@ -160,9 +157,7 @@ export async function createSignUpPage(): Promise<HTMLElement> {
                     class="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 hover:text-primary focus:outline-none" 
                     type="button"
                   >
-                    <span class="material-symbols-outlined text-2xl">
-                      visibility
-                    </span>
+                    ${visibilityToggleIcons('text-2xl')}
                   </button>
                 </div>
               </label>
@@ -392,32 +387,32 @@ function setupEventHandlers(page: HTMLElement) {
   // Переключение видимости пароля
   const togglePasswordBtn = page.querySelector('#toggle-password-visibility') as HTMLElement;
   const passwordInput = page.querySelector('#signup-password') as HTMLInputElement;
-  const passwordVisibilityIcon = togglePasswordBtn?.querySelector('.material-symbols-outlined');
+  const passwordVisibilityIconEl = togglePasswordBtn?.querySelector('[data-icon="visibility"]');
+  const passwordVisibilityOffIconEl = togglePasswordBtn?.querySelector('[data-icon="visibility-off"]');
 
   togglePasswordBtn?.addEventListener('click', () => {
     if (passwordInput) {
       const isPassword = passwordInput.type === 'password';
       passwordInput.type = isPassword ? 'text' : 'password';
-      
-      if (passwordVisibilityIcon) {
-        passwordVisibilityIcon.textContent = isPassword ? 'visibility_off' : 'visibility';
-      }
+
+      passwordVisibilityIconEl?.classList.toggle('hidden', isPassword);
+      passwordVisibilityOffIconEl?.classList.toggle('hidden', !isPassword);
     }
   });
 
   // Переключение видимости подтверждения пароля
   const toggleConfirmPasswordBtn = page.querySelector('#toggle-confirm-password-visibility') as HTMLElement;
   const confirmPasswordInput = page.querySelector('#signup-confirm-password') as HTMLInputElement;
-  const confirmPasswordVisibilityIcon = toggleConfirmPasswordBtn?.querySelector('.material-symbols-outlined');
+  const confirmPasswordVisibilityIconEl = toggleConfirmPasswordBtn?.querySelector('[data-icon="visibility"]');
+  const confirmPasswordVisibilityOffIconEl = toggleConfirmPasswordBtn?.querySelector('[data-icon="visibility-off"]');
 
   toggleConfirmPasswordBtn?.addEventListener('click', () => {
     if (confirmPasswordInput) {
       const isPassword = confirmPasswordInput.type === 'password';
       confirmPasswordInput.type = isPassword ? 'text' : 'password';
-      
-      if (confirmPasswordVisibilityIcon) {
-        confirmPasswordVisibilityIcon.textContent = isPassword ? 'visibility_off' : 'visibility';
-      }
+
+      confirmPasswordVisibilityIconEl?.classList.toggle('hidden', isPassword);
+      confirmPasswordVisibilityOffIconEl?.classList.toggle('hidden', !isPassword);
     }
   });
 
