@@ -348,9 +348,16 @@ router.addRoute({
   requiresRole: 'employer'
 })
 
-// Инициализация: загружаем профиль для роли и обновляем навигацию
-;(async () => {
-  if (isAuthenticated()) {
+// Инициализация: сначала рендерим роуты, не блокируя UI сетевым запросом.
+// Раньше router.initialize() вызывался только после await apiService.getMe(),
+// и если этот запрос "зависал" (например, при проблемах с сетью/бэкендом),
+// приложение оставалось с вечной заглушкой-спиннером и ни одна страница
+// не отображалась. Теперь роуты рендерятся немедленно, а профиль/роль
+// подгружаются асинхронно и дополняют навигацию, когда будут готовы.
+router.initialize()
+
+if (isAuthenticated()) {
+  void (async () => {
     try {
       await apiService.getMe()
     } catch (e) {
@@ -358,6 +365,5 @@ router.addRoute({
     }
     updateNavByRole()
     void refreshEmployerInboxBadge()
-  }
-  router.initialize()
-})()
+  })()
+}
