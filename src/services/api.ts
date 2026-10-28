@@ -27,53 +27,12 @@ import type {
   LegalOfferMeta
 } from '../types/index.js';
 import { devLog } from '../utils/logger.js';
+import { netFetch } from '../utils/netFetch.js';
 import { setRole, clearRole } from '../utils/auth.js';
 import { clearRecentOffers } from '../utils/recentOffers.js';
 import { ADMIN_LOGIN_PATH, isAdminPanelPath } from '../utils/adminPaths.js';
 
 const API_BASE_URL = '/api';
-
-// Таймаут по умолчанию для всех сетевых запросов (мс).
-// Без него "зависший" ответ сервера/прокси оставлял бы UI в бесконечном
-// состоянии загрузки (см. баг с зависанием на кнопке "Войти").
-const DEFAULT_FETCH_TIMEOUT_MS = 15000;
-
-/**
- * Обёртка над fetch с таймаутом. Если сервер не отвечает за timeoutMs,
- * запрос прерывается через AbortController и выбрасывается понятная ошибка,
- * вместо бесконечно "висящего" промиса.
- */
-async function fetchWithTimeout(
-  input: RequestInfo | URL,
-  init: RequestInit = {},
-  timeoutMs: number = DEFAULT_FETCH_TIMEOUT_MS
-): Promise<Response> {
-  const controller = new AbortController();
-  // Если вызывающий код уже передал свой signal — уважаем его отмену тоже
-  const externalSignal = init.signal;
-  if (externalSignal) {
-    if (externalSignal.aborted) {
-      controller.abort();
-    } else {
-      externalSignal.addEventListener('abort', () => controller.abort(), { once: true });
-    }
-  }
-
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    return await fetch(input, { ...init, signal: controller.signal });
-  } catch (error: any) {
-    if (error?.name === 'AbortError') {
-      throw new Error(
-        'Сервер не отвечает слишком долго. Проверьте подключение к интернету и попробуйте ещё раз.'
-      );
-    }
-    throw error;
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
 
 function redirectToLoginOnAuthFailure(): void {
   localStorage.removeItem('auth_token');
@@ -213,7 +172,7 @@ export class ApiService {
     };
 
     devLog.log('Выполняем API запрос:', url);
-    const response = await fetchWithTimeout(url, defaultOptions);
+    const response = await netFetch(url, defaultOptions);
 
     // 401: либо неверный текущий пароль (PATCH /me/password), либо истёк JWT
     if (response.status === 401) {
@@ -355,7 +314,7 @@ export class ApiService {
       }
 
       devLog.log('Выполняем API запрос:', url);
-      const response = await fetchWithTimeout(url, {
+      const response = await netFetch(url, {
         method: 'GET',
         headers,
       });
@@ -530,7 +489,7 @@ export class ApiService {
       }
 
       devLog.log('Запрос к API:', url);
-      const response = await fetchWithTimeout(url, {
+      const response = await netFetch(url, {
         method: 'GET',
         headers,
       });
@@ -588,7 +547,7 @@ export class ApiService {
       }
 
       devLog.log('Отказ от заявки, запрос к API:', url);
-      const response = await fetchWithTimeout(url, {
+      const response = await netFetch(url, {
         method: 'PUT',
         headers,
       });
@@ -608,7 +567,7 @@ export class ApiService {
     body: Record<string, unknown>
   ): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
-    const response = await fetchWithTimeout(url, {
+    const response = await netFetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
@@ -715,7 +674,7 @@ export class ApiService {
   public async openAdminLegalDoc(role: 'user' | 'employer'): Promise<void> {
     const url = `${API_BASE_URL}/admin/legal/docs/${role}`;
     const token = this.getAuthToken();
-    const response = await fetchWithTimeout(url, {
+    const response = await netFetch(url, {
       method: 'GET',
       headers: token ? { Authorization: `Bearer ${token}` } : {}
     });
@@ -922,18 +881,14 @@ export class ApiService {
     devLog.log('Отправка отчёта на:', url);
     // Увеличенный таймаут: загрузка фото может занимать дольше обычного запроса,
     // особенно на медленной мобильной сети.
-    const response = await fetchWithTimeout(
-      url,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          // НЕ указываем Content-Type - браузер установит автоматически с boundary
-        },
-        body: formData,
+    const response = await netFetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        // НЕ указываем Content-Type - браузер установит автоматически с boundary
       },
-      60000
-    );
+      body: formData,
+    });
 
     // Обработка ошибок аутентификации
     if (response.status === 401) {
@@ -1080,7 +1035,7 @@ export class ApiService {
   public async downloadEmployerReportPdf(offerId: string, reportId: string): Promise<void> {
     const url = `${API_BASE_URL}/offers/${offerId}/reports/${reportId}/pdf`;
     const token = this.getAuthToken();
-    const response = await fetchWithTimeout(url, {
+    const response = await netFetch(url, {
       method: 'GET',
       headers: token ? { Authorization: `Bearer ${token}` } : {}
     });

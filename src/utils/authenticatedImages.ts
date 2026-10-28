@@ -1,4 +1,5 @@
 import { getAuthToken } from './auth.js';
+import { netFetch } from './netFetch.js';
 
 /**
  * Подставляет blob: URL для <img src="/api/images/..."> —
@@ -14,7 +15,7 @@ export async function hydrateAuthenticatedImages(root: ParentNode): Promise<void
       const src = img.getAttribute('src');
       if (!src) return;
       try {
-        const res = await fetch(src, {
+        const res = await netFetch(src, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!res.ok) {

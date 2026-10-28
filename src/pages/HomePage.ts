@@ -5,6 +5,7 @@ import { isMapsLocationUiEnabled } from '../config/yandexMaps.js';
 import { getCurrentLocation, formatCityName } from '../utils/geolocation.js';
 import { escapeHtml, formatExecutorRewardNumber } from '../utils/offerDisplay.js';
 import { devLog } from '../utils/logger.js';
+import { netFetch } from '../utils/netFetch.js';
 
 // Кэш для промо-предложений
 let promoOffersCache: { data: Offer[]; timestamp: number } | null = null;
@@ -20,14 +21,15 @@ async function fetchPromoOffers(): Promise<Offer[]> {
     }
 
     // Тот же origin, что и у фронтенда: в dev — прокси Vite, в prod — nginx.
+    // Не привязываемся к конкретному домену (смена домена / блокировки).
     const apiUrl = '/api/promo-offers';
 
     devLog.log('Запрос к API:', apiUrl);
-    
-    const response = await fetch(apiUrl, {
+
+    const response = await netFetch(apiUrl, {
       method: 'GET',
       headers: {
-        'Content-Type': 'application/json',
+        Accept: 'application/json',
       },
     });
     

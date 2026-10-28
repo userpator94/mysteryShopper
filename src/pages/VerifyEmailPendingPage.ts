@@ -1,5 +1,6 @@
 // Экран «проверьте почту» после регистрации
 
+import { startResendCooldown } from '../utils/resendCooldown.js';
 import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
 import { mailIcon } from '../utils/icons.js';
@@ -28,6 +29,9 @@ export async function createVerifyEmailPendingPage(): Promise<HTMLElement> {
           <p class="text-sm text-slate-600">
             Мы отправили письмо${email ? ` на <strong>${escapeHtml(email)}</strong>` : ''}.
             Перейдите по ссылке в письме, затем войдите в аккаунт.
+          </p>
+          <p class="text-xs text-slate-500">
+            Письмо может прийти с задержкой в несколько минут. Проверьте папку «Спам».
           </p>
           <p id="pending-msg" class="hidden text-sm text-green-700"></p>
           <p id="pending-err" class="hidden text-sm text-red-600"></p>
@@ -61,10 +65,10 @@ export async function createVerifyEmailPendingPage(): Promise<HTMLElement> {
       const data = await apiService.resendVerification(email);
       msgEl.textContent = data.message;
       msgEl.classList.remove('hidden');
+      startResendCooldown(btn, 'Отправить письмо повторно');
     } catch (ex: unknown) {
       errEl.textContent = ex instanceof Error ? ex.message : 'Не удалось отправить письмо';
       errEl.classList.remove('hidden');
-    } finally {
       btn.disabled = false;
     }
   });

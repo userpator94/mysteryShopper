@@ -1,5 +1,6 @@
 // Страница входа в аккаунт
 
+import { startResendCooldown } from '../utils/resendCooldown.js';
 import { router } from '../router/index.js';
 import { apiService } from '../services/api.js';
 import { isAuthenticated, getRedirectByRole, getRole } from '../utils/auth.js';
@@ -578,14 +579,14 @@ function setupEventHandlers(page: HTMLElement) {
     resendStatus.classList.add('hidden');
     try {
       const data = await apiService.resendVerification(email);
-      resendStatus.textContent = data.message;
+      resendStatus.textContent = `${data.message} Письмо может прийти с задержкой — проверьте папку «Спам».`;
       resendStatus.className = 'text-xs text-green-700';
       resendStatus.classList.remove('hidden');
+      startResendCooldown(resendBtn, resendBtn.textContent?.trim() || 'Отправить письмо повторно');
     } catch (ex: unknown) {
       resendStatus.textContent = ex instanceof Error ? ex.message : 'Не удалось отправить письмо';
       resendStatus.className = 'text-xs text-red-600';
       resendStatus.classList.remove('hidden');
-    } finally {
       resendBtn.disabled = false;
     }
   });
