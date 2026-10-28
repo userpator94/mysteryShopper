@@ -19,12 +19,9 @@ async function fetchPromoOffers(): Promise<Offer[]> {
       return promoOffersCache.data;
     }
 
-    // В development используем прокси Vite, в production - прямой URL
-    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const apiUrl = isDevelopment 
-      ? '/api/promo-offers' // Используем прокси Vite
-      : 'https://77-222-43-250.swtest.ru/api/promo-offers';
-    
+    // Тот же origin, что и у фронтенда: в dev — прокси Vite, в prod — nginx.
+    const apiUrl = '/api/promo-offers';
+
     devLog.log('Запрос к API:', apiUrl);
     
     const response = await fetch(apiUrl, {
