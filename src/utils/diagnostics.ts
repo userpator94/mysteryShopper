@@ -5,7 +5,7 @@
 import { getAuthToken, getRole, getUserId } from './auth.js';
 import { copyToClipboard } from './clipboard.js';
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 const MAX_EVENTS = 1000;
 const MAX_EVENT_BYTES = 256 * 1024;
 const MAX_REPORT_BYTES = 512 * 1024;
@@ -106,6 +106,17 @@ let queryDownloadDone = false;
 let assistLock = false;
 let memoryFails = 0;
 let healthPingBusy = false;
+let clientHints: UaClientHints | null = null;
+
+interface UaClientHints {
+  mobile?: boolean;
+  platform?: string;
+  model?: string;
+  platformVersion?: string;
+  architecture?: string;
+  bitness?: string;
+  brands?: { brand: string; version: string }[];
+}
 
 function createSessionId(): string {
   try {
@@ -598,6 +609,7 @@ function ensureInit(): void {
   try { restore(); } catch { /* ignore */ }
   try { installListeners(); } catch { /* ignore */ }
   try { refreshStorageEstimate(); } catch { /* ignore */ }
+  try { refreshClientHints(); } catch { /* ignore */ }
   diagEvent('diag_init', {});
   try { syncDiagnosticsQuery(); } catch { /* ignore */ }
 }
@@ -769,6 +781,161 @@ function emptyApp(): DiagnosticsReport['app'] {
   };
 }
 
+function usableModel(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const model = value.trim();
+  if (model.length < 2 || model.length > 80) return null;
+  if (/^(k|mobile|android|linux|wv)$/i.test(model)) return null;
+  return model;
+}
+
+function brandList(value: unknown): { brand: string; version: string }[] | null {
+  if (!Array.isArray(value)) return null;
+  const brands: { brand: string; version: string }[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== 'object') continue;
+    const brand = (item as { brand?: unknown }).brand;
+    const version = (item as { version?: unknown }).version;
+    if (typeof brand !== 'string' || typeof version !== 'string') continue;
+    brands.push({ brand: brand.slice(0, 40), version: version.slice(0, 40) });
+    if (brands.length >= 8) break;
+  }
+  return brands.length ? brands : null;
+}
+
+function refreshClientHints(): void {
+  const data = (navigator as Navigator & {
+    userAgentData?: {
+      brands?: { brand: string; version: string }[];
+      mobile?: boolean;
+      platform?: string;
+      getHighEntropyValues?: (hints: string[]) => Promise<Record<string, unknown>>;
+    };
+  }).userAgentData;
+  if (!data) return;
+  clientHints = {
+    mobile: typeof data.mobile === 'boolean' ? data.mobile : undefined,
+    platform: typeof data.platform === 'string' ? data.platform : undefined,
+    brands: brandList(data.brands) ?? undefined,
+  };
+  if (typeof data.getHighEntropyValues !== 'function') return;
+  void data.getHighEntropyValues(['model', 'platformVersion', 'fullVersionList', 'architecture', 'bitness'])
+    .then((values) => {
+      const full = brandList(values.fullVersionList);
+      clientHints = {
+        ...(clientHints ?? {}),
+        model: usableModel(values.model) ?? undefined,
+        platformVersion: typeof values.platformVersion === 'string' ? values.platformVersion.slice(0, 40) : undefined,
+        architecture: typeof values.architecture === 'string' ? values.architecture.slice(0, 40) : undefined,
+        bitness: typeof values.bitness === 'string' ? values.bitness.slice(0, 8) : undefined,
+        brands: full ?? clientHints?.brands,
+      };
+    })
+    .catch(() => {});
+}
+
+function parseClient(ua: string): {
+  deviceClass: string;
+  model: string | null;
+  browser: string;
+  browserVersion: string;
+  engine: string;
+  engineVersion: string;
+  os: string;
+  osVersion: string;
+} {
+  const ipadAsMac = /Macintosh/i.test(ua) && navigator.maxTouchPoints > 1;
+  let deviceClass = 'other';
+  if (/iPhone|iPod/i.test(ua)) deviceClass = 'iPhone';
+  else if (/iPad/i.test(ua) || ipadAsMac) deviceClass = 'iPad';
+  else if (/Android/i.test(ua)) deviceClass = 'Android';
+  else if (/CrOS/i.test(ua)) deviceClass = 'ChromeOS';
+  else if (/Windows/i.test(ua)) deviceClass = 'Windows';
+  else if (/Macintosh|Mac OS X/i.test(ua)) deviceClass = 'Mac';
+  else if (/Linux/i.test(ua)) deviceClass = 'Linux';
+
+  let os = 'unknown';
+  let osVersion = '';
+  const ios = ua.match(/(?:iPhone OS|CPU OS) ([0-9_]+)/i);
+  if (ios) {
+    os = ipadAsMac || /iPad/i.test(ua) ? 'iPadOS' : 'iOS';
+    osVersion = ios[1].replace(/_/g, '.');
+  } else if (ipadAsMac) {
+    os = 'iPadOS';
+    const mac = ua.match(/Mac OS X ([0-9_]+)/);
+    if (mac) osVersion = mac[1].replace(/_/g, '.');
+  } else {
+    const android = ua.match(/Android ([0-9.]+)/);
+    const mac = ua.match(/Mac OS X ([0-9_]+)/);
+    const win = ua.match(/Windows NT ([0-9.]+)/);
+    if (android) {
+      os = 'Android';
+      osVersion = android[1];
+    } else if (mac) {
+      os = 'macOS';
+      osVersion = mac[1].replace(/_/g, '.');
+    } else if (win) {
+      os = 'Windows';
+      osVersion = win[1];
+    }
+  }
+
+  const named = [
+    ['Chrome', /CriOS\/([0-9.]+)/],
+    ['Firefox', /FxiOS\/([0-9.]+)/],
+    ['Edge', /EdgiOS\/([0-9.]+)/],
+    ['Samsung Internet', /SamsungBrowser\/([0-9.]+)/],
+    ['Edge', /Edg\/([0-9.]+)/],
+    ['Opera', /OPR\/([0-9.]+)/],
+    ['Firefox', /Firefox\/([0-9.]+)/],
+    ['Chrome', /Chrome\/([0-9.]+)/],
+    ['Safari', /Version\/([0-9.]+).*Safari\//],
+  ] as const;
+  let browser = 'unknown';
+  let browserVersion = '';
+  for (const [name, re] of named) {
+    const match = ua.match(re);
+    if (!match) continue;
+    browser = name;
+    browserVersion = match[1];
+    break;
+  }
+
+  const webkit = ua.match(/AppleWebKit\/([0-9.]+)/);
+  const gecko = ua.match(/Gecko\/([0-9.]+)/);
+  const engine = webkit ? 'WebKit' : browser === 'Firefox' && gecko ? 'Gecko' : 'unknown';
+  const engineVersion = webkit?.[1] ?? (browser === 'Firefox' ? gecko?.[1] ?? '' : '');
+
+  const androidModel = ua.match(/Android\s+[0-9.]+;\s*([^;)]+?)(?:\s+Build\/|[;)])/);
+  const model = usableModel(clientHints?.model) ?? usableModel(androidModel?.[1]) ?? null;
+  return { deviceClass, model, browser, browserVersion, engine, engineVersion, os, osVersion };
+}
+
+function clientLabel(client: {
+  model: string | null;
+  deviceClass: string;
+  os: string;
+  osVersion: string;
+  browser: string;
+  browserVersion: string;
+}): string {
+  const device = client.model || client.deviceClass;
+  const os = [client.os, client.osVersion].filter(Boolean).join(' ');
+  const browser = [client.browser, client.browserVersion].filter(Boolean).join(' ');
+  return [device, os, browser].filter((part) => part && part !== 'unknown').join(', ');
+}
+
+function serviceWorkerSnap(): { controlled: boolean; script: string } | null {
+  try {
+    const worker = navigator.serviceWorker;
+    if (!worker) return { controlled: false, script: '' };
+    const script = worker.controller?.scriptURL ? redactUrl(worker.controller.scriptURL) : '';
+    return { controlled: Boolean(worker.controller), script };
+  } catch {
+    return null;
+  }
+}
+
 function deviceSection(): Record<string, unknown> {
   const nav = navigator as Navigator & { deviceMemory?: number; standalone?: boolean };
   const viewport = window.visualViewport;
@@ -776,8 +943,24 @@ function deviceSection(): Record<string, unknown> {
   try {
     displayModeStandalone = window.matchMedia('(display-mode: standalone)').matches;
   } catch { /* ignore */ }
+  const parsed = parseClient(navigator.userAgent);
+  const client = {
+    ...parsed,
+    label: clientLabel(parsed),
+    mobile: typeof clientHints?.mobile === 'boolean'
+      ? clientHints.mobile
+      : /Mobile|iPhone|iPad|Android/i.test(navigator.userAgent),
+    platform: clientHints?.platform ?? null,
+    platformVersion: clientHints?.platformVersion ?? null,
+    architecture: clientHints?.architecture ?? null,
+    bitness: clientHints?.bitness ?? null,
+    brands: clientHints?.brands ?? null,
+  };
   return {
     userAgent: navigator.userAgent,
+    client,
+    cookieEnabled: navigator.cookieEnabled,
+    serviceWorker: serviceWorkerSnap(),
     platform: navigator.platform,
     vendor: navigator.vendor,
     maxTouchPoints: navigator.maxTouchPoints,

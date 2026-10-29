@@ -85,11 +85,16 @@ function render(root: HTMLElement): void {
 
   const summary = document.createElement('dl');
   summary.className = 'grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs';
+  const client = report.device.client;
+  const clientLabel = client && typeof client === 'object' && typeof (client as { label?: unknown }).label === 'string'
+    ? (client as { label: string }).label
+    : '';
   const rows: Array<[string, string]> = [
     ['Сессия', report.sessionId],
     ['Старт', formatStarted(report.app.startedAt)],
     ['Событий', String(report.events.length)],
     ['Сеть', report.network.onLine ? 'online' : 'offline'],
+    ['Клиент', clientLabel || 'не определён'],
     ['Сборка', bundleLabel(report.app.moduleScript)],
   ];
   for (const [label, value] of rows) {
