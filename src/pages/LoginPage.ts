@@ -7,7 +7,61 @@ import { isAuthenticated, getRedirectByRole, getRole } from '../utils/auth.js';
 import { refreshEmployerInboxBadge } from '../utils/employerInboxBadge.js';
 import { EMAIL_FORMAT_HINT, isValidEmailFormat } from '../utils/email.js';
 import { devLog } from '../utils/logger.js';
+import { isNetworkError, TIMEOUT_ERROR_MESSAGE } from '../utils/netFetch.js';
+import {
+  assistLoginNetworkFailure,
+  deliverDiagnostics,
+  diagEvent,
+  downloadDiagnostics,
+  hashEmailShort,
+  maskEmail,
+  openDiagnosticsPanel,
+  pingHealth,
+} from '../utils/diagnostics.js';
 import { shoppingBagIcon, visibilityToggleIcons } from '../utils/icons.js';
+
+/** Символы, которые поле пароля оставляет при вводе. На submit пароль не перефильтровывается. */
+const LOGIN_PASSWORD_CHAR = /^[a-zA-Z0-9!@#$%^&*()\-_=+]*$/;
+
+function passwordLengthAfterFilter(password: string): number {
+  return password.split('').filter((ch) => LOGIN_PASSWORD_CHAR.test(ch)).length;
+}
+
+async function loginEmailHash(email: string): Promise<string> {
+  if (!email) return '';
+  try {
+    return await Promise.race([
+      hashEmailShort(email),
+      new Promise<string>((resolve) => window.setTimeout(() => resolve(''), 400)),
+    ]);
+  } catch {
+    return '';
+  }
+}
+
+function loginClickData(ev: Event, button: HTMLButtonElement | null): Record<string, unknown> {
+  const mouse = ev instanceof MouseEvent ? ev : null;
+  const pointer = ev instanceof PointerEvent ? ev : null;
+  const rect = button?.getBoundingClientRect();
+  const target = ev.target instanceof Element ? ev.target : null;
+  const active = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  return {
+    isTrusted: ev.isTrusted,
+    pointerType: pointer?.pointerType || (ev instanceof KeyboardEvent ? 'keyboard' : undefined),
+    clientX: mouse?.clientX,
+    clientY: mouse?.clientY,
+    targetId: target?.id || undefined,
+    buttonRect: rect
+      ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height, top: rect.top, bottom: rect.bottom }
+      : undefined,
+    innerHeight: window.innerHeight,
+    visualViewport: { height: window.visualViewport?.height },
+    scrollY: window.scrollY,
+    activeElementId: active?.id || undefined,
+    onLine: navigator.onLine,
+    visibilityState: document.visibilityState,
+  };
+}
 
 export async function createLoginPage(): Promise<HTMLElement> {
   if (isAuthenticated()) {
@@ -90,6 +144,30 @@ export async function createLoginPage(): Promise<HTMLElement> {
           ></div>
 
           <div
+            id="login-diag-banner"
+            class="hidden w-full rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950 space-y-3"
+            role="status"
+          >
+            <p>Не удалось связаться с сервером. Скачайте диагностику и отправьте разработчику.</p>
+            <div class="flex flex-wrap gap-2">
+              <button
+                type="button"
+                id="login-diag-download"
+                class="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-3 text-sm font-semibold text-white"
+              >
+                Скачать диагностику
+              </button>
+              <button
+                type="button"
+                id="login-diag-send"
+                class="inline-flex h-10 items-center justify-center rounded-lg border border-amber-400 bg-white px-3 text-sm font-semibold text-amber-950"
+              >
+                Отправить
+              </button>
+            </div>
+          </div>
+
+          <div
             id="email-not-verified-box"
             class="hidden w-full rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 space-y-2"
           >
@@ -125,6 +203,11 @@ export async function createLoginPage(): Promise<HTMLElement> {
           </div>
         </div>
       </main>
+      <footer class="flex w-full shrink-0 justify-center px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <button type="button" id="login-diagnostics-link" class="py-2 text-sm font-medium text-slate-500 underline underline-offset-2">
+          Диагностика
+        </button>
+      </footer>
     </div>
   `;
 
@@ -135,6 +218,13 @@ export async function createLoginPage(): Promise<HTMLElement> {
 }
 
 function setupEventHandlers(page: HTMLElement) {
+  try {
+    diagEvent('login_page_view', {
+      path: location.pathname,
+      onLine: navigator.onLine,
+      visibilityState: document.visibilityState,
+    });
+  } catch { /* ignore */ }
   const ensureLoginTooltipKeyframes = (): void => {
     if (document.querySelector('#login-tooltip-keyframes')) return;
     const style = document.createElement('style');
@@ -269,19 +359,18 @@ function setupEventHandlers(page: HTMLElement) {
   const setupPasswordValidation = (input: HTMLInputElement) => {
     // Разрешенные символы: латиница (a-z, A-Z), цифры (0-9), безопасные специальные символы
     // Безопасные специальные символы: !@#$%^&*()-_=+
-    const allowedCharsRegex = /^[a-zA-Z0-9!@#$%^&*()\-_=+]*$/;
     const allowedMessage = 'Разрешены только: латинские буквы (a-z, A-Z), цифры (0-9) и символы !@#$%^&*()-_=+';
     
     input.addEventListener('input', (e) => {
       const value = (e.target as HTMLInputElement).value;
       
       // Фильтруем только разрешенные символы
-      const filtered = value.split('').filter(char => allowedCharsRegex.test(char)).join('');
+      const filtered = value.split('').filter(char => LOGIN_PASSWORD_CHAR.test(char)).join('');
       
       if (value !== filtered) {
         input.value = filtered;
         // Находим первый недопустимый символ для показа ошибки
-        const invalidChar = value.split('').find(char => !allowedCharsRegex.test(char));
+        const invalidChar = value.split('').find(char => !LOGIN_PASSWORD_CHAR.test(char));
         if (invalidChar) {
           showPasswordTooltip(input, allowedMessage);
         }
@@ -291,7 +380,7 @@ function setupEventHandlers(page: HTMLElement) {
     input.addEventListener('keypress', (e) => {
       const char = e.key;
       // Разрешаем латиницу, цифры, специальные символы и служебные клавиши
-      if (!allowedCharsRegex.test(char) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Enter'].includes(char)) {
+      if (!LOGIN_PASSWORD_CHAR.test(char) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Enter'].includes(char)) {
         e.preventDefault();
         showPasswordTooltip(input, allowedMessage);
       }
@@ -299,7 +388,7 @@ function setupEventHandlers(page: HTMLElement) {
 
     input.addEventListener('paste', (e) => {
       const paste = (e.clipboardData || (window as any).clipboardData).getData('text');
-      const filtered = paste.split('').filter((char: string) => allowedCharsRegex.test(char)).join('');
+      const filtered = paste.split('').filter((char: string) => LOGIN_PASSWORD_CHAR.test(char)).join('');
       
       if (paste !== filtered) {
         e.preventDefault();
@@ -377,6 +466,11 @@ function setupEventHandlers(page: HTMLElement) {
     loginErrorEl.textContent = message;
     loginErrorEl.classList.remove('hidden');
     loginErrorEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    try { diagEvent('login_error_shown', { message }); } catch { /* ignore */ }
+  };
+
+  const showDiagBanner = (): void => {
+    page.querySelector('#login-diag-banner')?.classList.remove('hidden');
   };
 
   const clearLoginErrors = (): void => {
@@ -434,7 +528,10 @@ function setupEventHandlers(page: HTMLElement) {
     input.style.borderColor = '';
   };
 
-  const handleLogin = async () => {
+  const handleLogin = async (ev?: Event) => {
+    if (ev) {
+      try { diagEvent('login_click', loginClickData(ev, loginButton)); } catch { /* ignore */ }
+    }
     let isValid = true;
     hideLoginError();
     hideEmailNotVerifiedBox();
@@ -465,6 +562,19 @@ function setupEventHandlers(page: HTMLElement) {
       isValid = false;
     }
 
+    const emailHash = await loginEmailHash(email);
+    try {
+      diagEvent('login_validation', {
+        emailValid: Boolean(email) && isValidEmailFormat(email),
+        emailMasked: maskEmail(email),
+        emailHash,
+        emailLength: email.length,
+        passwordLength: password.length,
+        passwordLengthAfterFilter: passwordLengthAfterFilter(password),
+        passwordNonEmpty: password.length > 0,
+      });
+    } catch { /* ignore */ }
+
     // Если есть ошибки, не продолжаем
     if (!isValid) {
       showLoginError('Проверьте email и пароль.');
@@ -483,12 +593,19 @@ function setupEventHandlers(page: HTMLElement) {
       loginButton.textContent = 'Вход...';
     }
 
+    const requestStarted = performance.now();
     try {
+      try { diagEvent('login_request_start', { layer: 'page' }); } catch { /* ignore */ }
       // Вызов API для авторизации
       const response = await apiService.login(email, password);
+      const ms = Math.round(performance.now() - requestStarted);
+      try {
+        diagEvent('login_request_end', { layer: 'page', ms, success: Boolean(response?.success) });
+      } catch { /* ignore */ }
       
       if (response.success) {
-        devLog.log('Успешная авторизация:', response.data.user);
+        try { diagEvent('login_success', { ms, role: getRole() }); } catch { /* ignore */ }
+        devLog.log('Успешная авторизация, role:', getRole());
         if (getRole() === 'employer') void refreshEmployerInboxBadge();
         router.navigate(getRedirectByRole());
       } else {
@@ -496,6 +613,7 @@ function setupEventHandlers(page: HTMLElement) {
       }
     } catch (error: any) {
       console.error('Ошибка авторизации:', error);
+      const ms = Math.round(performance.now() - requestStarted);
 
       const errorMessage =
         (Array.isArray(error.errors) && error.errors[0]?.message) ||
@@ -503,6 +621,18 @@ function setupEventHandlers(page: HTMLElement) {
         'Произошла ошибка при авторизации';
 
       const code = String(error.code || '').toUpperCase();
+
+      if (!isNetworkError(error)) {
+        try {
+          diagEvent('login_http_error', {
+            layer: 'page',
+            status: typeof error?.status === 'number' ? error.status : undefined,
+            code,
+            message: errorMessage,
+            ms,
+          });
+        } catch { /* ignore */ }
+      }
 
       if (code === 'EMAIL_NOT_VERIFIED') {
         const box = page.querySelector('#email-not-verified-box') as HTMLElement;
@@ -531,6 +661,23 @@ function setupEventHandlers(page: HTMLElement) {
         if (passwordInputHandler) markFieldAsInvalid(passwordInputHandler);
       } else {
         showLoginError(errorMessage);
+        if (isNetworkError(error)) {
+          const timedOut = errorMessage === TIMEOUT_ERROR_MESSAGE;
+          try {
+            diagEvent(timedOut ? 'login_timeout' : 'login_network_error', {
+              layer: 'page',
+              final: true,
+              message: errorMessage,
+              ms,
+            });
+          } catch { /* ignore */ }
+          showDiagBanner();
+          // Пинг после финального провала, не между попытками: иначе он сам задержит повтор POST.
+          void (async () => {
+            try { await pingHealth(); } catch { /* ignore */ }
+            try { assistLoginNetworkFailure(); } catch { /* ignore */ }
+          })();
+        }
         if (error.field === 'email' || errorMessage.toLowerCase().includes('email')) {
           if (emailInput) markFieldAsInvalid(emailInput);
         } else if (error.field === 'password' || errorMessage.toLowerCase().includes('парол')) {
@@ -546,7 +693,9 @@ function setupEventHandlers(page: HTMLElement) {
     }
   };
 
-  loginButton?.addEventListener('click', handleLogin);
+  loginButton?.addEventListener('click', (ev) => {
+    void handleLogin(ev);
+  });
 
   // Обработка Enter в полях ввода
   emailInput?.addEventListener('keypress', (e) => {
@@ -557,7 +706,7 @@ function setupEventHandlers(page: HTMLElement) {
 
   passwordInputHandler?.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
-      handleLogin();
+      void handleLogin(e);
     }
   });
 
@@ -596,6 +745,16 @@ function setupEventHandlers(page: HTMLElement) {
   registerLink?.addEventListener('click', (e) => {
     e.preventDefault();
     router.navigate('/signup');
+  });
+
+  page.querySelector('#login-diagnostics-link')?.addEventListener('click', () => {
+    try { openDiagnosticsPanel(); } catch { /* ignore */ }
+  });
+  page.querySelector('#login-diag-download')?.addEventListener('click', () => {
+    try { downloadDiagnostics(); } catch { /* ignore */ }
+  });
+  page.querySelector('#login-diag-send')?.addEventListener('click', () => {
+    void deliverDiagnostics().catch(() => {});
   });
 }
 

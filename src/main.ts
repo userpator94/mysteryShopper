@@ -45,6 +45,7 @@ import { showWebDeviceModal } from './components/WebDeviceMessage.js'
 import { detectDevice } from './utils/deviceDetection.js'
 import { apiService } from './services/api.js'
 import { isAuthenticated, getRole } from './utils/auth.js'
+import { initDiagnostics } from './utils/diagnostics.js'
 import { updateNavByRole } from './components/Layout.js'
 import { refreshEmployerInboxBadge } from './utils/employerInboxBadge.js'
 import {
@@ -55,6 +56,12 @@ import {
   ADMIN_QUEUES_PATH,
   isAdminPanelPath
 } from './utils/adminPaths.js'
+
+try {
+  initDiagnostics()
+} catch {
+  /* диагностика не блокирует запуск */
+}
 
 // Проверяем тип устройства
 const app = document.querySelector<HTMLDivElement>('#app')!

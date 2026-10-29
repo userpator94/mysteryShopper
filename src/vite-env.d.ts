@@ -12,3 +12,6 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+/** Время сборки, подставляется Vite (`define` в vite.config.ts). */
+declare const __BUILD_TIME__: string;

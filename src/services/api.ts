@@ -27,7 +27,8 @@ import type {
   LegalOfferMeta
 } from '../types/index.js';
 import { devLog } from '../utils/logger.js';
-import { netFetch } from '../utils/netFetch.js';
+import { diagEvent } from '../utils/diagnostics.js';
+import { isNetworkError, netFetch, TIMEOUT_ERROR_MESSAGE } from '../utils/netFetch.js';
 import { setRole, clearRole } from '../utils/auth.js';
 import { clearRecentOffers } from '../utils/recentOffers.js';
 import { ADMIN_LOGIN_PATH, isAdminPanelPath } from '../utils/adminPaths.js';
@@ -561,18 +562,88 @@ export class ApiService {
     }
   }
 
-  // Аутентификация
-  private async authPost<T>(
+  // Вход повторяем один раз при сетевом сбое или таймауте: на мобильных сетях
+  // первый POST может уйти в «мёртвое» keep-alive соединение и не дойти до сервера.
+  // Повтор безопасен: успешный вход просто выдаёт новый токен.
+  private async authPostWithRetry<T>(
     endpoint: string,
     body: Record<string, unknown>
   ): Promise<T> {
+    const isLoginEndpoint = endpoint === '/login' || endpoint === '/admin/login';
+    try {
+      return await this.authPost<T>(endpoint, body, isLoginEndpoint ? 1 : undefined);
+    } catch (error) {
+      if (!isNetworkError(error)) throw error;
+      const delayMs = 300;
+      const reason = (error as Error).message === TIMEOUT_ERROR_MESSAGE ? 'TIMEOUT' : 'NETWORK_ERROR';
+      try {
+        if (isLoginEndpoint) {
+          diagEvent('login_retry', { attempt: 2, delayMs, reason, endpoint });
+        }
+        diagEvent('retry_scheduled', { attempt: 2, delayMs, reason, endpoint });
+      } catch { /* журнал не влияет на повтор */ }
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      try {
+        diagEvent('retry_start', { attempt: 2, delayMs, reason, endpoint });
+      } catch { /* журнал не влияет на повтор */ }
+      return this.authPost<T>(endpoint, body, isLoginEndpoint ? 2 : undefined);
+    }
+  }
+
+  // Аутентификация. attempt задаётся только для login: заголовок X-Diag-Attempt и журнал попытки.
+  private async authPost<T>(
+    endpoint: string,
+    body: Record<string, unknown>,
+    attempt?: number
+  ): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
-    const response = await netFetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    const data = await this.parseResponse(response);
+    const isLoginEndpoint = endpoint === '/login' || endpoint === '/admin/login';
+    const attemptNo = attempt ?? 1;
+    if (isLoginEndpoint) {
+      try {
+        diagEvent('login_request_start', { layer: 'api', attempt: attemptNo, endpoint });
+      } catch { /* ignore */ }
+    }
+    let response: Response;
+    try {
+      response = await netFetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        ...(isLoginEndpoint ? { diagAttempt: attemptNo } : {}),
+      });
+    } catch (error) {
+      if (isLoginEndpoint && isNetworkError(error)) {
+        const timedOut = (error as Error).message === TIMEOUT_ERROR_MESSAGE;
+        try {
+          diagEvent(timedOut ? 'login_timeout' : 'login_network_error', {
+            layer: 'api',
+            attempt: attemptNo,
+            endpoint,
+            message: error instanceof Error ? error.message : '',
+          });
+        } catch { /* ignore */ }
+      }
+      throw error;
+    }
+    let data: any;
+    try {
+      data = await this.parseResponse(response);
+    } catch (error) {
+      if (isLoginEndpoint) {
+        try {
+          diagEvent('login_http_error', {
+            layer: 'api',
+            attempt: attemptNo,
+            endpoint,
+            status: response.status,
+            message: error instanceof Error ? error.message : '',
+          });
+        } catch { /* ignore */ }
+      }
+      if (error instanceof Error) (error as Error & { status?: number }).status = response.status;
+      throw error;
+    }
     if (!response.ok || !data.success) {
       const errPayload = data.error ?? {};
       const error: any = new Error(
@@ -581,13 +652,36 @@ export class ApiService {
       error.code = errPayload.code;
       error.field = errPayload.field;
       error.errors = errPayload.errors;
+      error.status = response.status;
+      if (isLoginEndpoint) {
+        try {
+          diagEvent('login_http_error', {
+            layer: 'api',
+            attempt: attemptNo,
+            endpoint,
+            status: response.status,
+            code: typeof errPayload.code === 'string' ? errPayload.code : undefined,
+            message: error.message,
+          });
+        } catch { /* ignore */ }
+      }
       throw error;
+    }
+    if (isLoginEndpoint) {
+      try {
+        diagEvent('login_request_end', {
+          layer: 'api',
+          attempt: attemptNo,
+          endpoint,
+          status: response.status,
+        });
+      } catch { /* ignore */ }
     }
     return data as T;
   }
 
   public async login(email: string, password: string): Promise<{ success: boolean; data: { token: string; user: any; expiresIn: number } }> {
-    const data = await this.authPost<{ success: boolean; data: { token: string; user: any; expiresIn: number } }>(
+    const data = await this.authPostWithRetry<{ success: boolean; data: { token: string; user: any; expiresIn: number } }>(
       '/login',
       { email, password }
     );
@@ -606,7 +700,7 @@ export class ApiService {
     email: string,
     password: string
   ): Promise<{ success: boolean; data: { token: string; user: any; expiresIn: number } }> {
-    const data = await this.authPost<{ success: boolean; data: { token: string; user: any; expiresIn: number } }>(
+    const data = await this.authPostWithRetry<{ success: boolean; data: { token: string; user: any; expiresIn: number } }>(
       '/admin/login',
       { email, password }
     );

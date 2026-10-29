@@ -1,6 +1,9 @@
 import { defineConfig } from 'vite'
 
 export default defineConfig({
+  define: {
+    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+  },
   server: {
     host: '0.0.0.0', // Слушать на всех интерфейсах
     port: 5173,
@@ -22,6 +25,11 @@ export default defineConfig({
             console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
           });
         },
+      },
+      '/health': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        secure: false,
       }
     }
   },

@@ -1,5 +1,7 @@
 // Простой роутер для SPA приложения
 
+import { syncDiagnosticsQuery } from '../utils/diagnostics.js';
+
 export type RouteRole = 'user' | 'employer' | 'admin';
 
 export interface Route {
@@ -242,6 +244,7 @@ class Router {
       }
     } finally {
       this.isHandlingRoute = false;
+      try { syncDiagnosticsQuery(); } catch { /* диагностика не ломает маршрутизацию */ }
     }
   }
 
